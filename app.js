@@ -3,7 +3,11 @@
 // 11-24 사용자: 합니다체·증권사 용어("~보다 낫다" 금지), 성적표는 빠짐없이·단위 통일, 차트는 증권사 수준(캔들/선·십자선·실시간).
 // 공개 페이지(github.io/bandeung)는 봇이 폰 앱 자료와 같은 파일을 data/ 에 같이 올린다(publish.py) — 앱과 페이지가 한 몸.
 const WEB = location.hostname.endsWith("github.io");
-const DATA_URL = WEB ? "data/app_data.json" : "../out/app_data.json", HIST_URL = WEB ? "data/app_hist.json" : "../out/app_hist.json";
+// 11-27 사용자: 한 묶음 비중은 각자 정함(5~25%) → 그 비중으로 계산한 자료 묶음을 통째로 바꿔 읽음(20 = 기본, 나머지 = s{N}/).
+const LOTS = [5, 10, 15, 20, 25];
+const lotDir = () => (S.lot && S.lot !== 20 ? `s${S.lot}/` : "");
+const dataUrl = () => (WEB ? "data/" : "../out/") + lotDir() + "app_data.json", histUrl = () => (WEB ? "data/" : "../out/") + lotDir() + "app_hist.json";
+const RISK_URL = WEB ? "data/size_risk.json" : "../out/size_risk.json";
 const ORDER = ["B"];   // 11-26 사용자: 균형형(200일선 추세 + 공포 단타) 하나만. 단타 종목만 선택
 const P = {B: {name: "추세+단타", v: "--B"},
            qqq: {name: "QQQ 보유", v: "--Q"}, dep: {name: "예금(세후)", v: "--dep"}};
@@ -14,7 +18,8 @@ const PRODUCTS = {QQQ: {title:"1배 · 나스닥100", target:2.5}, QLD: {title:"
 const productOptions = Object.entries(PRODUCTS).map(([s,p])=>[s,`${s} · ${p.title.match(/\d배/)[0]}`]);
 const S = load({prof: "B", tab: "home", h: "5", myKrw: "", year: "all", assume: true, view: "krw", cmode: "log",
                 lsym: "TQQQ", ltype: "candle", lrange: "3m", srange: "1y", stype: "line", frange: "5y", fee: "0.001", simd: "", sima: "", guideSeen: false,
-                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:""});
+                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:"", lot:20});
+if (!LOTS.includes(Number(S.lot))) S.lot = 20; S.lot = Number(S.lot);
 if (!S.simd) S.simd = new Date().getFullYear() + "-01-01";
 S.prof = "B"; if (S.compSet === "all") S.compSet = "duel";
 function load(d) { try { return Object.assign({}, d, JSON.parse(localStorage.getItem("ui3") || "{}")); } catch (e) { return d; } }
@@ -64,6 +69,7 @@ const kst = (ts) => new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 16).
 function pills() {
   $("#pills").innerHTML = ""; $("#pills").style.display = "none";   // 유형은 하나뿐 → 단타 종목만 고름
   $("#asof").textContent = D ? `${ymd(D.last_close)} 종가 기준` : "";
+  $("#mylot").textContent = `내 설정 · 한 묶음 ${S.lot}%`; $("#mylot").onclick = openSettings;
   $("#ptag").innerHTML = `<span>공포 단타 상품</span>${seg(productOptions,S.inst,"instrument","sm")}`;
   bindSeg("instrument",chooseInstrument); $("#bGuide").onclick = openGuide; $("#bSet").onclick = openSettings;
   document.documentElement.style.setProperty("--toph", $(".top").offsetHeight + "px");
@@ -83,7 +89,7 @@ function needHist(cb) {
   histWaiters.push(cb);
   if (histWaiters.length === 1) {
     if (AND) { const s = AND.getHist && AND.getHist(); if (s) { try { histReady(JSON.parse(s)); } catch (e) {} } }
-    else fetch(HIST_URL, {cache: "no-store"}).then((r) => r.json()).then(histReady).catch(() => { histWaiters=[]; });
+    else fetch(histUrl(), {cache: "no-store"}).then((r) => r.json()).then(histReady).catch(() => { histWaiters=[]; });
   }
   return false;
 }
@@ -140,7 +146,7 @@ const INFO = {
   B: {tag: "200일선 추세 추종 + 공포 단타", mix: [["추세 추종(QQQM ↔ 단기국채)", 100, "var(--qm)"]],
       body: "나스닥100(QQQ) 종가를 200일 이동평균선과 비교해 보유 여부를 정합니다. 종가가 200일선보다 3% 이상 높게 마감하면 QQQM을 전부 매수하고, 3% 이상 낮게 마감하면 전량 매도한 뒤 단기국채(SGOV)로 대기합니다. ±3% 완충 구간은 200일선 부근에서 매매가 잦아지는 것을 막습니다."},
 };
-const swingRule = () => `일반 매수는 공포(VIX 30 이상 또는 CNN 공포탐욕 30 이하), 1년 고점 대비 하락률 −10%~−25%, RSI 30 미만, 남은 차수를 함께 봅니다. RSI 26 지정가·급락·예비 매수는 별도 조건입니다. ${S.inst}는 1회 목표 금액이 계좌의 20%, 기본 4회와 예비 1회입니다. 단, 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 차수는 절반(10%)만 매수합니다. 빠르고 깊은 하락이 반등도 컸고, 천천히 흘러내리는 하락에서 크게 사면 손실이 길어졌기 때문입니다. 목표 +${PRODUCTS[S.inst].target}%와 첫 매수 후 10거래일 기한을 함께 관리합니다. 실제 주문 전에 결제된 현금과 체결 주 수를 확인하십시오.`;
+const swingRule = () => `일반 매수는 공포(VIX 30 이상 또는 CNN 공포탐욕 30 이하), 1년 고점 대비 하락률 −10%~−25%, RSI 30 미만, 남은 차수를 함께 봅니다. RSI 26 지정가·급락 매수는 별도 조건입니다. ${S.inst}는 한 묶음이 계좌의 ${S.lot}%(내 설정), 최대 4묶음입니다. 단, 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반(${S.lot / 2}%)만 매수합니다. 빠르고 깊은 하락이 반등도 컸고, 천천히 흘러내리는 하락에서 크게 사면 손실이 길어졌기 때문입니다. 목표 +${PRODUCTS[S.inst].target}%와 첫 매수 후 10거래일 기한을 함께 관리합니다. 실제 주문 전에 결제된 현금과 체결 주 수를 확인하십시오.`;
 
 // ── 설정·안내 시트 ──
 const FEES = [["0.0007", "0.07%"], ["0.001", "0.10%"], ["0.0015", "0.15%"], ["0.0025", "0.25%"]];
@@ -197,8 +203,25 @@ function openTour(step=0,restart=false) {
   el.ontouchstart=e=>{touch=e.touches[0].clientX;};
   el.ontouchend=e=>{if(touch===null)return; const d=e.changedTouches[0].clientX-touch; touch=null;if(Math.abs(d)>70)openTour(i+(d<0?1:-1));};
 }
+// 한 묶음 비중 바꾸기: 그 비중으로 계산한 자료를 새로 받아 화면 전체를 다시 그림
+function setLot(n) {
+  if (n === S.lot) return; S.lot = n; save();
+  D = null; H = null; rawData = null; rawHist = null; histWaiters = [];
+  $("#view").innerHTML = wait(`한 묶음 ${n}% 자료를 불러오는 중입니다`); loadData();
+}
+let RISK = null;
+function riskText(n) {
+  const r = RISK?.[S.inst]?.[n]?.[S.view === "usd" ? "usd" : "krw"]; if (!r) return "과거 계산을 불러오는 중입니다.";
+  return `${S.inst} 기준 2000년부터 계산하면 연 ${pct(r.cagr)}, 계좌 최대 낙폭 ${pct(r.mdd)}입니다. 단타 중 계좌 평가손실은 최악 ${pct(r.acc_worst)}(${ymd(r.acc_worst_d).slice(0, 7)}), 단타 상품 비중은 최대 ${pctu(r.w_max, 0)}까지 올라갑니다. 거래 ${r.n}번 중 손실로 끝난 거래 ${r.loss}번.`;
+}
 function openSettings() {
-  sheet(`<div class="title">설정</div>
+  if (!RISK) fetch(RISK_URL, {cache: "no-store"}).then((r) => r.json()).then((x) => { RISK = x; const el = $("#lotrisk"); if (el) el.textContent = riskText(Number($("[data-lot].on")?.dataset.lot || S.lot)); }).catch(() => {});
+  sheet(`<div class="title">내 설정</div>
+    <div class="sub-h">한 묶음 비중</div>${seg(LOTS.map((n) => [String(n), n + "%"]), String(S.lot), "lot")}
+    <div class="desc">공포 구간에서 한 번 살 때 계좌의 몇 %를 살지 정합니다. 최대 4묶음이고, 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반만 삽니다. 고른 비중으로 홈·비교·기록·신호의 모든 숫자와 그래프를 다시 계산해 보여 줍니다.</div>
+    <div class="alert" id="lotrisk">${riskText(S.lot)}</div>
+    <div class="desc">비중을 키우면 과거 수익은 커지지만, 규칙이 맞지 않는 하락이 오면 손실도 같은 배수로 커집니다. 과거 계산은 앞으로의 결과를 보장하지 않습니다.</div>
+    <div class="sub-h">매매 수수료(한쪽)</div>
     <div class="sub-h">매매 수수료(한쪽)</div>${seg(FEES, S.fee, "fee")}
     <div class="desc">미국 주식 매매 수수료는 증권사와 우대 조건에 따라 한쪽 0.07%~0.25% 정도로 다릅니다. 이용하는 증권사의 수수료를 고르면 모든 과거 성과에 반영합니다(단타·추세 매매 모두, 체결 미끄러짐 0.02%는 별도 포함). 환전 수수료는 처음 환전할 때 한 번이라 반영하지 않습니다.</div>
     <div class="sub-h">기준</div>${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "vw2")}
@@ -207,9 +230,10 @@ function openSettings() {
     <label class="form-label" for="setcash">결제 완료 달러 현금 (선택)</label><input class="money" id="setcash" inputmode="decimal" placeholder="증권사 주문가능금액 확인" value="${esc(S.cashUsd)}">
     <div class="desc">운용 금액으로 모델 주 수를 환산합니다. 현금 입력 시 매수 수량에 현금 상한도 적용합니다. 매도 시 실제 보유 주 수를 확인하십시오.</div>
     <button class="btn" id="sok">저장</button>`, (close) => {
+    bindSeg("lot", (v) => { document.querySelectorAll("[data-lot]").forEach((b) => b.classList.toggle("on", b.dataset.lot === v)); $("#lotrisk").textContent = riskText(Number(v)); });
     bindSeg("fee", (v) => { S.fee = v; save(); document.querySelectorAll("[data-fee]").forEach((b) => b.classList.toggle("on", b.dataset.fee === v)); });
     bindSeg("vw2", (v) => { S.view = v; save(); document.querySelectorAll("[data-vw2]").forEach((b) => b.classList.toggle("on", b.dataset.vw2 === v)); });
-    $("#sok").onclick = () => { S.myKrw = $("#setamt").value; S.cashUsd=$("#setcash").value; if (!S.sima) S.sima = S.myKrw; save(); close(); };
+    $("#sok").onclick = () => { S.myKrw = $("#setamt").value; S.cashUsd=$("#setcash").value; if (!S.sima) S.sima = S.myKrw; save(); const n = Number($("[data-lot].on")?.dataset.lot || S.lot); close(); setLot(n); };
   });
 }
 
@@ -390,7 +414,7 @@ function compare() {
     <table class="tbl"><thead><tr><th>주문</th><th>언제 거나</th></tr></thead><tbody>
       <tr><td>목표가 매도</td><td>매수 직후 한 번 걸어 두면 체결될 때까지 유지(GTC)</td></tr>
       <tr><td>신규 매수(지정가)</td><td>전날 밤 알림을 보고 다음 장 전에 예약</td></tr>
-      <tr><td>장 마감 매수·예비 매수</td><td>마감 직후 알림(한국 아침 6시대)을 보고 시간외로 주문</td></tr>
+      <tr><td>장 마감 매수</td><td>마감 직후 알림(한국 아침 6시대)을 보고 시간외로 주문</td></tr>
       <tr><td>추세 매수·매도</td><td>전날 밤 다음 장 지정가(전일 종가 ±2%)로 예약</td></tr>
       <tr><td>보유 기한 매도</td><td>목표 주문 취소와 보유 주 수를 확인한 뒤 청산</td></tr></tbody></table>`);
   // 6) 임의 시점 N년 + 7) 세부 성적표
@@ -504,10 +528,9 @@ function rollTable(el, h) {
 const WHY = [
   ["목표가", "목표가 매도", "평균 매수단가 대비 +7.5%(QQQ 기준 약 +2.5%에 해당)에 지정가로 전량 매도합니다. 공포 구간 직후의 단기 반등 폭을 노리는 규칙이며, 주문은 체결될 때까지 유지(GTC)합니다."],
   ["보유기한", "보유 기한 매도", "1차 매수일로부터 10거래일 안에 목표가에 도달하지 못하면 손익과 관계없이 기한일 장 마감에 전량 매도합니다. 반등이 늦어질 때 레버리지 상품을 오래 들고 있으면 생기는 변동성 손실을 막기 위한 규칙입니다."],
-  ["전일 종가 지정가", "신규 매수(전일 종가 지정가)", "공포 구간이고, QQQ가 1년 고점 대비 -10%~-25% 범위이며, RSI(14)가 이미 30 미만으로 마감했습니다. 다음 거래일에 전일 종가 이하에서 체결되도록 비중 20%(느린 하락이면 10%)를 지정가 매수합니다."],
+  ["전일 종가 지정가", "신규 매수(전일 종가 지정가)", "공포 구간이고, QQQ가 1년 고점 대비 -10%~-25% 범위이며, RSI(14)가 이미 30 미만으로 마감했습니다. 다음 거래일에 전일 종가 이하에서 체결되도록 한 묶음(내 설정 비중, 느린 하락이면 절반)을 지정가 매수합니다."],
   ["RSI30 지정가", "신규 매수(RSI 30 지정가)", "공포 구간이고 고점 대비 하락 범위 안에 있지만 RSI(14)가 아직 30 이상입니다. QQQ가 RSI 30에 해당하는 가격까지 내려와야 체결되도록, 그 가격을 TQQQ 가격으로 환산해 지정가 매수합니다."],
   ["RSI26 지정가", "신규 매수(RSI 26 지정가)", "공포 구간이 아닐 때는 기준을 강화해 RSI 26에 해당하는 가격에서만 매수합니다."],
-  ["예비 매수", "예비 매수", "1차 매수가보다 15% 이상 낮게 마감한 경우 한 번에 한해 비중 20%(느린 하락이면 10%)를 추가 매수합니다. 평균 매수단가를 낮춰 목표가 도달 가능성을 높이는 규칙입니다."],
   ["대기자금 매도", "대기자금 매도", "추세 매수(QQQM)에 쓸 자금을 마련하기 위해 대기 중인 단기국채를 매도합니다."],
   ["추세 매수", "추세 매수", "QQQ 종가가 200일 이동평균선보다 3% 이상 높게 마감해 상승 추세로 전환되었습니다. 다음 거래일에 QQQM을 목표 비중까지 매수합니다(전일 종가 +2% 이내 지정가)."],
   ["추세 매도", "추세 매도", "QQQ 종가가 200일 이동평균선보다 3% 이상 낮게 마감해 하락 추세로 전환되었습니다. 다음 거래일에 QQQM을 매도하고 단기국채로 대기합니다(전일 종가 -2% 이내 지정가)."],
@@ -566,11 +589,11 @@ function checks(g, lots, reserveLine) {
     + row(g.band, "고점 대비 하락 범위", `QQQ 1년 고점 대비 ${pct(g.dd)}`, "-10% ~ -25%")
     + row(g.rsi != null ? g.rsi < 30 : null, "과매도(RSI 14)", `RSI ${num(g.rsi, 1)}`, "30 미만")
     + row(lots < 4, "남은 기본 차수", `${lots}차 보유`, "기본 최대 4차")
-    + (g.speed != null ? `<div class="chk"><span class="st ${g.slow ? "na" : "ok"}">${g.slow ? "절반" : "전액"}</span><div><div class="t1">하락 속도(매수 크기)</div><div class="t2">QQQ ${g.speed_n || 3}거래일 ${pct(g.speed)} · 기준 -4% 이하면 비중 20%, 아니면 10%${g.speed_line ? ` · 다음 장 QQQ ${usd2(g.speed_line)} 이하 마감 시 빠른 하락` : ""}</div></div></div>` : "")
+    + (g.speed != null ? `<div class="chk"><span class="st ${g.slow ? "na" : "ok"}">${g.slow ? "절반" : "전액"}</span><div><div class="t1">하락 속도(매수 크기)</div><div class="t2">QQQ ${g.speed_n || 3}거래일 ${pct(g.speed)} · 기준 -4% 이하면 한 묶음 ${S.lot}%, 아니면 절반 ${S.lot / 2}%${g.speed_line ? ` · 다음 장 QQQ ${usd2(g.speed_line)} 이하 마감 시 빠른 하락` : ""}</div></div></div>` : "")
     + `<details class="more"><summary>일반 조건과 별개로 검토하는 매수</summary>
     ${row(g.fear===false && g.band && g.rsi>=30 && lots<4,"RSI 26 지정가", "공포 구간 밖에서 대기 주문", "하락 범위 안 · 계산한 RSI 26 가격")}
     ${row(g.crash==null?null:g.crash&&lots<4,"급락 예외", `QQQ 1일 ${pct(g.day_return)} · 5거래일 ${pct(g.five_return)}`, "1일 −2.5%와 5거래일 −7.5% 동시 하회")}
-    ${row(reserveLine?g.reserve_ready:null,"예비 1회",reserveLine?`${S.inst} 기준선 ${usd2(reserveLine)}`:"사용 가능 예비 없음","첫 매수가 대비 15% 하락")}</details>`;
+</details>`;
 }
 
 // ── 기록(차트) ──
@@ -814,5 +837,6 @@ $("#bInstall").onclick = () => {
 };
 if (WEB && !STANDALONE && /iPhone|iPad/.test(navigator.userAgent)) $("#bInstall").hidden = false;
 if (AND) fromAndroid();
-else fetch(DATA_URL, {cache: "no-store"}).then((r) => r.json()).then((d) => { rawData=d; selectModels(); render(); firstGuide(); refreshQuote(S.inst).then(() => S.tab === "home" || S.tab === "todo" ? render() : 0); })
-  .catch((e) => { $("#view").innerHTML = `<div class="card"><div class="alert"><b>자료를 읽지 못했습니다</b> ${esc(e.message)}</div></div>`; });
+else loadData();
+function loadData() { fetch(dataUrl(), {cache: "no-store"}).then((r) => r.json()).then((d) => { rawData=d; selectModels(); render(); firstGuide(); refreshQuote(S.inst).then(() => S.tab === "home" || S.tab === "todo" ? render() : 0); })
+  .catch((e) => { $("#view").innerHTML = `<div class="card"><div class="alert"><b>자료를 읽지 못했습니다</b> ${esc(e.message)}</div></div>`; }); }
