@@ -212,7 +212,7 @@ function setLot(n) {
 let RISK = null;
 function riskText(n) {
   const r = RISK?.[S.inst]?.[n]?.[S.view === "usd" ? "usd" : "krw"]; if (!r) return "과거 계산을 불러오는 중입니다.";
-  return `${S.inst} 기준 2000년부터 계산하면 연 ${pct(r.cagr)}, 계좌 최대 낙폭 ${pct(r.mdd)}입니다. 단타 중 계좌 평가손실은 최악 ${pct(r.acc_worst)}(${ymd(r.acc_worst_d).slice(0, 7)}), 단타 상품 비중은 최대 ${pctu(r.w_max, 0)}까지 올라갑니다. 거래 ${r.n}번 중 손실로 끝난 거래 ${r.loss}번.`;
+  return `${S.inst} 기준 2000년부터 계산하면(수수료 빼기 전) 연 ${pct(r.cagr)}, 계좌 최대 낙폭 ${pct(r.mdd)}입니다. 단타 중 계좌 평가손실은 최악 ${pct(r.acc_worst)}(${ymd(r.acc_worst_d).slice(0, 7)}), 단타 상품 비중은 최대 ${pctu(r.w_max, 0)}까지 올라갑니다. 거래 ${r.n}번 중 손실로 끝난 거래 ${r.loss}번.`;
 }
 function openSettings() {
   if (!RISK) fetch(RISK_URL, {cache: "no-store"}).then((r) => r.json()).then((x) => { RISK = x; const el = $("#lotrisk"); if (el) el.textContent = riskText(Number($("[data-lot].on")?.dataset.lot || S.lot)); }).catch(() => {});
