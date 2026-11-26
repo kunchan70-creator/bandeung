@@ -3,171 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>반등 매매 주문표 · 나스닥100 하락장 매수·매도 기준 (무료)</title>
-<meta name="description" content="나스닥100(QQQ)이 1년 고점 대비 10~25% 하락하고 공포 지표(VIX·공포탐욕지수)와 RSI가 겹친 날, QQQ·QLD·TQQQ 매수·매도 지정가와 목표가·보유 기한을 매일 마감 후 무료로 공개합니다. 2000년부터의 과거 거래 기록 포함.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="반등 매매 주문표 · 나스닥100 하락장 매수·매도 기준">
-<meta property="og:description" content="200일선 추세 + 공포 구간 반등 매매. 매일 마감 후 주문표 갱신, 무료.">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+<title>반등 매매 · 공포 단타 주문표</title>
+<meta name="description" content="나스닥이 크게 빠진 날만 사고, 정해 둔 가격에 파는 규칙. 매일 장 마감 후 매수·매도 지정가를 무료로 공개합니다.">
+<meta property="og:title" content="반등 매매 · 공포 단타 주문표">
+<meta property="og:description" content="매일 장 마감 후 매수·매도 지정가 공개(무료)">
 <meta property="og:image" content="https://kunchan70-creator.github.io/bandeung/og.png">
 <meta property="og:url" content="https://kunchan70-creator.github.io/bandeung/">
-<link rel="canonical" href="https://kunchan70-creator.github.io/bandeung/">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233182f6'/><path d='M6 22l7-8 5 5 8-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<style>
-:root{--bg:#f2f4f6;--panel:#fff;--ink:#191f28;--sub:#4e5968;--mute:#8b95a1;--line:#e5e8eb;--fill:#f2f4f6;
- --red:#f04452;--red-bg:#fff0f1;--blue:#3182f6;--blue-bg:#e8f3ff;--orange:#fe9800;--orange-bg:#fff5e6}
-@media (prefers-color-scheme:dark){:root{--bg:#101013;--panel:#1d1d22;--ink:#e9e9ec;--sub:#b0b0b9;--mute:#7e7e88;--line:#2c2c34;--fill:#2a2a31;
- --red:#f4576a;--red-bg:#3a1d22;--blue:#4c95fb;--blue-bg:#17273f;--orange:#ffab2e;--orange-bg:#33260f}}
-*{box-sizing:border-box}html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased;word-break:keep-all}
-.wrap{max-width:600px;margin:0 auto;padding-bottom:40px}
-.sec{background:var(--panel);padding:22px 20px;margin-bottom:10px}
-@media (min-width:640px){.wrap{padding-top:12px}.sec{border-radius:20px}}
-h1{font-size:25px;line-height:1.35;letter-spacing:-.7px;margin:4px 0 8px}
-.sec h2{font-size:19px;font-weight:700;margin:0 0 14px;letter-spacing:-.4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.sec h2 small{font-size:13px;font-weight:500;color:var(--mute);letter-spacing:0}
-.num{font-variant-numeric:tabular-nums}
-.up{color:var(--red)}.dn{color:var(--blue)}.mu{color:var(--mute)}
-.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--fill);color:var(--sub)}
-.chip.red{background:var(--red-bg);color:var(--red)}.chip.blue{background:var(--blue-bg);color:var(--blue)}.chip.orange{background:var(--orange-bg);color:var(--orange)}
-.lead{font-size:16px;color:var(--sub)}
-.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
-.row:first-child{border-top:0}
-.row .k{color:var(--sub)}.row .v{text-align:right;font-weight:600}.row .v small{display:block;font-weight:500;font-size:13px;color:var(--mute)}
-.card{background:var(--fill);border-radius:14px;padding:14px 16px;margin-top:10px}
-.card .h{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:16px;margin-bottom:4px}
-.seg{display:flex;background:var(--fill);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
-.seg button{flex:1;border:0;background:none;font:600 14px/1 inherit;color:var(--mute);padding:9px 0;border-radius:8px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.kpi{background:var(--fill);border-radius:12px;padding:12px 14px}
-.kpi .l{font-size:13px;color:var(--sub)}.kpi .v{font-size:20px;font-weight:700;letter-spacing:-.4px}.kpi .s{font-size:12.5px;color:var(--mute)}
-.btn{display:block;text-align:center;background:var(--blue);color:#fff;text-decoration:none;font-weight:700;border-radius:12px;padding:14px;margin-top:14px;border:0;width:100%;font-size:15px;cursor:pointer;font-family:inherit}
-.btn.sub{background:var(--fill);color:var(--ink)}
-.ways a,.ways div{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-top:1px solid var(--line);color:var(--ink);text-decoration:none;font-weight:600}
-.ways a:first-child,.ways div:first-child{border-top:0}
-.ways small{font-weight:500;color:var(--mute);font-size:13px}
-textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:12px;padding:12px;font:15px/1.5 inherit;background:var(--panel);color:var(--ink);resize:vertical}
-.foot{font-size:12.5px;color:var(--mute);padding:6px 20px 0;line-height:1.7}
-.steps{counter-reset:s;margin:0;padding:0;list-style:none}
-.steps li{counter-increment:s;padding:8px 0 8px 32px;position:relative}
-.steps li:before{content:counter(s);position:absolute;left:0;top:8px;width:22px;height:22px;border-radius:50%;background:var(--blue-bg);color:var(--blue);font-size:13px;font-weight:700;display:grid;place-items:center}
-</style>
+<script>if(location.hostname.endsWith("github.io")&&!sessionStorage.v){sessionStorage.v=1;fetch("https://ntfy.sh/bd-in-16e06deda403",{method:"POST",body:"v land "+(document.referrer?new URL(document.referrer).hostname:"-")}).catch(()=>{});}</script>
+
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
-<div class="wrap">
-
-<section class="sec">
-  <span class="chip blue">무료 · 매일 미국장 마감 후 갱신</span>
-  <h1>나스닥100이 크게 떨어진 날의<br>매수·매도 주문표</h1>
-  <div class="lead">200일선 추세 추종 + 공포 구간 반등 매매. 지정가·목표가·보유 기한을 숫자로 공개합니다.</div>
-  <a class="btn" id="liveBtn" href="https://kunchan70-creator.github.io/qld-swing/">오늘 주문표 보기</a>
-</section>
-
-<section class="sec">
-  <h2>지금 상태 <small id="asOf"></small></h2>
-  <div id="state"><div class="mu">불러오는 중입니다</div></div>
-</section>
-
-<section class="sec">
-  <h2>매수 조건</h2>
-  <ol class="steps">
-    <li>QQQ가 1년 고점 대비 −10% ~ −25% 구간</li>
-    <li>VIX 30 이상 또는 CNN 공포탐욕지수 30 이하</li>
-    <li>QQQ RSI(14) 30 미만 (해당 가격 지정가 포함)</li>
-    <li>1회 비중 20% · 느린 하락이면 10% · 최대 4차</li>
-  </ol>
-  <h2 style="margin-top:12px">매도 조건</h2>
-  <ol class="steps">
-    <li>전략 기준 단가 대비 TQQQ +7.5% · QLD +5% · QQQ +2.5% 지정가 전량 매도</li>
-    <li>1차 매수 후 10거래일 안에 미체결이면 기한일 장 마감 전량 매도</li>
-  </ol>
-</section>
-
-<section class="sec">
-  <h2>과거 거래 기록 <small id="perfNote"></small></h2>
-  <div class="seg" id="instSeg"><button data-v="QQQ">QQQ · 1배</button><button data-v="QLD">QLD · 2배</button><button data-v="TQQQ">TQQQ · 3배</button></div>
-  <div class="seg" id="perSeg"><button data-v="real">상장 후 실제 가격</button><button data-v="assume">2000년부터(가정 가격 포함)</button></div>
-  <div id="perf"></div>
-</section>
-
-<section class="sec">
-  <h2>받는 방법</h2>
-  <div class="ways" id="ways">
-    <a href="https://kunchan70-creator.github.io/qld-swing/">웹 주문표 <small>즐겨찾기 · 매일 갱신 ›</small></a>
-    <a href="https://kunchan70-creator.github.io/qld-swing/guide.html">전략 설명서 <small>매수·매도·위험 ›</small></a>
-  </div>
-</section>
-
-<section class="sec">
-  <h2>의견 보내기</h2>
-  <textarea id="fb" maxlength="1000" placeholder="불편한 점, 틀린 숫자, 궁금한 점을 적어 주십시오. 개인정보는 적지 마십시오."></textarea>
-  <button class="btn sub" id="fbSend">보내기</button>
-  <div class="mu" id="fbMsg" style="margin-top:8px;font-size:13px"></div>
-</section>
-
-<div class="foot">무료로 제공하며 대가를 받지 않습니다. 특정 종목의 매수·매도를 권유하지 않으며, 과거 기록은 모의 계산 결과로 미래 수익을 보장하지 않습니다. 레버리지 ETF(QLD·TQQQ)는 기초지수보다 손실 폭이 크고 장기 보유 시 변동성 손실이 생깁니다. 투자 판단과 결과의 책임은 투자자 본인에게 있습니다.<br><span id="upd"></span></div>
-</div>
-<script>
-const $=(s)=>document.querySelector(s);
-const pct=(x,d=1)=>x==null?'-':(x>0?'+':'')+(x*100).toFixed(d)+'%';
-const usd=(x)=>x==null?'-':'$'+Number(x).toFixed(2);
-const ymd=(s)=>s?s.replace(/-/g,'.'):'-';
-const cls=(x)=>x>0?'up':x<0?'dn':'';
-let ST=null,inst='QLD',per='real';
-async function getJSON(urls){for(const u of urls){try{const r=await fetch(u,{cache:'no-cache',headers:u.includes('api.github.com')?{Accept:'application/vnd.github.raw+json'}:{}});if(r.ok)return await r.json();}catch(e){}}return null;}
-function seg(id,val,fn){$(id).querySelectorAll('button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.v===val);b.onclick=()=>fn(b.dataset.v);});}
-function perf(){
-  seg('#instSeg',inst,v=>{inst=v;perf();});seg('#perSeg',per,v=>{per=v;perf();});
-  if(!ST){$('#perf').innerHTML='<div class="mu">불러오는 중입니다</div>';return;}
-  const p=ST.perf[inst][per];
-  $('#perfNote').textContent=`${ymd(p.start)} ~ ${ymd(p.end)}`;
-  $('#perf').innerHTML=`<div class="kpis">
-    <div class="kpi"><div class="l">거래 수</div><div class="v num">${p.n}회</div><div class="s">연평균 ${p.per_year.toFixed(1)}회</div></div>
-    <div class="kpi"><div class="l">승률</div><div class="v num">${(p.win*100).toFixed(0)}%</div><div class="s">${p.wins}회 수익 · ${p.n-p.wins}회 손실</div></div>
-    <div class="kpi"><div class="l">거래 평균 수익률</div><div class="v num up">${pct(p.avg)}</div><div class="s">수수료 반영</div></div>
-    <div class="kpi"><div class="l">최악 거래</div><div class="v num ${cls(p.worst)}">${pct(p.worst)}</div><div class="s">${ymd(p.worst_d)} 시작</div></div>
-    <div class="kpi"><div class="l">계좌 연환산 수익률</div><div class="v num ${cls(p.cagr)}">${pct(p.cagr)}</div><div class="s">QQQ 보유 ${pct(p.q_cagr)}</div></div>
-    <div class="kpi"><div class="l">계좌 최대 낙폭</div><div class="v num dn">${pct(p.mdd)}</div><div class="s">QQQ 보유 ${pct(p.q_mdd)}</div></div></div>
-    <div class="mu" style="font-size:12.5px;margin-top:10px">원화·세후 · 수수료 한쪽 0.1% · 추세 추종(QQQM↔단기국채) 포함 계좌 기준${per==='assume'&&inst!=='QQQ'?' · 상장 전 기간은 QQQ로 만든 가정 가격':''}</div>`;
-}
-function state(d){
-  if(!d){$('#state').innerHTML='<div class="mu">자료를 불러오지 못했습니다. 잠시 후 다시 열어 주십시오.</div>';return;}
-  const g=d.signal; $('#asOf').textContent=ymd(g.qqq_prev_d)+' 종가 기준';
-  const fear=g.fear?'<span class="chip red">공포 구간</span>':'<span class="chip">평소</span>';
-  let h=`<div class="row"><span class="k">시장</span><span class="v">${fear}</span></div>
-   <div class="row"><span class="k">QQQ 1년 고점 대비</span><span class="v num ${cls(g.dd)}">${pct(g.dd)}</span></div>
-   <div class="row"><span class="k">VIX · 공포탐욕지수</span><span class="v num">${g.vix.toFixed(1)} · ${Math.round(g.fg)}</span></div>
-   <div class="row"><span class="k">QQQ RSI(14)</span><span class="v num">${g.rsi.toFixed(1)}</span></div>`;
-  for(const s of ['TQQQ','QLD']){
-    const x=d.inst[s]; if(!x)continue; const p=x.plan||{}; const core=(x.lots||[]).filter(l=>!String(l.how).includes('예비'));
-    const px=x.live&&x.live.price;
-    if(core.length){
-      h+=`<div class="card"><div class="h"><span>${s} 거래 진행 중</span><span class="chip orange">${core.length}차 매수</span></div>
-       <div class="row"><span class="k">전략 기준 단가</span><span class="v num">${usd(p.avg)}</span></div>
-       <div class="row"><span class="k">목표가</span><span class="v num up">${usd(p.tgt)}<small>현재가 ${usd(px)} · 목표가까지 ${pct(p.tgt/px-1)}</small></span></div>
-       <div class="row"><span class="k">보유 기한</span><span class="v num">${ymd(p.due)} 장 마감</span></div></div>`;
-    } else if(p.buy){
-      h+=`<div class="card"><div class="h"><span>${s} 매수 주문</span><span class="chip red">지정가</span></div>
-       <div class="row"><span class="k">${ymd(d.session)} 매수 지정가</span><span class="v num">${usd(p.buy)}<small>현재가 ${usd(px)}</small></span></div></div>`;
-    }
-  }
-  if(!d.inst.TQQQ?.lots?.length&&!d.inst.QLD?.lots?.length&&!d.inst.TQQQ?.plan?.buy) h+=`<div class="card">진행 중인 거래가 없습니다. 조건이 맞는 날 주문표에 매수 지정가가 표시됩니다.</div>`;
-  $('#state').innerHTML=h;
-}
-const INBOX='bd-in-16e06deda403';
-function ping(kind,text){if(/localhost|127.0/.test(location.hostname))return Promise.resolve();return fetch('https://ntfy.sh/'+INBOX,{method:'POST',body:kind+' '+text}).catch(()=>{});}
-$('#fbSend').onclick=async()=>{const t=$('#fb').value.trim();if(t.length<2){$('#fbMsg').textContent='내용을 적어 주십시오.';return;}
-  if(localStorage.getItem('fbAt')&&Date.now()-localStorage.getItem('fbAt')<60000){$('#fbMsg').textContent='1분 뒤 다시 보낼 수 있습니다.';return;}
-  await ping('f',t.slice(0,1000));localStorage.setItem('fbAt',Date.now());$('#fb').value='';$('#fbMsg').textContent='전달되었습니다. 고친 내용은 이 화면과 주문표에 반영됩니다.';};
-(async()=>{
-  perf();
-  const [st,d]=await Promise.all([getJSON(['stats.json']),getJSON(['https://api.github.com/repos/kunchan70-creator/qld-swing/contents/data.json?ref=data','https://raw.githubusercontent.com/kunchan70-creator/qld-swing/data/data.json'])]);
-  ST=st; perf(); state(d);
-  if(st){$('#upd').textContent='기록 갱신 '+st.updated;
-    if(st.telegram)$('#ways').insertAdjacentHTML('afterbegin',`<a href="${st.telegram}">텔레그램 채널 <small>주문 알림 · 무료 ›</small></a>`);}
-  if(!sessionStorage.getItem('v')){sessionStorage.setItem('v',1);let r='';try{r=document.referrer?new URL(document.referrer).hostname:'';}catch(e){}ping('v','land '+(r||'-'));}
-})();
-</script>
+<header class="top">
+  <div class="brand"><span class="brand-lockup"><span><span id="asof"></span></span></span><span class="hbtn"><button id="bGuide">사용 안내</button><button id="bSet">설정</button></span></div>
+  <div class="pills" id="pills"></div>
+  <div class="ptag" id="ptag"></div>
+</header>
+<div id="sheet" class="sheet" hidden><div class="sheet-bg"></div><div class="sheet-body" id="sheetBody"></div></div>
+<div id="tour" class="tour" role="dialog" aria-modal="true" aria-label="시작 안내" hidden></div>
+<main id="view"><div class="loading">불러오는 중…</div></main>
+<nav class="tabs" id="tabs">
+  <button data-tab="home"><i>⌂</i>홈</button>
+  <button data-tab="compare"><i>≋</i>비교</button>
+  <button data-tab="todo"><i>✓</i>할 일</button>
+  <button data-tab="log"><i>≡</i>기록</button>
+  <button data-tab="signal"><i>◔</i>신호</button>
+</nav>
+<script src="chart.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
