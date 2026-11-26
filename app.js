@@ -836,6 +836,37 @@ $("#bInstall").onclick = () => {
   sheet(`<div class="title">앱으로 설치</div><div class="desc">사파리 아래쪽 공유 버튼 → '홈 화면에 추가'를 누르십시오. 홈 화면 아이콘으로 열면 주소창 없이 앱으로 열립니다.</div>`);
 };
 if (WEB && !STANDALONE && /iPhone|iPad/.test(navigator.userAgent)) $("#bInstall").hidden = false;
+// 11-27 알림 받기(웹 푸시): Cloudflare 푸시 서버에 이 기기를 등록. ntfy 앱 없이 이 앱으로 바로 알림.
+const PUSH = "https://bandeung-push.kunchan70.workers.dev", IOS = /iPhone|iPad/.test(navigator.userAgent);
+const pushOK = () => WEB && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+async function pushState() { if (!pushOK()) return "no"; const r = await navigator.serviceWorker.ready; return (await r.pushManager.getSubscription()) ? "on" : "off"; }
+const u8 = (b) => { const raw = atob((b + "=".repeat((4 - b.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...raw].map((c) => c.charCodeAt(0))); };
+const pushMsg = (t) => sheet(`<div class="title">알림 받기</div><div class="desc">${t}</div>`);
+async function pushOn() {
+  if (IOS && !STANDALONE) return pushMsg("아이폰은 먼저 사파리 공유 버튼 → '홈 화면에 추가'를 한 뒤, 홈 화면 아이콘으로 열어서 '알림 받기'를 누르십시오.");
+  if (!pushOK()) return pushMsg("이 브라우저는 알림을 지원하지 않습니다. 안드로이드는 크롬, 아이폰은 홈 화면에 추가한 앱에서 이용하십시오.");
+  if (await Notification.requestPermission() !== "granted") return pushMsg("알림이 차단되어 있습니다. 브라우저의 사이트 설정에서 알림을 허용한 뒤 다시 누르십시오.");
+  const reg = await navigator.serviceWorker.ready, {pub} = await fetch(PUSH + "/key").then((r) => r.json());
+  const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: u8(pub)});
+  const r = await fetch(PUSH + "/subscribe", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(sub)});
+  if (!r.ok) throw new Error("등록 실패 " + r.status);
+  await updateBell(); pushMsg("이 기기로 알림을 받습니다. 장 마감 뒤 주문할 일이 생기면 알림이 옵니다.");
+}
+async function pushOff() {
+  const reg = await navigator.serviceWorker.ready, s = await reg.pushManager.getSubscription();
+  if (s) { await fetch(PUSH + "/unsubscribe", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({endpoint: s.endpoint})}).catch(() => {}); await s.unsubscribe(); }
+  await updateBell();
+}
+async function updateBell() {
+  const b = $("#bPush"); if (!WEB) return; const st = await pushState().catch(() => "no");
+  b.hidden = st === "no" && !IOS; b.textContent = st === "on" ? "알림 켜짐" : "알림 받기"; b.classList.toggle("on", st === "on");
+}
+$("#bPush").onclick = async () => {
+  if ((await pushState().catch(() => "no")) === "on")
+    return sheet(`<div class="title">알림</div><div class="desc">이 기기로 알림을 받고 있습니다.</div><button class="btn" id="pOff">알림 끄기</button>`, (close) => { $("#pOff").onclick = async () => { await pushOff(); close(); }; });
+  pushOn().catch((e) => pushMsg("알림 등록에 실패했습니다. " + esc(e.message)));
+};
+updateBell();
 if (AND) fromAndroid();
 else loadData();
 function loadData() { fetch(dataUrl(), {cache: "no-store"}).then((r) => r.json()).then((d) => { rawData=d; selectModels(); render(); firstGuide(); refreshQuote(S.inst).then(() => S.tab === "home" || S.tab === "todo" ? render() : 0); })

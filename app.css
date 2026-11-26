@@ -139,3 +139,4 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 @keyframes tourEnter{from{opacity:0;transform:translate3d(17px,8px,0)}to{opacity:1;transform:none}}@keyframes tourBack{from{opacity:0;transform:translate3d(-15px,3px,0)}to{opacity:1;transform:none}}@keyframes tourItem{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.tour-copy,.tour-art,.tour-options button,.tour-checklist>div{animation:none!important}}
 .mylot{margin-left:8px;font-size:12px;font-weight:700;color:#3182f6;background:#e8f3ff;border-radius:9px;padding:3px 8px}
+.hbtn button.on{color:#3182f6}
