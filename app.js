@@ -661,10 +661,14 @@ function drawLog() {
     const di = Object.fromEntries(x.map((d, i) => [d, i])), mk = [], seen = new Set();
     const addT = (d, side, s, p, why) => { const key = d + side + s + p; if (s !== sym || seen.has(key) || di[d] == null) return; seen.add(key);
       mk.push({i: di[d], y: side === "b" ? Math.min(p, l[di[d]] ?? p) : Math.max(p, h[di[d]] ?? p), kind: side === "b" ? "buy" : "sell", p, why}); };
-    bt.acc[k].trades.forEach((t) => addT(t[0], t[1], t[2], t[3], t[5]));
-    (D.accounts[k].trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why));
-    const plan = D.accounts[k].plan || {}, sell = (plan.swing || []).find((z) => z.how === "목표가" && z.symbol === sym);
-    const vb = sym === S.inst ? bt.acc[k].swing.map(([a, b]) => ({i0: bt.i0 + a, i1: bt.i0 + b, color: css("--tq") + "26"})) : [];
+    // 11-27: 보고 있는 차트 종목(QQQ·QLD·TQQQ)의 모델 기록으로 매수·매도 표시(예전엔 고른 단타 상품 것만 → TQQQ 외엔 표시 없음)
+    const own = PRODUCTS[sym] ? (sym === "TQQQ" ? rawHist : rawHist?.variants?.[sym]) : null;
+    const sbt = own?.bt?.[S.assume ? "assume" : "real"] || bt;
+    const sacc = PRODUCTS[sym] ? ((sym === "TQQQ" ? rawData?.accounts : rawData?.variants?.[sym]?.accounts) || D.accounts) : D.accounts;
+    sbt.acc[k].trades.forEach((t) => addT(t[0], t[1], t[2], t[3], t[5]));
+    (sacc[k]?.trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why));
+    const plan = sacc[k]?.plan || {}, sell = (plan.swing || []).find((z) => z.how === "목표가" && z.symbol === sym);
+    const vb = own ? sbt.acc[k].swing.map(([a, b]) => ({i0: sbt.i0 + a, i1: sbt.i0 + b, color: css("--tq") + "26"})) : [];
     price = {pane: {h: 3, log: S.lrange === "all" || S.lrange === "5y", fmt: (y) => "$" + (y >= 100 ? y.toFixed(0) : y.toFixed(2)),
       series: [{type: S.ltype === "line" ? "line" : "candle", name: sym, o, h, l, c, y: c, color: css("--ink"), w: 1.6}],
       markers: mk, vbands: vb, hlines: sell ? [{y: sell.limit, label: `목표가 ${usd2(sell.limit)}`, color: css("--up"), dash: [6, 4]}] : []}, mk};

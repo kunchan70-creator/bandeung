@@ -54,11 +54,17 @@
     // ── 입력 ──
     idxAt(px) { const [a, b] = this.r, w = this.W - AX; return Math.max(a, Math.min(b, Math.round(a + (px / w) * (b - a)))); }
     pos(e) { const rc = this.cv.getBoundingClientRect(); return [e.clientX - rc.left, e.clientY - rc.top]; }
+    // 11-27 사용자 '그래프가 손으로 안 움직여짐': 손가락 좌우 끌기 = 기간 이동, 두 손가락 = 확대·축소, 꾹 누르기(0.25초)·탭 = 그 날 값 보기.
+    // 마우스: 누른 채 끌기 = 이동, 휠 = 확대, 올려두기 = 값. 세로 끌기는 화면 스크롤(touch-action: pan-y).
     down(e) {
       this.ptrs.set(e.pointerId, this.pos(e));
-      if (this.ptrs.size === 2) { const [p, q] = [...this.ptrs.values()]; this.pinch = {d: Math.abs(p[0] - q[0]) || 1, r: [...this.r], c: this.idxAt((p[0] + q[0]) / 2)}; this.hover = null; }
-      else { this.hover = this.pos(e); this.draw(); }
       if (e.pointerType !== "mouse") this.cv.setPointerCapture(e.pointerId);
+      clearTimeout(this.hold);
+      if (this.ptrs.size === 2) { const [p, q] = [...this.ptrs.values()]; this.pinch = {d: Math.abs(p[0] - q[0]) || 1, r: [...this.r], c: this.idxAt((p[0] + q[0]) / 2)}; this.drag = null; this.hover = null; this.draw(); return; }
+      const p = this.pos(e), touch = e.pointerType !== "mouse";
+      this.drag = {x0: p[0], y0: p[1], r: [...this.r], mode: null, touch};
+      if (!touch) { this.hover = p; this.draw(); }
+      else this.hold = setTimeout(() => { if (this.drag && !this.drag.mode) { this.drag.mode = "cross"; this.hover = this.drag.last || p; this.draw(); } }, 250);
     }
     move(e) {
       if (this.ptrs.has(e.pointerId)) this.ptrs.set(e.pointerId, this.pos(e));
@@ -66,11 +72,23 @@
         const [p, q] = [...this.ptrs.values()], d = Math.abs(p[0] - q[0]) || 1, k = this.pinch.d / d, [a, b] = this.pinch.r, c = this.pinch.c;
         this.setRange(c - (c - a) * k, c + (b - c) * k); return;
       }
-      if (e.pointerType === "mouse" || this.ptrs.has(e.pointerId)) { this.hover = this.pos(e); this.draw(); }
+      const p = this.pos(e), d = this.drag;
+      if (d && this.ptrs.has(e.pointerId)) {
+        d.last = p;
+        if (!d.mode && Math.abs(p[0] - d.x0) > 6) { d.mode = "pan"; clearTimeout(this.hold); this.hover = null; }
+        if (d.mode === "pan") { const [a, b] = d.r, w = (this.W - AX) || 1, sh = -(p[0] - d.x0) / w * (b - a); this.setRange(a + sh, b + sh); return; }
+        if (d.mode === "cross" || !d.touch) { this.hover = p; this.draw(); }
+        return;
+      }
+      if (e.pointerType === "mouse") { this.hover = p; this.draw(); }
     }
     up(e) {
       this.ptrs.delete(e.pointerId); if (this.ptrs.size < 2) this.pinch = null;
-      if (e.pointerType !== "mouse" && !this.ptrs.size) { this.hover = null; this.draw(); }
+      clearTimeout(this.hold); const d = this.drag; this.drag = null;
+      if (e.pointerType !== "mouse" && !this.ptrs.size) {
+        if (d && !d.mode && e.type === "pointerup") { this.hover = this.pos(e); this.draw(); }   // 탭: 그 날 값을 다음 터치까지 보여 줌
+        else if (!(d && d.mode === "cross" && e.type === "pointerup")) { this.hover = null; this.draw(); }
+      }
     }
     wheel(e) {
       e.preventDefault(); const [a, b] = this.r, c = this.idxAt(this.pos(e)[0]), k = e.deltaY > 0 ? 1.18 : 1 / 1.18;
