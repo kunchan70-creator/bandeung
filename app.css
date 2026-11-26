@@ -140,3 +140,5 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 @media(prefers-reduced-motion:reduce){.tour-copy,.tour-art,.tour-options button,.tour-checklist>div{animation:none!important}}
 .mylot{margin-left:8px;font-size:12px;font-weight:700;color:#3182f6;background:#e8f3ff;border-radius:9px;padding:3px 8px}
 .hbtn button.on{color:#3182f6}
+.hbtn button{white-space:nowrap}.hbtn{flex-shrink:0}#asof{white-space:nowrap}.mylot{margin-left:0}
+.btn.ghost{background:var(--soft);color:var(--ink)}.appbtns{display:flex;gap:8px}.appbtns .btn{flex:1}.appcard .desc{margin-top:4px}

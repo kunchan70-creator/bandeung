@@ -69,9 +69,9 @@ const kst = (ts) => new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 16).
 function pills() {
   $("#pills").innerHTML = ""; $("#pills").style.display = "none";   // 유형은 하나뿐 → 단타 종목만 고름
   $("#asof").textContent = D ? `${ymd(D.last_close)} 종가 기준` : "";
-  $("#mylot").textContent = `내 설정 · 한 묶음 ${S.lot}%`; $("#mylot").onclick = openSettings;
+  $("#mylot").textContent = `내 설정 · ${S.lot}%`; $("#mylot").onclick = openSettings;
   $("#ptag").innerHTML = `<span>공포 단타 상품</span>${seg(productOptions,S.inst,"instrument","sm")}`;
-  bindSeg("instrument",chooseInstrument); $("#bGuide").onclick = openGuide; $("#bSet").onclick = openSettings;
+  bindSeg("instrument",chooseInstrument); $("#bGuide").onclick = openGuide;
   document.documentElement.style.setProperty("--toph", $(".top").offsetHeight + "px");
 }
 function seg(opts, val, attr, cls_ = "") {
@@ -229,7 +229,9 @@ function openSettings() {
     <div class="sub-h">내 주문 수량 계산</div><label class="form-label" for="setamt">운용 금액 (원)</label><input class="money" id="setamt" inputmode="numeric" placeholder="예: 30000000" value="${esc(S.myKrw)}">
     <label class="form-label" for="setcash">결제 완료 달러 현금 (선택)</label><input class="money" id="setcash" inputmode="decimal" placeholder="증권사 주문가능금액 확인" value="${esc(S.cashUsd)}">
     <div class="desc">운용 금액으로 모델 주 수를 환산합니다. 현금 입력 시 매수 수량에 현금 상한도 적용합니다. 매도 시 실제 보유 주 수를 확인하십시오.</div>
+    ${WEB && PUSHST === "on" ? `<div class="sub-h">알림</div><div class="desc">이 기기로 알림을 받고 있습니다.</div><button class="btn ghost" id="pOff">이 기기 알림 끄기</button>` : ""}
     <button class="btn" id="sok">저장</button>`, (close) => {
+    if ($("#pOff")) $("#pOff").onclick = async () => { await pushOff(); close(); };
     bindSeg("lot", (v) => { document.querySelectorAll("[data-lot]").forEach((b) => b.classList.toggle("on", b.dataset.lot === v)); $("#lotrisk").textContent = riskText(Number(v)); });
     bindSeg("fee", (v) => { S.fee = v; save(); document.querySelectorAll("[data-fee]").forEach((b) => b.classList.toggle("on", b.dataset.fee === v)); });
     bindSeg("vw2", (v) => { S.view = v; save(); document.querySelectorAll("[data-vw2]").forEach((b) => b.classList.toggle("on", b.dataset.vw2 === v)); });
@@ -288,7 +290,7 @@ function home() {
     <div id="simsum"></div><div id="simchart"></div><div class="chart-cap" id="simcap"></div></div>
     <div class="card" style="padding:4px 18px"><div class="row" onclick="go('todo')" style="cursor:pointer"><div class="l"><div class="t1">다음 거래일 주문 ${n ? `<span style="color:${col(k)}">${n}건</span>` : "없음"}</div><div class="t2">${D.next_session ? openKst(D.next_session) + " 정규장 개장(한국시간)" : "휴장일 확인 필요"}</div></div><div class="r mute">›</div></div></div>
     <div class="foot">과거 자료로 계산한 모의 결과입니다. ${S.inst!=="QQQ"?`${S.inst} 상장 전 기간에는 가정 가격이 포함됩니다. `:""}${D.health.length ? ` <b class="warn">자료 확인 필요 ${D.health.length}건(신호 탭)</b>` : ""}</div>`;
-  $("#view").innerHTML = html;
+  $("#view").innerHTML = appCard() + html; bindAppCard();
   $("#strategyGuide").onclick=openGuide;
   const reSim = () => { S.simd = $("#simd").value || S.simd; S.sima = $("#sima").value; save(); drawSim(); };
   $("#simd").onchange = reSim; $("#sima").oninput = () => { clearTimeout(window._st); window._st = setTimeout(reSim, 500); };
@@ -829,19 +831,15 @@ window.onAndroidData = (ok) => { if (ok) return fromAndroid(); if (!D) tokenCard
 window.onAndroidHist = () => { const s = AND.getHist && AND.getHist(); if (s) { try { histReady(JSON.parse(s)); render(); } catch (e) {} } };
 window.goBackTab = () => { if(tourPage>0){openTour(tourPage-1);return true;} if(tourPage===0){$("#tourSkip").click();return true;} if (S.tab !== "home") { go("home"); return true; } return false; };
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D) liveTick(); });
-// 설치형 웹앱(공개 페이지 전용): 안드로이드 크롬은 '앱 설치' 버튼, 아이폰 사파리는 '홈 화면에 추가' 안내 한 번.
+// 11-27 앱으로 받기(공개 페이지 전용): 홈 맨 위 카드에서 '앱 설치'·'알림 받기'. 위쪽 머리글은 '사용 안내'·'내 설정'만(좁은 폰에서 글자 줄바꿈 방지).
 if (WEB && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-let installEv = null;
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEv = e; if (!STANDALONE) $("#bInstall").hidden = false; });
-window.addEventListener("appinstalled", () => { installEv = null; $("#bInstall").hidden = true; });
-$("#bInstall").onclick = () => {
-  if (installEv) { installEv.prompt(); installEv.userChoice.finally(() => { installEv = null; $("#bInstall").hidden = true; }); return; }
-  sheet(`<div class="title">앱으로 설치</div><div class="desc">사파리 아래쪽 공유 버튼 → '홈 화면에 추가'를 누르십시오. 홈 화면 아이콘으로 열면 주소창 없이 앱으로 열립니다.</div>`);
-};
-if (WEB && !STANDALONE && /iPhone|iPad/.test(navigator.userAgent)) $("#bInstall").hidden = false;
-// 11-27 알림 받기(웹 푸시): Cloudflare 푸시 서버에 이 기기를 등록. ntfy 앱 없이 이 앱으로 바로 알림.
-const PUSH = "https://bandeung-push.kunchan70.workers.dev", IOS = /iPhone|iPad/.test(navigator.userAgent);
+const IOS = /iPhone|iPad/.test(navigator.userAgent);
+let installEv = null, PUSHST = "off";
+const homeAgain = () => { if (S.tab === "home" && D) render(); };
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEv = e; homeAgain(); });
+window.addEventListener("appinstalled", () => { installEv = null; homeAgain(); });
+const PUSH = "https://bandeung-push.kunchan70.workers.dev";
 const pushOK = () => WEB && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 async function pushState() { if (!pushOK()) return "no"; const r = await navigator.serviceWorker.ready; return (await r.pushManager.getSubscription()) ? "on" : "off"; }
 const u8 = (b) => { const raw = atob((b + "=".repeat((4 - b.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...raw].map((c) => c.charCodeAt(0))); };
@@ -861,15 +859,24 @@ async function pushOff() {
   if (s) { await fetch(PUSH + "/unsubscribe", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({endpoint: s.endpoint})}).catch(() => {}); await s.unsubscribe(); }
   await updateBell();
 }
-async function updateBell() {
-  const b = $("#bPush"); if (!WEB) return; const st = await pushState().catch(() => "no");
-  b.hidden = st === "no" && !IOS; b.textContent = st === "on" ? "알림 켜짐" : "알림 받기"; b.classList.toggle("on", st === "on");
+async function updateBell() { PUSHST = await pushState().catch(() => "no"); homeAgain(); }
+function appCard() {
+  if (!WEB) return "";
+  const inst = !STANDALONE, push = PUSHST === "off" || (PUSHST === "no" && IOS && !STANDALONE);
+  if (!inst && !push) return "";
+  return `<div class="card appcard"><div class="title">앱으로 받기</div>
+    <div class="desc">${inst ? "앱으로 설치하면 홈 화면 아이콘으로 주소창 없이 열립니다. " : ""}${push ? "알림을 켜면 주문할 일이 생길 때 바로 알려 드립니다." : ""}</div>
+    <div class="appbtns">${inst ? `<button class="btn" id="appInst">앱 설치</button>` : ""}${push ? `<button class="btn${inst ? " ghost" : ""}" id="appPush">알림 받기</button>` : ""}</div></div>`;
 }
-$("#bPush").onclick = async () => {
-  if ((await pushState().catch(() => "no")) === "on")
-    return sheet(`<div class="title">알림</div><div class="desc">이 기기로 알림을 받고 있습니다.</div><button class="btn" id="pOff">알림 끄기</button>`, (close) => { $("#pOff").onclick = async () => { await pushOff(); close(); }; });
-  pushOn().catch((e) => pushMsg("알림 등록에 실패했습니다. " + esc(e.message)));
-};
+function bindAppCard() {
+  const i = $("#appInst"), p = $("#appPush");
+  if (i) i.onclick = () => {
+    if (installEv) { installEv.prompt(); installEv.userChoice.finally(() => { installEv = null; homeAgain(); }); return; }
+    sheet(IOS ? `<div class="title">앱 설치</div><div class="desc">사파리 아래쪽 공유 버튼 → '홈 화면에 추가'를 누르십시오. 홈 화면 아이콘으로 열면 앱으로 열리고, 그 안에서 알림도 켤 수 있습니다.</div>`
+              : `<div class="title">앱 설치</div><div class="desc">크롬 오른쪽 위 ⋮ 메뉴 → '앱 설치'(또는 '홈 화면에 추가')를 누르십시오. 카카오톡·삼성 인터넷 안에서 열었다면 크롬으로 다시 열어 주십시오.</div>`);
+  };
+  if (p) p.onclick = () => pushOn().catch((e) => pushMsg("알림 등록에 실패했습니다. " + esc(e.message)));
+}
 updateBell();
 if (AND) fromAndroid();
 else loadData();
