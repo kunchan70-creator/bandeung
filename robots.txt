@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kunchan70-creator.github.io/bandeung/sitemap.xml
