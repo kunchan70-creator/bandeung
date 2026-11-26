@@ -802,6 +802,17 @@ window.onAndroidData = (ok) => { if (ok) return fromAndroid(); if (!D) tokenCard
 window.onAndroidHist = () => { const s = AND.getHist && AND.getHist(); if (s) { try { histReady(JSON.parse(s)); render(); } catch (e) {} } };
 window.goBackTab = () => { if(tourPage>0){openTour(tourPage-1);return true;} if(tourPage===0){$("#tourSkip").click();return true;} if (S.tab !== "home") { go("home"); return true; } return false; };
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D) liveTick(); });
+// 설치형 웹앱(공개 페이지 전용): 안드로이드 크롬은 '앱 설치' 버튼, 아이폰 사파리는 '홈 화면에 추가' 안내 한 번.
+if (WEB && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+let installEv = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEv = e; if (!STANDALONE) $("#bInstall").hidden = false; });
+window.addEventListener("appinstalled", () => { installEv = null; $("#bInstall").hidden = true; });
+$("#bInstall").onclick = () => {
+  if (installEv) { installEv.prompt(); installEv.userChoice.finally(() => { installEv = null; $("#bInstall").hidden = true; }); return; }
+  sheet(`<div class="title">앱으로 설치</div><div class="desc">사파리 아래쪽 공유 버튼 → '홈 화면에 추가'를 누르십시오. 홈 화면 아이콘으로 열면 주소창 없이 앱으로 열립니다.</div>`);
+};
+if (WEB && !STANDALONE && /iPhone|iPad/.test(navigator.userAgent)) $("#bInstall").hidden = false;
 if (AND) fromAndroid();
 else fetch(DATA_URL, {cache: "no-store"}).then((r) => r.json()).then((d) => { rawData=d; selectModels(); render(); firstGuide(); refreshQuote(S.inst).then(() => S.tab === "home" || S.tab === "todo" ? render() : 0); })
   .catch((e) => { $("#view").innerHTML = `<div class="card"><div class="alert"><b>자료를 읽지 못했습니다</b> ${esc(e.message)}</div></div>`; });

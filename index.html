@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f5f7">
+<meta name="color-scheme" content="light only">
 <title>반등 매매 · 공포 단타 주문표</title>
 <meta name="description" content="나스닥이 크게 빠진 날만 사고, 정해 둔 가격에 파는 규칙. 매일 장 마감 후 매수·매도 지정가를 무료로 공개합니다.">
 <meta property="og:title" content="반등 매매 · 공포 단타 주문표">
@@ -13,11 +13,16 @@
 <meta property="og:url" content="https://kunchan70-creator.github.io/bandeung/">
 <script>if(location.hostname.endsWith("github.io")&&!sessionStorage.v){sessionStorage.v=1;fetch("https://ntfy.sh/bd-in-16e06deda403",{method:"POST",body:"v land "+(document.referrer?new URL(document.referrer).hostname:"-")}).catch(()=>{});}</script>
 
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="반등 매매">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="brand-lockup"><span><span id="asof"></span></span></span><span class="hbtn"><button id="bGuide">사용 안내</button><button id="bSet">설정</button></span></div>
+  <div class="brand"><span class="brand-lockup"><span><span id="asof"></span></span></span><span class="hbtn"><button id="bInstall" hidden>앱 설치</button><button id="bGuide">사용 안내</button><button id="bSet">설정</button></span></div>
   <div class="pills" id="pills"></div>
   <div class="ptag" id="ptag"></div>
 </header>
