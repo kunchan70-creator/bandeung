@@ -1,5 +1,5 @@
 // 설치형 웹앱용. 화면 파일은 새 것 먼저(안 되면 저장본), 자료는 항상 새로(안 되면 저장본).
-const C = "bd-v2";
+const C = "bd-v3";
 self.addEventListener("install", (e) => { self.skipWaiting(); e.waitUntil(caches.open(C).then((c) => c.addAll(["./", "app.css", "app.js", "chart.js", "manifest.json", "icons/icon-192.png"]).catch(() => {}))); });
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 // 11-27 푸시: 서버(Cloudflare bandeung-push)는 내용 없이 깨우기만 → 최신 알림을 받아서 띄움
@@ -18,6 +18,8 @@ self.addEventListener("notificationclick", (e) => {
 self.addEventListener("fetch", (e) => {
   const u = new URL(e.request.url);
   if (e.request.method !== "GET" || u.origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(C).then((c) => c.put(e.request, cp)); } return r; })
+  // 11-27: 화면 파일은 매번 서버에 새 버전 확인(no-cache) — 고친 화면이 설치된 앱에도 바로 반영되게
+  const fresh = e.request.mode === "navigate" ? fetch(e.request.url, {cache: "no-cache"}) : fetch(new Request(e.request, {cache: "no-cache"}));
+  e.respondWith(fresh.then((r) => { if (r.ok) { const cp = r.clone(); caches.open(C).then((c) => c.put(e.request, cp)); } return r; })
     .catch(() => caches.match(e.request, {ignoreSearch: true})));
 });
