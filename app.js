@@ -486,7 +486,7 @@ function openBasis() {
   });
 }
 function compare() {
-  if (!needHist(() => S.tab === "compare" && render())) { $("#view").innerHTML = wait("성적을 불러오는 중입니다"); return; }
+  if (!needHist(() => S.tab === "compare" && render())) { $("#view").innerHTML = wait("성과를 불러오는 중입니다"); return; }
   const btn = S.assume ? "assume" : "real", bt = H.bt[btn], view = S.view, xs = H.dates.slice(bt.i0), N = xs.length;
   const vb = vals(btn, "B", view), vq = vals(btn, "qqq", view), per = CPER.some(([v]) => v === S.cper) ? S.cper : "all";
   const a = per === "all" ? 0 : Math.max(0, N - 252 * +per), sb = jstats(vb, a), sq = jstats(vq, a), yrs = (N - a) / 252;
@@ -525,7 +525,7 @@ function compare() {
   if (rbs.length) { const mx = Math.max(...rbs.map((r) => r.cagr));
     html += fold("robust", "조건 변경 시 성과", `목표·기한·RSI 기준 변경 후 재계산`, rbs.map((r, i) => `<div class="pf-rb${i === 0 ? " on" : ""}"><span>${esc(r.label)}</span><i><b style="width:${Math.max(3, r.cagr / mx * 100)}%"></b></i><em>${pct(r.cagr)}</em></div>`).join("") + `<div class="pk-f">2000년부터 연평균 · 달러·세전</div>`); }
   html += fold("sim", "기간·금액 직접 계산", "시작일과 금액을 지정해 재계산", simCard().replace(/^<div class="card">/, "<div>"))
-    + fold("score", "전체 성적표", "변동성·샤프·월별 등 모든 지표", `<div id="sctable"></div>`);
+    + fold("score", "전체 성과표", "변동성·샤프·월별 등 모든 지표", `<div id="sctable"></div>`);
   html += `<div class="foot">과거 계산이며 앞으로를 보장하지 않습니다 · 수수료 한쪽 ${feeTxt()} 반영${S.assume && real && xs[a] < real ? ` · ${ymd(real).slice(0, 4)}년 이전 ${S.inst}는 가정 가격` : ""}</div>`;
   $("#view").innerHTML = html;
   $("#pfBasis").onclick = openBasis; $("#pfTrades").onclick = () => { S.lview = "past"; go("log"); };
@@ -994,10 +994,10 @@ const COACHES = {   // 11-27 밤 사용자 '설명이 너무 길다, 핵심만' 
   home: () => [
     {q: ".dl-one", lb: "시계", t: "미국 장 시간을 한국 시간 시계에 표시합니다", g: `${HL("파란 칸")} 정규장 · ${HL("주황 종")} 알림 시각`},
     {q: ".hold .hl-row", lb: "보유 현황", t: "전략의 현재 보유 비중입니다", g: "내 계좌도 같은 비중으로 맞춥니다."},
-    {q: '#tabs [data-tab="compare"]', lb: "성적", t: "먼저 지난 성과를 확인하십시오", g: "2000년부터의 결과를 QQQ 보유와 비교합니다.", go: ["성적 보러 가기", "compare"]}],
+    {q: '#tabs [data-tab="compare"]', lb: "성과", t: "먼저 지난 성과를 확인하십시오", g: "2000년부터의 결과를 QQQ 보유와 비교합니다.", go: ["성과 보러 가기", "compare"]}],
   compare: () => [
-    {q: ".pf-hero", lb: "성적", t: "1억 원 투자 시 현재 평가금액입니다", g: `기간을 바꿔 ${HL("10년·5년")} 기준도 확인하십시오.`},
-    {q: '#tabs [data-tab="log"]', lb: "매매 차트", t: "모든 매수·매도 내역은 매매 차트에 있습니다", g: "", go: ["매매 차트 보기", "log"]}],
+    {q: ".pf-hero", lb: "성과", t: "1억 원 투자 시 현재 평가금액입니다", g: `기간을 바꿔 ${HL("10년·5년")} 기준도 확인하십시오.`},
+    {q: '#tabs [data-tab="log"]', lb: "차트", t: "모든 매수·매도 내역은 차트에 있습니다", g: "", go: ["차트 보기", "log"]}],
   todo: () => document.querySelector(".tk") ? [
     {q: ".tk-g", lb: "주문표", t: "증권사 앱에 이 순서대로 주문합니다", g: `가격·수량은 ${HL("복사")} 버튼으로 붙여 넣으십시오.`},
     {q: ".td-amt", lb: "수량", t: "운용 금액을 넣으면 내 수량으로 바뀝니다", g: ""}]
