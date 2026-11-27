@@ -95,7 +95,7 @@ function needHist(cb) {
   histWaiters.push(cb);
   if (histWaiters.length === 1) {
     if (AND) { const s = AND.getHist && AND.getHist(); if (s) { try { histReady(JSON.parse(s)); } catch (e) {} } }
-    else fetch(histUrl(), {cache: "no-store"}).then((r) => r.json()).then(histReady).catch(() => { histWaiters=[]; });
+    else fetch(histUrl(), {cache: "no-cache"}).then((r) => r.json()).then(histReady).catch(() => { histWaiters=[]; });
   }
   return false;
 }
@@ -920,5 +920,5 @@ function bindAppCard() {
 updateBell();
 if (AND) fromAndroid();
 else loadData();
-function loadData() { fetch(dataUrl(), {cache: "no-store"}).then((r) => r.json()).then((d) => { rawData=d; selectModels(); render(); firstGuide(); refreshQuote(S.inst).then(() => S.tab === "home" || S.tab === "todo" ? render() : 0); })
+function loadData() { fetch(dataUrl(), {cache: "no-cache"}).then((r) => r.json()).then((d) => { rawData=d; selectModels(); render(); firstGuide(); refreshQuote(S.inst).then(() => S.tab === "home" || S.tab === "todo" ? render() : 0); })
   .catch((e) => { $("#view").innerHTML = `<div class="card"><div class="alert"><b>자료를 읽지 못했습니다</b> ${esc(e.message)}</div></div>`; }); }

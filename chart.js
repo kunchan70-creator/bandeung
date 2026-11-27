@@ -38,6 +38,7 @@
       this.cv.addEventListener("dblclick", () => this.setRange(...this.home));
       if (window.ResizeObserver) { this.ro = new ResizeObserver(() => this.draw()); this.ro.observe(el); }
       this.set(o);
+      this._ready = true; requestAnimationFrame(() => this.draw());   // 고정 값 칸은 차트가 다 만들어진 뒤에(tip 이 차트 변수를 쓰는 화면이 있음 - 비교 탭)
     }
     set(o) {
       this.o = o; this.n = o.x.length;
@@ -229,7 +230,7 @@
         g.fillStyle = C.ink; g.fillRect(Math.max(0, Math.min(pw - tw, x - tw / 2)), H - BOT + 2, tw, 17); g.fillStyle = C.card; g.textAlign = "center"; g.textBaseline = "middle";
         g.fillText(t, Math.max(tw / 2, Math.min(pw - tw / 2, x)), H - BOT + 10.5); g.font = `11px ${font}`;
         this.showTip(hi, x);
-      } else if (!this.o.float && this.o.tip) this.showTip(b, null);   // 손 안 댈 때는 화면 맨 오른쪽 날
+      } else if (!this.o.float && this.o.tip && this._ready) this.showTip(b, null);   // 손 안 댈 때는 화면 맨 오른쪽 날
       else this.tipEl.style.display = "none";
     }
     xticks(a, b, pw) {
@@ -250,7 +251,7 @@
       const step = Math.ceil(out.length / maxN); return out.filter((_, j) => j % step === 0);
     }
     showTip(i, x) {
-      const html = this.o.tip ? this.o.tip(i) : null; if (!html) { this.tipEl.style.display = "none"; return; }
+      let html = null; try { html = this.o.tip ? this.o.tip(i) : null; } catch (e) { console.warn(e); } if (!html) { this.tipEl.style.display = "none"; return; }
       const t = this.tipEl; t.innerHTML = html; t.style.display = "block";
       if (!this.o.float) return;
       const w = t.offsetWidth, pw = this.W - AX; let left = x + 14; if (left + w > pw) left = x - 14 - w; t.style.left = Math.max(0, left) + "px"; t.style.top = "6px";
