@@ -227,3 +227,38 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 .hl-pg{height:6px;border-radius:3px;background:#e1e6ec;overflow:hidden}.hl-pg i{display:block;height:6px;border-radius:3px;background:var(--up)}
 .hl-pgl{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--mute);margin:6px 0 4px;font-variant-numeric:tabular-nums}.hl-pgl b{color:var(--ink);font-weight:700}
 .hold .sig-go{margin-top:8px}
+/* 5단계 할 일(11-27 밤): 주문표 = 증권사 주문 입력 순서, 가격·수량 복사 */
+.td-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:18px 16px 18px 18px}
+.td-amt{display:flex;align-items:center;gap:2px;background:var(--soft);border-radius:12px;padding:8px 6px 8px 12px;font-size:14px;font-weight:700;white-space:nowrap}
+.td-amt small{font-size:11px;font-weight:500;color:var(--mute);margin-right:6px}
+.td-amt svg{width:16px;height:16px;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.td-empty{text-align:center;padding:30px 18px}
+.tk{padding:18px}
+.tk-h{display:flex;align-items:center;gap:8px}.tk-h b{font-size:19px}.tk-h .badge{font-size:13px;padding:3px 8px}
+.tk-w{margin-left:auto;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-g{margin-top:10px}
+.tk-g>div{display:flex;align-items:center;gap:8px;min-height:46px;border-top:1px solid var(--line)}.tk-g>div:first-child{border-top:0}
+.tk-g span{font-size:14px;color:var(--mute);flex:none;width:72px}.tk-g b{flex:1;text-align:right;font-size:15px;font-weight:600}
+.tk-big{font-size:21px!important;font-weight:800!important;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.tk-cp{flex:none;width:36px;height:36px;margin-right:-6px;display:flex;align-items:center;justify-content:center;border-radius:10px}.tk-cp:active{background:var(--soft)}
+.tk-cp svg{width:20px;height:20px;fill:none;stroke:#3182f6;stroke-width:1.9;stroke-linejoin:round;stroke-linecap:round}
+.tk-q{font-size:13px;color:var(--mute);margin-top:8px}
+.tk .more{margin-top:6px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,10px);background:rgba(25,31,40,.92);color:#fff;font-size:14px;padding:11px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.18s;z-index:30;white-space:nowrap}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+/* 6단계 매매 차트(11-27 밤): 가격 → 차트 → 기간, 아래 거래 내역 목록 */
+.lg-c{padding:16px 14px 14px}
+.lg-ctl{display:flex;align-items:center;gap:6px;margin-top:4px}.lg-ctl .seg{flex:1;margin:0}.lg-r button{padding:6px 0;font-size:12px}
+.lg-t{flex:none;font-size:12px;font-weight:700;color:var(--sub);background:var(--soft);border-radius:10px;padding:9px 10px}
+.lg-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--sub);margin-top:10px}.lg-leg span{display:flex;align-items:center;gap:4px}
+.lg-leg i{display:inline-block;width:10px;height:10px;border-radius:2px}.lg-leg i.dash{height:0;width:14px;border-top:1.5px dashed var(--up);border-radius:0}.lg-leg b{font-size:10px}
+.tr-c{padding:16px 16px 8px}.tr-c>.seg{margin-top:0}
+.tr-sum{font-size:13px;color:var(--mute);margin:10px 2px 4px}
+.tr-f{display:flex;align-items:center;gap:8px;margin:6px 0 4px}.tr-f .seg{flex:1;margin:0}.tr-f select{flex:none}
+.tr-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:13px 2px;border-top:1px solid var(--line)}
+.tr-l{min-width:0}.tr-l b{display:block;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}.tr-l small{display:block;font-size:13px;color:var(--mute);margin-top:3px}
+.tr-r{text-align:right;white-space:nowrap}.tr-r b{display:block;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}.tr-r small{display:block;font-size:13px;color:var(--mute);margin-top:3px}
+.tr-ex,.tr-as{font-style:normal;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px;white-space:nowrap}
+.tr-ex{background:#fff3e0;color:#d97400}.tr-as{background:var(--soft);color:var(--mute)}
+.tr-none{padding:18px 2px}
+.tr-f{flex-wrap:wrap}.tr-f .seg{flex:1 1 100%;order:2}.tr-f select{order:1}

@@ -619,48 +619,57 @@ const WHY = [
 const whyOf = (how) => WHY.find(([k]) => String(how).startsWith(k)) || [how, how, ""];
 // 과거 체결 기록의 사유(봇 내부 이름) → 표시 이름
 const TRADE_WHY = {"목표가": "목표가 매도", "보유 기한": "보유 기한 매도", "시가 익절": "시가 매도(목표가 이상 출발)", "종가 지정가": "전일 종가 지정가 매수", "RSI30 지정가": "RSI 30 지정가 매수",
-  "RSI26 지정가": "RSI 26 지정가 매수", "마감": "장 마감 매수(시간외)", "예비": "예비 매수", "급락": "급락일 매수", "추세 위: QQQM": "추세 매수(QQQM)", "추세 아래: 대기": "추세 매도(단기국채 대기)",
+  "RSI26 지정가": "RSI 26 지정가 매수", "마감": "장 마감 매수(시간외)", "예비": "예비 매수", "급락": "급락 예외 매수", "추세 위: QQQM": "추세 매수(QQQM)", "추세 아래: 대기": "추세 매도(단기국채 대기)",
   "단타 끝, 자산배분 되사기": "단타 종료 후 재매수", "남는 돈 맞추기": "잔여 자금 재배분", "자산배분": "자산배분 리밸런싱", "단타 자금 마련": "단타 자금 마련 매도"};
 const tw = (w) => TRADE_WHY[w] || w;
+// 5단계 할 일(11-27): 증권사 앱에 주문 넣는 순서(구분·종목 → 주문 유형 → 가격 → 수량 → 주문 시간) 그대로, 가격·수량은 눌러서 복사
+let toastT = null;
+function toast(t) {
+  let el = $("#toast"); if (!el) { el = document.createElement("div"); el.id = "toast"; el.className = "toast"; document.body.appendChild(el); }
+  el.textContent = t; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 1400);
+}
+async function copyTxt(v, label) {
+  try { await navigator.clipboard.writeText(v); toast(`${label} ${v} 복사됨`); }
+  catch (e) { const ta = document.createElement("textarea"); ta.value = v; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast(`${label} ${v} 복사됨`); } catch (e2) { toast("복사하지 못했습니다"); } ta.remove(); }
+}
+const CP = `<svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 5.5h-8a2 2 0 00-2 2v8"/></svg>`;
 function todo() {
   const k = S.prof, a = D.accounts[k], plan = a.plan || {};
   const f = myAmt() && D.usdkrw && a.equity_usd ? myAmt() / (a.equity_usd * D.usdkrw) : null;
-  const cashText=String(S.cashUsd||"").replace(/,/g,"").trim(), cash=Number(cashText);
-  let buyingCash=cashText&&Number.isFinite(cash)&&cash>=0?cash:null;
-  const hold=(plan.hold||[]).length>0;
-  const currentAfter = (plan.after||[]).filter(o=>Date.parse(o.expires_at)>Date.now());
-  const os = [...currentAfter,...(plan.swing || []), ...(plan.alloc || [])].filter(o=>o.qty>0);
-  const notice=a.notice, nativeStatus=AND?.notificationsEnabled?.();
-  let html = `<div class="card notice-card"><div class="notice-status"><div><div class="t2">${P[k].name} · ${S.inst}</div><div class="title">${esc(notice?.title || "알림 상태 확인 중")}</div></div>${notice?`<span class="notice-chip ${notice.level}">${notice.level==="none"?"보낼 알림 없음":notice.action?"주문 알림 대상":"상태 알림 대상"}</span>`:""}</div>
-    <div class="desc">${nativeStatus===false?"휴대폰 알림이 꺼져 있습니다.":nativeStatus===true?"휴대폰 알림이 켜져 있습니다. 새 마감 자료 확인 뒤 알림이 표시됩니다.":""}</div>
-    ${nativeStatus===false?'<button class="secondary" id="enableNotices">휴대폰 알림 설정</button>':nativeStatus===true?'<button class="secondary" id="testNotice">테스트 알림</button>':""}
-    ${WEB && PUSHST !== "on" ? `<button class="secondary" id="todoPush">이 기기로 알림 받기</button>` : ""}</div>
-    <div class="card order-context"><div><div class="title">주문 계획</div><div class="t2">${D.next_session ? openKst(D.next_session) + " 개장" : "다음 개장 확인 중"} ${ymd(D.last_close)} 종가 기준</div>
-    <div class="t2">${f ? `${won(myAmt())} 기준 예상 주 수` : "가상 계좌 기준 주 수"}${buyingCash!==null?` · 결제 현금 ${usd2(buyingCash)}`:""}</div></div><button class="secondary" id="orderSize">내 수량 설정</button></div>`;
+  const cashText = String(S.cashUsd || "").replace(/,/g, "").trim(), cash = Number(cashText);
+  let buyingCash = cashText && Number.isFinite(cash) && cash >= 0 ? cash : null;
+  const hold = (plan.hold || []).length > 0;
+  const currentAfter = (plan.after || []).filter((o) => Date.parse(o.expires_at) > Date.now());
+  const os = [...currentAfter, ...(plan.swing || []), ...(plan.alloc || [])].filter((o) => o.qty > 0);
+  let html = `<div class="card td-h"><div><div class="title">주문 ${os.length}건</div><div class="t2">${D.next_session ? openKst(D.next_session) + " 개장" : "다음 개장 확인 중"} · ${ymd(D.last_close).slice(5)} 종가 기준</div></div>
+    <button class="td-amt" id="orderSize"><small>수량 기준</small>${f ? won(myAmt()) : "가상 계좌"}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button></div>`;
   if (hold) html += `<div class="card"><div class="alert" style="margin:0"><b>주문 보류</b><br>${esc(plan.hold.join(" · "))}</div></div>`;
-  html += `<div class="card"><div class="title">주문 내역 ${os.length}건</div>`;
-  if (!os.length) html += `<div class="desc">예정된 주문이 없습니다.</div>`;
-  os.forEach((o) => {
+  if (!os.length) html += `<div class="card td-empty"><div class="title">예정된 주문이 없습니다</div><div class="t2">장 마감 뒤 새 주문이 생기면 알림이 옵니다</div>${WEB && PUSHST === "off" ? `<button class="btn blue" id="todoPush">알림 받기</button>` : ""}</div>`;
+  os.forEach((o, i) => {
     const [, title, theory] = whyOf(o.how), buy = o.side === "buy", q = LQ[o.symbol];
-    const planned=f?Math.floor(o.qty*f):o.qty, unit=o.limit*(1+Number(S.fee));
-    const mine=buy&&f&&buyingCash!==null&&unit>0?Math.min(planned,Math.floor(buyingCash/unit)):planned;
-    if(buy&&f&&buyingCash!==null&&unit>0)buyingCash=Math.max(0,buyingCash-mine*unit);
-    const sizing=hold?"보류":`${mine.toLocaleString()}주${mine<planned?` · 계획 ${planned}주 중 현금 한도`:""}`;
-    html += `<div class="order ${o.side}"><div class="h"><span><span class="badge ${buy ? "b" : "s"}">${buy ? "매수" : "매도"}</span> <b>${esc(o.symbol)}</b> · ${esc(title)}</span><span class="px">${o.limit ? usd2(o.limit) : "종가"}</span></div>
-      <div class="kv"><div>주문 유형</div><div>${o.limit ? "지정가" : "시장가(장 마감 전) · 목표가 주문 취소 후"}</div>
-      <div>${f?"내 예상 수량":"주문 수량"}</div><div><b>${sizing}</b></div>
-      <div>주문 일자</div><div>${ymd(o.session)}${o.expires_at?" (오늘 시간외)":o.session !== D.next_session ? " (예약)" : ""}</div><div>주문 기간</div><div>${esc(o.until)}</div>
-      <div>산출 근거</div><div>${esc(o.why)}</div>
-      ${q && o.limit ? `<div>현재가</div><div>${usd2(q.c)} · 주문가까지 ${pct(o.limit / q.c - 1)} <span class="mute">${kst(q.time).slice(5)} KST</span></div>` : ""}</div>
-      ${theory ? `<details class="more"><summary>전략 근거</summary><div class="desc">${theory}</div></details>` : ""}</div>`;
+    const planned = f ? Math.floor(o.qty * f) : o.qty, unit = o.limit * (1 + Number(S.fee));
+    const mine = buy && f && buyingCash !== null && unit > 0 ? Math.min(planned, Math.floor(buyingCash / unit)) : planned;
+    if (buy && f && buyingCash !== null && unit > 0) buyingCash = Math.max(0, buyingCash - mine * unit);
+    const px = o.limit ? o.limit.toFixed(2) : null;
+    const when = `${ymd(o.session).slice(5)}${o.expires_at ? " 오늘" : ""} · ${esc(o.until)}`;
+    html += `<div class="card tk ${o.side}"><div class="tk-h"><span class="badge ${buy ? "b" : "s"}">${buy ? "매수" : "매도"}</span><b>${esc(o.symbol)}</b><span class="tk-w">${esc(title.match(/\((.+)\)$/)?.[1] || title.replace(/ 매도$/, ""))}</span></div>
+      <div class="tk-g">
+        <div><span>주문 유형</span><b>${o.limit ? "지정가" : "시장가"}</b></div>
+        <div><span>가격</span>${px ? `<b class="tk-big">$${px}</b><button class="tk-cp" data-cp="${px}" data-cl="가격" aria-label="가격 복사">${CP}</button>` : `<b>장 마감 전</b>`}</div>
+        <div><span>수량</span>${hold ? `<b>보류</b>` : `<b class="tk-big">${mine.toLocaleString()}주</b><button class="tk-cp" data-cp="${mine}" data-cl="수량" aria-label="수량 복사">${CP}</button>`}</div>
+        <div><span>주문 시간</span><b>${when}</b></div>
+        ${px && !hold ? `<div><span>예상 금액</span><b>${usd2(mine * o.limit)}</b></div>` : ""}
+      </div>
+      ${mine < planned && !hold ? `<div class="t2">계획 ${planned}주 중 주문 가능 달러 한도만큼</div>` : ""}
+      ${!o.limit ? `<div class="t2">목표가 매도 주문을 취소한 뒤 넣습니다</div>` : ""}
+      ${q && o.limit ? `<div class="tk-q">현재가 ${usd2(q.c)} · 주문가까지 <b class="${cls(o.limit / q.c - 1)}">${pct(o.limit / q.c - 1)}</b></div>` : ""}
+      <details class="more"><summary>왜 이 주문인가</summary><div class="desc">${esc(o.why)}${theory ? `<br><br>${theory}` : ""}</div></details></div>`;
   });
-  html += `</div>`;
-  html += `<div class="foot">이 앱은 주문표를 제공합니다. 증권사에서 실제 현금·보유량과 체결 상태를 확인한 후 직접 주문하십시오. 표시된 수량은 가상 장부를 기준으로 계산한 값입니다.</div>`;
+  html += `<div class="foot">실제 체결과 잔고는 증권사에서 확인하십시오.</div>`;
   $("#view").innerHTML = html;
-  $("#orderSize").onclick=openAmt;
-  if($("#todoPush"))$("#todoPush").onclick=openBell;
-  if($("#enableNotices"))$("#enableNotices").onclick=()=>AND.notificationSettings();
-  if($("#testNotice"))$("#testNotice").onclick=()=>AND.testOrderNotification?.();
+  $("#orderSize").onclick = openAmt;
+  if ($("#todoPush")) $("#todoPush").onclick = openBell;
+  document.querySelectorAll("[data-cp]").forEach((b) => b.onclick = () => copyTxt(b.dataset.cp, b.dataset.cl));
 }
 function checks(g, lots, reserveLine) {
   const row = (ok, name, val, rule) => `<div class="chk"><span class="st ${ok === true ? "ok" : ok === false ? "no" : "na"}">${ok === true ? "충족" : ok === false ? "미충족" : "보류"}</span><div><div class="t1">${name}</div><div class="t2">${val} · 기준 ${rule}</div></div></div>`;
@@ -684,32 +693,39 @@ const LR = [["1d", "1일"], ["5d", "1주"], ["1m", "1개월"], ["3m", "3개월"]
 const BARS = {"1m": 21, "3m": 63, "6m": 126, "1y": 252, "5y": 1260, all: 1e9};
 const NAMES = {TQQQ: "TQQQ · 나스닥100 일간 3배", QLD:"QLD · 나스닥100 일간 2배", QQQ: "QQQ · 나스닥100", QQQM: "QQQM · 나스닥100(저보수)", ACC: "계좌 평가금액"};
 let logChart = null, sigChart = null;
-function log() {
-  let html = `<div class="card">${seg(LSYM, S.lsym, "ls", "sm")}<div id="qhead"></div>
-    ${seg(LR, S.lrange, "lr", "sm")}${S.lsym !== "ACC" ? seg([["candle", "캔들"], ["line", "라인"]], S.ltype, "lt", "sm tiny") : ""}
-    <div id="logchart"></div><div class="chart-cap" id="logcap"></div></div><div id="trades"></div><div id="rounds"></div>`;
+function log() {   // 6단계(11-27): 종목 상세처럼 가격 → 차트 → 기간, 아래는 거래 내역 목록(과거 시험 / 가상 계좌)
+  let html = `<div class="card lg-c">${seg(LSYM, S.lsym, "ls", "sm")}<div id="qhead"></div>
+    <div id="logchart"></div>
+    <div class="lg-ctl">${seg(LR, S.lrange, "lr", "sm lg-r")}${S.lsym !== "ACC" ? `<button class="lg-t" id="ltBtn">${S.ltype === "line" ? "라인" : "캔들"}</button>` : ""}</div>
+    <div class="lg-leg" id="logcap"></div></div><div id="rounds"></div>`;
   $("#view").innerHTML = html;
   bindSeg("ls", (v) => { S.lsym = v; save(); render(); });
   bindSeg("lr", (v) => { S.lrange = v; save(); render(); });
-  bindSeg("lt", (v) => { S.ltype = v; save(); render(); });
+  if ($("#ltBtn")) $("#ltBtn").onclick = () => { S.ltype = S.ltype === "line" ? "candle" : "line"; save(); render(); };
   if (!needHist(() => S.tab === "log" && render())) { $("#logchart").innerHTML = wait("차트 자료를 불러오는 중입니다"); return; }
   drawLog(); liveTick();
-  // 실전 체결
-  const k = S.prof, lt = (D.accounts[k].trades || []).slice().reverse();
-  $("#trades").innerHTML = `<div class="card"><div class="title">실전 체결 내역(가상 계좌, ${ymd(D.start)}~)</div>` + (lt.length ? `<table class="tbl"><thead><tr><th>일자</th><th>구분</th><th class="r">수량</th><th class="r">체결가</th></tr></thead><tbody>${lt.map((t) => `<tr><td>${ymd(t.date).slice(2)}</td><td><span class="badge ${t.side === "buy" ? "b" : "s"}">${t.side === "buy" ? "매수" : "매도"}</span> ${esc(t.symbol)}<div class="t2">${esc(tw(t.why))}</div></td><td class="r">${t.qty.toLocaleString()}주</td><td class="r">${usd2(t.price)}</td></tr>`).join("")}</tbody></table>` : `<div class="desc">아직 체결 내역이 없습니다.</div>`) + `</div>`;
-  // 과거 공포 단타 회차
-  const bt = H.bt[S.assume ? "assume" : "real"], rounds = (bt.acc[k].rounds || []).slice().reverse(), years = [...new Set(rounds.map((r) => r.buys[0].d.slice(0, 4)))];
-  const shown = S.year === "all" ? rounds : rounds.filter((r) => r.buys[0].d.startsWith(S.year)), done = rounds.filter((r) => r.ret != null);
-  $("#rounds").innerHTML = `<div class="card"><div class="title">과거 공포 단타 ${done.length}회 · 수익 ${done.filter((r) => r.ret > 0).length}회</div>
-    ${seg(histOptions(), S.assume ? "1" : "0", "as")}
-    <select id="yr"><option value="all">전체 연도</option>${years.map((y) => `<option ${S.year === y ? "selected" : ""}>${y}</option>`).join("")}</select>
-    <table class="tbl rounds"><thead><tr><th>매수 → 매도</th><th>매수 시 지표</th><th class="r">수익률</th></tr></thead><tbody>
-    ${shown.map((r, j) => { const g = r.buys[0].sig || {}; return `<tr data-rd="${j}"><td>${ymd(r.buys[0].d).slice(2)}<br><span class="mute">${r.sell ? "→ " + ymd(r.sell.d).slice(2) : "보유 중"} · ${r.buys.length}회 매수${r.buys[0].sig?.w != null ? `<br>${r.buys.map((b) => pctu(b.sig?.w || 0, 0)).join("·")} · 합계 ${pctu(r.buys.reduce((z, b) => z + (b.sig?.w || 0), 0), 0)}` : ""}</span>${r.proxy ? `<br><span class="chip as">가정 가격</span>` : ""}</td>
-      <td class="t2">RSI ${num(g.rsi, 1)} · VIX ${num(g.vix, 1)}<br>공포탐욕 ${g.fg != null ? Math.round(g.fg) : "자료 없음"} · 고점 ${pct(g.dd)}<br>${r.sell ? esc(tw(r.sell.why)) : ""}</td><td class="r"><b class="${cls(r.ret)}">${r.ret == null ? "진행 중" : pct(r.ret)}</b></td></tr>`; }).join("") || `<tr><td colspan="3" class="desc">해당 연도에는 공포 단타가 없었습니다.</td></tr>`}</tbody></table></div>`;
+  const k = S.prof, bt = H.bt[S.assume ? "assume" : "real"], rounds = (bt.acc[k].rounds || []).slice().reverse(), done = rounds.filter((r) => r.ret != null);
+  const lt = (D.accounts[k].trades || []).slice().reverse(), lv = S.lview === "acc" ? "acc" : "past";
+  let body;
+  if (lv === "acc") {
+    body = lt.length ? lt.map((t) => `<div class="tr-row"><div class="tr-l"><b><span class="badge ${t.side === "buy" ? "b" : "s"}">${t.side === "buy" ? "매수" : "매도"}</span> ${esc(t.symbol)}</b><small>${ymd(t.date).slice(2)} · ${esc(tw(t.why))}</small></div>
+      <div class="tr-r"><b>${usd2(t.price)}</b><small>${t.qty.toLocaleString()}주</small></div></div>`).join("") : `<div class="desc tr-none">아직 체결 내역이 없습니다.</div>`;
+  } else {
+    const years = [...new Set(rounds.map((r) => r.buys[0].d.slice(0, 4)))], shown = S.year === "all" ? rounds : rounds.filter((r) => r.buys[0].d.startsWith(S.year));
+    body = `<div class="tr-f"><select id="yr"><option value="all">전체 연도</option>${years.map((y) => `<option ${S.year === y ? "selected" : ""}>${y}</option>`).join("")}</select>${seg(histOptions(), S.assume ? "1" : "0", "as", "sm")}</div>`
+      + (shown.map((r, j) => { const ex = r.buys.some((b) => b.how === "급락");
+        return `<button class="tr-row" data-rd="${j}"><div class="tr-l"><b>${ymd(r.buys[0].d).slice(2)} → ${r.sell ? ymd(r.sell.d).slice(5) : "보유 중"}</b>
+          <small>${r.buys.length}회 매수${r.sell ? " · " + esc(tw(r.sell.why)) : ""}${ex ? ` <em class="tr-ex">급락 예외</em>` : ""}</small></div>
+          <div class="tr-r"><b class="${cls(r.ret)}">${r.ret == null ? "진행 중" : pct(r.ret)}</b></div></button>`; }).join("") || `<div class="desc tr-none">해당 연도에는 거래가 없었습니다.</div>`);
+    window._rounds = shown;
+  }
+  $("#rounds").innerHTML = `<div class="card tr-c">${seg([["past", `과거 거래 ${done.length}번`], ["acc", `가상 계좌 체결 ${lt.length}건`]], lv, "lv")}
+    ${lv === "past" ? `<div class="tr-sum">수익 ${done.filter((r) => r.ret > 0).length}번 · 손실 ${done.filter((r) => r.ret <= 0).length}번 · 눌러서 차트로 보기</div>` : `<div class="tr-sum">${ymd(D.start)}부터 가상 계좌</div>`}${body}</div>`;
+  bindSeg("lv", (v) => { S.lview = v; save(); render(); });
   bindSeg("as", (v) => { S.assume = v === "1"; save(); render(); });
-  $("#yr").onchange = (e) => { S.year = e.target.value; save(); render(); };
+  if ($("#yr")) $("#yr").onchange = (e) => { S.year = e.target.value; save(); render(); };
   document.querySelectorAll("[data-rd]").forEach((tr) => tr.onclick = () => {
-    const r = shown[+tr.dataset.rd]; S.lsym = S.inst; S.lrange = "3m"; save();
+    const r = window._rounds[+tr.dataset.rd]; S.lsym = S.inst; S.lrange = "3m"; save();
     const di = H.dates.indexOf(r.buys[0].d), dj = r.sell ? H.dates.indexOf(r.sell.d) : H.dates.length - 1;
     render(); if (logChart) logChart.setRange(di - 25, dj + 15); window.scrollTo({top: 0, behavior: "smooth"});
   });
@@ -747,7 +763,7 @@ function drawLog() {
     const addT = (d, side, s, p, why, src, w) => { if (s !== sym || di[d] == null) return;
       const kd = d + side, kp = kd + "|" + p, c = (cnt[kp] = cnt[kp] || {n: 0, why}); c[src] = (c[src] || 0) + 1; c.n = Math.max(c.n, c[src]); if (w != null) c.w = w;
       let m = byDay[kd]; if (!m) { m = byDay[kd] = {i: di[d], y: side === "b" ? l[di[d]] ?? p : h[di[d]] ?? p, kind: side === "b" ? "buy" : "sell", rows: {}}; mk.push(m); }
-      m.rows[p] = c; m.p = p; m.why = why; m.y = side === "b" ? Math.min(m.y, p) : Math.max(m.y, p);
+      m.rows[p] = c; m.p = p; m.why = why; if (why === "급락") m.color = "#f08a00"; m.y = side === "b" ? Math.min(m.y, p) : Math.max(m.y, p);
       const tot = Object.values(m.rows).reduce((z, r) => z + r.n, 0); m.label = side === "b" && tot > 1 ? String(tot) : ""; };
     // 11-27: 보고 있는 차트 종목(QQQ·QLD·TQQQ)의 모델 기록으로 매수·매도 표시(예전엔 고른 단타 상품 것만 → TQQQ 외엔 표시 없음)
     const own = PRODUCTS[sym] ? (sym === "TQQQ" ? rawHist : rawHist?.variants?.[sym]) : null;
@@ -797,8 +813,8 @@ function drawLog() {
         hlines: [{y: 30, label: "매수 기준 30", color: css("--up")}, {y: 26, label: "26", color: css("--up"), dash: [2, 3]}]},
       {h: 1, fmt: (y) => y.toFixed(0), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}]},
       {h: 1, fmt: (y) => y.toFixed(0), fix: [0, 100], series: [{type: "line", name: "공포탐욕지수", y: fg, color: css("--B"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}], bands: [{y0: 0, y1: 30, color: css("--up") + "14"}]}]});
-  cap.innerHTML = sym === "ACC" ? `${P[k].name}·QQQ 보유 모두 2000년 시작 금액을 1로 둔 배수(원화·세후). 음영 = 공포 단타 보유 구간.`
-    : `▲ 매수 ▼ 매도(${P[k].name} · ${ymd(bt.start)}부터의 과거 시험과 가상 추적)${sym === S.inst ? ` · 음영 = ${S.inst} 단타 보유` : ""} · 빨간 점선 사이 = 사는 구간(QQQ 1년 고점 -10%~-25%${sym === "QQQ" || sym === "QQQM" ? "" : ", 이 종목 가격으로 환산"}) · RSI 띠 = 그날 장중 범위(고가·저가로 마감했다면)${real && real > H.dates[0] ? ` · ${ymd(real)} 이전은 가정 가격` : ""}`;
+  cap.innerHTML = sym === "ACC" ? `<span><i style="background:${css(P[k].v)}"></i>${P[k].name}</span><span><i style="background:${css("--Q")}"></i>QQQ 보유</span><span><i class="sq" style="background:${css("--tq")}40"></i>단타 보유</span><span class="mute">2000년=1 배수</span>`
+    : `<span><b class="up">▲</b>매수</span><span><b style="color:#f08a00">▲</b>급락 예외 매수</span><span><b class="down">▼</b>매도</span><span><i class="dash"></i>사는 구간</span>${sym === S.inst ? `<span><i class="sq" style="background:${css("--tq")}26"></i>단타 보유</span>` : ""}${real && real > H.dates[0] ? `<span class="mute">${ymd(real).slice(0, 4)}년 이전 가정 가격</span>` : ""}`;
 }
 async function drawIntraday(sym) {
   const el = $("#logchart"); if (!logChart || !el.querySelector("canvas")) el.innerHTML = wait("실시간 시세를 불러오는 중입니다");
