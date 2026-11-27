@@ -31,7 +31,11 @@ if (!S.simd) S.simd = new Date().getFullYear() + "-01-01";
 S.prof = "B"; if (S.compSet === "all") S.compSet = "duel";
 function load(d) { try { return Object.assign({}, d, JSON.parse(localStorage.getItem("ui3") || "{}")); } catch (e) { return d; } }
 (() => { const q = new URLSearchParams(location.search); if (q.get("tab")) S.tab = q.get("tab"); if (q.get("prof")) S.prof = q.get("prof"); })();   // 미리보기·캡처용 주소 지정
-function save() { try { localStorage.setItem("ui3", JSON.stringify(S)); } catch (e) {} window.Android?.setSelection?.(S.prof,S.inst); }
+// 11-28 알림 v2: 폰(sw.js)이 알림 글을 '내 종목·한 묶음 비중'으로 만들도록 설정을 캐시에 같이 둠(서비스 워커는 localStorage 를 못 읽음)
+let _setKey = "";
+function saveSet() { const v = JSON.stringify({inst: S.inst, lot: Number(S.lot)}); if (v === _setKey) return; _setKey = v; try { caches.open("bd-set").then((c) => c.put("./__set", new Response(v))).catch(() => {}); } catch (e) {} }
+function save() { try { localStorage.setItem("ui3", JSON.stringify(S)); } catch (e) {} saveSet(); window.Android?.setSelection?.(S.prof,S.inst); }
+saveSet();
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
