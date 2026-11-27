@@ -289,7 +289,7 @@ function eduLessons() {
       art: `<div class="ed-flow"><div><em class="up">▲</em><b>$100.00</b><small>매수 체결</small></div><i>→</i><div><em class="down">▼</em><b>$${(100 * (1 + T / 100)).toFixed(2)}</b><small>바로 매도 주문</small></div></div>`},
     {h: "10거래일 안에<br>정리합니다", p: `마지막 매수일부터 <b>10거래일</b> 안에 목표가에 닿지 않으면, 그날 장 마감에 손익과 관계없이 전량 매도합니다. 레버리지는 오래 들고 있을수록 손실이 커질 수 있습니다.`,
       art: `<div class="ed-days">${Array.from({length: 10}, (_, i) => `<i class="${i === 9 ? "end" : ""}">${i + 1}</i>`).join("")}</div><div class="ed-cap">10일째 장 마감 = 정리</div>`},
-    {h: "실제 거래로<br>따라가 보십시오", p: "2025년 4월 관세 폭락 때의 TQQQ 거래입니다. <b>다음 날</b>을 눌러 하루씩 넘기면서 알림·매수·매도 주문이 어떻게 바뀌는지 보십시오.", replay: true},
+    {h: "실제 거래로<br>따라가 보십시오", p: `2025년 4월 관세 폭락 때, <b>TQQQ를 고른 경우</b>의 실제 거래입니다(목표 +7.5%). ${S.inst !== "TQQQ" ? `${S.inst}는 날짜와 순서는 같고 가격과 목표(+${PRODUCTS[S.inst].target}%)만 다릅니다. ` : ""}<b>다음 날</b>을 눌러 하루씩 넘겨 보십시오.`, replay: true},
     {h: "평소에는<br>200일선을 따릅니다", p: `QQQ가 200일선보다 3% 넘게 위에서 마감하면 <b>QQQM 매수</b>, 3% 넘게 아래에서 마감하면 <b>매도 후 현금 대기</b>입니다. 이 주문도 알림으로 옵니다.`,
       art: `<div class="tour-checklist"><div style="--i:0"><b>200일선 +3% 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 -3% 아래</b><span>현금 대기</span></div></div>`},
     {h: "손실도<br>날 수 있습니다", p: `과거 성적은 미래를 보장하지 않습니다.${sc ? ` 과거 공포 단타를 보유하는 동안 계좌는 최대 <b>${pct(sc.sw_acc_worst, 0)}</b>까지 평가손실이 났습니다.` : ""} 감당할 수 있는 비중으로 시작하십시오.`,
