@@ -9,9 +9,23 @@
 <meta name="description" content="나스닥 급락일에만 매수하고 정해 둔 목표가에 매도하는 기준. 매일 장 마감 후 매수·매도 지정가를 무료로 공개합니다.">
 <meta property="og:title" content="피어바이 FEARBUY · 공포에 반응하지 않고, 원칙에 따라.">
 <meta property="og:description" content="매일 장 마감 후 매수·매도 지정가 공개(무료)">
-<meta property="og:image" content="https://kunchan70-creator.github.io/bandeung/og.png">
-<meta property="og:url" content="https://kunchan70-creator.github.io/bandeung/">
-<script>if(location.hostname.endsWith("github.io")&&!sessionStorage.v){sessionStorage.v=1;fetch("https://ntfy.sh/bd-in-16e06deda403",{method:"POST",body:"v land "+(document.referrer?new URL(document.referrer).hostname:"-")}).catch(()=>{});}</script>
+<meta property="og:image" content="https://fearbuy.pages.dev/og.png">
+<meta property="og:url" content="https://fearbuy.pages.dev/">
+<script>
+// 11-28 주소 이사(github.io → 새 주소): 옛 주소로 열면 이 기기의 설정을 들고 새 주소로 넘어가고, 옛 주소의 알림 구독은 정리(중복 알림 방지). 새 주소에서 알림만 다시 켜면 됨.
+var NEW_HOME="https://fearbuy.pages.dev/";   // 11-28 Cloudflare Pages(저장소 bandeung 자동 배포). 비우면 이사 안 함
+(function(){var h=location.hostname;
+if(h.endsWith("github.io")&&NEW_HOME){document.documentElement.style.background="#0b1220";
+  var data={};try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^(ui3|bdCoach_)/.test(k))data[k]=localStorage.getItem(k);}}catch(e){}
+  var go=function(had){data.__push=had?1:0;var s="";try{s=btoa(unescape(encodeURIComponent(JSON.stringify(data))));}catch(e){}var q=location.search||"";location.replace(NEW_HOME+q+(s?"#mig="+s:""));};
+  var done=false,fin=function(had){if(!done){done=true;go(had);}};setTimeout(function(){fin(false);},2500);
+  if("serviceWorker" in navigator){navigator.serviceWorker.getRegistration().then(function(r){if(!r||!r.pushManager)return fin(false);return r.pushManager.getSubscription().then(function(sub){if(!sub)return fin(false);
+    return fetch("https://bandeung-push.kunchan70.workers.dev/unsubscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({endpoint:sub.endpoint})}).catch(function(){}).then(function(){return sub.unsubscribe();}).then(function(){fin(true);},function(){fin(true);});});}).catch(function(){fin(false);});}else fin(false);
+  return;}
+if(location.hash.indexOf("#mig=")===0){try{var d=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(5)))));if(!localStorage.getItem("ui3")){for(var k2 in d)if(k2!=="__push")localStorage.setItem(k2,d[k2]);}if(d.__push)localStorage.setItem("bdMigPush","1");}catch(e){}history.replaceState(null,"",location.pathname+location.search);}
+if(!/^(localhost|127\.0\.0\.1)$/.test(h)&&location.protocol.indexOf("http")===0&&!sessionStorage.v){sessionStorage.v=1;fetch("https://ntfy.sh/bd-in-16e06deda403",{method:"POST",body:"v land "+(document.referrer?new URL(document.referrer).hostname:"-")}).catch(function(){});}
+})();
+</script>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/favicon.png">
@@ -56,6 +70,6 @@ function hide(){s.classList.add("out");setTimeout(function(){s.remove();},500);}
   <button data-tab="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M5 15l4.5-4.5 3.5 3 6-7"/></svg>차트</button>
 </nav>
 <script src="chart.js?v=b49040ec"></script>
-<script src="app.js?v=1372c7de"></script>
+<script src="app.js?v=431788d7"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 // 공포 단타 봇 화면 v3 — app_data.json(지금 상태, 15분마다) + app_hist.json(차트·성적표, 하루 한 번). 외부 라이브러리 없음.
 // 11-24 사용자: 합니다체·증권사 용어("~보다 낫다" 금지), 성적표는 빠짐없이·단위 통일, 차트는 증권사 수준(캔들/선·십자선·실시간).
 // 공개 페이지(github.io/bandeung)는 봇이 폰 앱 자료와 같은 파일을 data/ 에 같이 올린다(publish.py) — 앱과 페이지가 한 몸.
-const WEB = location.hostname.endsWith("github.io");
+const WEB = location.protocol.startsWith("http") && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // 11-28 공개 주소가 github.io → 새 주소로 이사(어느 공개 주소든 data/ 에서 읽음)
 // 11-27 사용자: 한 묶음 비중은 각자 정함(5~20%, 최대 5묶음이라 25%는 뺌) → 그 비중으로 계산한 자료 묶음을 통째로 바꿔 읽음(20 = 기본, 나머지 = s{N}/).
 const LOTS = [5, 10, 15, 20];
 const CAPN = () => D?.accounts?.[S.prof]?.plan?.signals?.max_regular_lots || 5;   // 최대 묶음 수(11-27 4 -> 5)
@@ -1138,7 +1138,7 @@ function needChartJs() {   // 옛 index.html(차트 파일 없음)이 캐시에 
 // 판 구분: 같은 코드. 무료판(지인용·공개 페이지) = 전부 열림. 유료판 = PASS 표시한 기능만 '공포 이용권'이 있을 때 열림(결제는 유료판에서 붙임).
 const EDITION = "free";   // "free" | "paid"
 const passOn = () => EDITION === "free" || !!S.pass;   // PASS: 공포 구간 주문표 · 보유 진단 확률
-const APP_URL = "https://kunchan70-creator.github.io/bandeung/";
+const APP_URL = window.NEW_HOME || (WEB ? location.origin + location.pathname.replace(/[^/]*$/, "") : "https://kunchan70-creator.github.io/bandeung/");
 const ALOG_URL = (WEB ? "data/" : "../out/") + "alert_log.json";
 const backBtn = (t) => `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>${t}</button>`;
 const goSub = (t) => { if (S.tab !== t) S.prevTab = S.tab; go(t); };
@@ -1184,7 +1184,7 @@ function reportImage(r) {   // 1080x1350 카드(인스타·카카오톡 공유�
     c.font = F(600, 32); c.fillStyle = "#8a97aa"; c.fillText(`${r.ytd.y}년 · 원화·세후 · 과거 계산`, W / 2, 990);
     c.font = F(800, 46); c.fillStyle = "#4a9eff"; c.fillText(`전략 ${pct(r.ytd.b)}`, W / 2 - 200, 1065); c.fillStyle = "#c9d2de"; c.fillText(`나스닥 ${pct(r.ytd.q)}`, W / 2 + 200, 1065); }
   c.fillStyle = "#fff"; c.font = F(800, 44); c.fillText("열광이 아닌 공포에 매수하다.", W / 2, 1210);
-  c.fillStyle = "#6f7d91"; c.font = F(500, 28); c.fillText("kunchan70-creator.github.io/bandeung", W / 2, 1270);
+  c.fillStyle = "#6f7d91"; c.font = F(500, 28); c.fillText(APP_URL.replace(/^https:\/\//, "").replace(/\/$/, ""), W / 2, 1270);
   return new Promise((res) => cv.toBlob((b) => res(new File([b], `fearbuy-${r.date}.png`, {type: "image/png"})), "image/png"));
 }
 function openReport() {
@@ -1414,6 +1414,8 @@ function openBell() {
 }
 // 진입 창: force = 전체 탭 '앱 설치'에서 직접 열 때
 function maybeEntry() {
+  // 11-28 주소 이사: 옛 주소에서 알림을 받던 사람 → 새 주소에서 알림만 한 번 다시 켜게(설정은 이미 옮겨 옴)
+  try { if (WEB && D && localStorage.getItem("bdMigPush") && PUSHST === "off" && $("#sheet").hidden && tourPage < 0) { localStorage.removeItem("bdMigPush"); toast("새 주소로 옮겼습니다. 알림만 다시 켜 주십시오"); openBell(); return; } } catch (e) {}
   if (!WEB || !D || COACH || tourPage >= 0 || !$("#sheet").hidden || PUSHST === "?" || (S.entryNext || 0) > Date.now()) return;
   if (STANDALONE && PUSHST !== "off") return;
   openEntry(false);
