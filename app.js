@@ -147,11 +147,6 @@ const COMP = {TQQQ: ["TQQQ", "나스닥100 3배 레버리지 · 공포 단타", 
               SGOV: ["SGOV", "미국 단기국채 · 현금성 대기", "var(--sg)"], "현금": ["현금", "달러 예수금", "var(--cash)"]};
 
 // ── 운용 유형 설명 ──
-const INFO = {
-  B: {tag: "200일선 추세 추종 + 공포 단타", mix: [["추세 추종(QQQM ↔ 현금)", 100, "var(--qm)"]],
-      body: "나스닥100(QQQ) 종가를 200일 이동평균선과 비교해 보유 여부를 정합니다. 종가가 200일선보다 3% 이상 높게 마감하면 QQQM을 전부 매수하고, 3% 이상 낮게 마감하면 전량 매도한 뒤 현금으로 대기합니다(내 설정에서 단기국채 SGOV로 바꿀 수 있음). ±3% 완충 구간은 200일선 부근에서 매매가 잦아지는 것을 막습니다."},
-};
-const swingRule = () => `일반 매수는 공포(VIX 30 이상 또는 CNN 공포탐욕 30 이하), 1년 고점 대비 하락률 −10%~−25%, RSI 30 미만, 남은 한도를 함께 봅니다. RSI 26 지정가·급락 매수는 별도 조건입니다. ${S.inst}는 한 묶음이 계좌의 ${S.lot}%(내 설정)이고, 한도는 횟수가 아니라 ${CAPN()}묶음어치 금액(계좌의 ${S.lot * CAPN()}%)입니다. 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반(${S.lot / 2}%)만 매수하고, 남은 한도는 다음 신호에 씁니다. 빠르고 깊은 하락이 반등도 컸고, 천천히 흘러내리는 하락에서 크게 사면 손실이 길어졌기 때문입니다. 목표 +${PRODUCTS[S.inst].target}%와 마지막 매수 후 10거래일 기한을 함께 관리합니다. 더 사면 기한도 그날부터 다시 셉니다. 실제 주문 전에 결제된 현금과 체결 주 수를 확인하십시오.`;
 
 // ── 설정·안내 시트 ──
 const FEES = [["0.0007", "0.07%"], ["0.001", "0.10%"], ["0.0015", "0.15%"], ["0.0025", "0.25%"]];
@@ -162,31 +157,34 @@ function sheet(html, onBind, o = {}) {
   const close = () => { sh.hidden = true; document.body.style.overflow = ""; render(); };
   if ($("#shx")) $("#shx").onclick = close; sh.querySelector(".sheet-bg").onclick = () => { o.onBg?.(); close(); }; if (onBind) onBind(close);
 }
-function typeCards(withStats) {
-  return ORDER.map((x) => {
-    const sc0 = withStats && H ? H.bt.assume.score.krw[x] : null, js = sc0 ? jstats(vals("assume", x, "krw")) : null, sc = sc0 ? {...sc0, cagr: js.cagr, mdd: js.mdd} : null;   // 11-26 비교 탭과 같은 수수료 반영 수치
-    return `<div class="ptype" style="--pc:${col(x)}"><div class="ph"><b style="color:${col(x)}">${P[x].name}</b><span>${INFO[x].tag}</span></div>
-      <div class="stack sm">${INFO[x].mix.map(([n, w, c]) => `<span style="width:${w}%;background:${c}"></span>`).join("")}</div>
-      <div class="legend">${INFO[x].mix.map(([n, w, c]) => `<span><i style="background:${c}"></i>${n} ${w}%</span>`).join("")}</div>
-      <div class="desc" style="margin-top:6px">${INFO[x].body}</div>
-      ${sc ? `<div class="pstat"><span>연평균 <b>${pct(sc.cagr)}</b></span><span>최대 낙폭 <b class="down">${pct(sc.mdd)}</b></span><span>현금성 평균 <b>${pctu(sc.avg_cash, 0)}</b></span><span class="mute">2000년~ 원화·세후</span></div>` : ""}</div>`;
-  }).join("");
+// 9단계 사용 안내(11-27): 증권 앱 '자주 묻는 질문'처럼 질문 하나에 답 몇 줄. 숫자는 지금 자료에서
+const TGT = () => PRODUCTS[S.inst].target;
+function faqItems() {
+  const sc = H?.bt?.assume?.score?.krw?.B, pre = sc ? ` 과거 공포 단타 중 계좌가 가장 크게 빠졌던 때는 ${pct(sc.sw_acc_worst, 0)}였습니다.` : "";
+  return [
+    ["이 앱은 무엇입니까", `나스닥이 크게 빠진 날에만 ${S.inst}를 사서 짧은 반등에 팝니다. 평소에는 200일선 추세에 따라 QQQM을 들고 있거나 현금으로 기다립니다. 주문은 직접 증권사에서 넣습니다.`],
+    ["하루에 할 일", `<ol class="faq-ol"><li>알림을 받습니다(장 마감 뒤, 개장 전)</li><li>할 일 탭에서 가격·수량을 복사합니다</li><li>증권사 앱에 지정가로 주문합니다</li></ol>알림이 없는 날은 할 일이 없습니다.`],
+    ["언제 삽니까", `<ol class="faq-ol"><li>공포: VIX 30 이상 또는 공포탐욕 30 이하</li><li>QQQ가 1년 고점 대비 -10%~-25%</li><li>QQQ RSI(14) 30 미만</li><li>남은 한도(${CAPN()}묶음어치)</li></ol>넷이 맞으면 삽니다. QQQ가 하루 -2.5%와 5일 -7.5%를 함께 넘게 빠진 날은 하락 범위와 상관없이 삽니다(급락 예외). 천천히 빠지는 날은 절반만 삽니다.`],
+    ["언제 팝니까", `평균 단가보다 +${TGT()}% 높은 목표가에 지정가로 전량 팝니다. 마지막으로 산 날부터 10거래일 안에 닿지 않으면 그날 장 마감에 손익과 상관없이 팝니다.`],
+    ["평소에는 무엇을 합니까", `QQQ가 200일선보다 3% 넘게 위에서 마감하면 QQQM을 사고, 3% 넘게 아래에서 마감하면 팔고 기다립니다. 그 사이에서는 그대로 둡니다.`],
+    ["주문은 언제 넣습니까", `<ol class="faq-ol"><li>목표가 매도: 산 직후 한 번, 체결될 때까지 유지</li><li>신규 매수: 전날 밤 개장 전 알림을 보고</li><li>장 마감 매수: 한국 아침 6시대 애프터마켓</li></ol>12월 7일부터 생기는 밤 세션에는 주문하지 않습니다.`],
+    ["얼마나 위험합니까", `${S.inst}는 나스닥100 하루 움직임의 ${({QQQ: 1, QLD: 2, TQQQ: 3})[S.inst]}배로 움직입니다.${pre} 한 묶음 비중(전체 > 내 설정)을 낮추면 손실도 같은 비율로 줄어듭니다.`],
+    ["숫자는 어떻게 계산했습니까", `2000년부터 하루 단위로 다시 계산했습니다. 원화·세후는 양도소득세 22%(연 250만 원 공제)와 환율을 반영합니다. 수수료는 내 설정 값(지금 ${feeTxt()})을 씁니다. ${S.inst} 상장 전은 나스닥100 하루 움직임으로 만든 가정 가격입니다. 과거 결과가 앞으로를 보장하지 않습니다.`],
+  ];
 }
 function openGuide() {
   needHist(() => {});
-  sheet(`<div class="title">이 앱은 무엇입니까</div>
-    <div class="desc">이 앱은 추세에 따라 나스닥100 보유를 조절하고 공포 구간의 짧은 반등 주문을 계산합니다. 평소에는 200일선 추세 추종으로 운용하고, 공포 구간에만 단타를 합니다. 고르는 것은 단타 종목(QQQ·QLD·TQQQ) 하나입니다.</div>
-    <div class="steps"><div><b>1</b>마감 기준 알림 또는 할 일을 확인합니다.</div><div><b>2</b>실제 결제된 현금과 보유 주 수를 확인하고 증권사에 직접 주문합니다.</div><div><b>3</b>부분 체결과 미체결을 확인한 뒤 목표가·보유 기한 주문을 관리합니다.</div></div>
-    <div class="sub-h">운용 방식</div>
-    ${typeCards(true)}
-    <details class="more"><summary>공포 단타 규칙</summary><div class="desc">${swingRule()}</div></details>
-    <button class="btn" id="gok">처음부터 둘러보기</button>`, (close) => { $("#gok").onclick = () => { close(); openTour(0, true); }; });
+  sheet(`<div class="pk-t">사용 안내</div>${faqItems().map(([q, a], i) => `<details class="faq"${i === 0 ? " open" : ""}><summary>${q}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></summary><div class="faq-a">${a}</div></details>`).join("")}
+    <button class="btn ghost" id="gok">처음 안내 다시 보기</button>`, (close) => { $("#gok").onclick = () => { close(); openTour(0, true); }; });
 }
+// 처음 안내 3장: 결과 → 방식 → 종목 고르기, 끝나면 '앱으로 받기' 창(maybeEntry)
 const TOUR = [
-  {title:"시장의 흐름과<br>공포를 읽다", desc:"이 앱은 매일의 매수·매도 판단을 규칙으로 정리합니다.", art:()=>`<div class="tour-checklist"><div style="--i:0"><b>평소</b><span>어떤 자산을 보유할까?</span></div><div style="--i:1"><b>시장 급락</b><span>어떤 조건에서 매수할까?</span></div><div style="--i:2"><b>주문 전</b><span>내 현금으로 몇 주를 살 수 있을까?</span></div></div>`},
-  {title:"평소에는<br>200일선을 따릅니다", desc:"나스닥100이 200일 이동평균보다 3% 넘게 위로 마감하면 QQQM 보유, 3% 넘게 아래로 마감하면 전량 매도 후 현금으로 대기합니다.", art:()=>`<div class="tour-checklist"><div style="--i:0"><b>위</b><span>QQQM 보유</span></div><div style="--i:1"><b>아래</b><span>현금 대기</span></div><div style="--i:2"><b>공포</b><span>단타로 반등 익절</span></div></div>`},
-  {title:"단타의 흔들림을<br>내가 정합니다", desc:"QQQ·QLD·TQQQ는 움직임이 다릅니다. 레버리지의 2배·3배 목표는 하루 기준입니다.", art:()=>`<div class="tour-options">${Object.entries(PRODUCTS).map(([s,p],i)=>`<button data-tour-product="${s}" class="${S.inst===s?'selected':''}" style="--i:${i};--accent:#efab5d"><b>${s}</b><span>${p.title} · 목표 +${p.target}%</span></button>`).join("")}</div>`},
-  {title:"알림이 오면<br>할 일부터 봅니다", desc:"정해둔 가격과 살 수 있는 수량을 확인한 다음 증권사에서 직접 주문합니다.", art:()=>`<div class="tour-checklist">${["신호와 알림 상태 확인","지정가와 결제된 현금 확인","체결 수량과 종료 날짜 확인"].map((t,i)=>`<div style="--i:${i}"><span>✓</span>${t}</div>`).join("")}</div>`},
+  {title: "공포가 클 때만 사고<br>반등에 팝니다", desc: "나스닥이 크게 빠진 날의 주문을 매일 계산해 드립니다.", art: () => {
+    const sc = H?.bt?.assume?.score?.krw?.B, b = H ? jstats(vals("assume", "B", "krw")) : null, q = H ? jstats(vals("assume", "qqq", "krw")) : null;
+    return `<div class="tour-stat"><small>2000년부터 공포 단타</small><b>${sc ? `${sc.sw_n}번 중 ${Math.round(sc.sw_n * sc.sw_win)}번 수익` : "…"}</b>
+      <div class="tour-vs"><span><small>1억이</small><em style="color:#6d5df6">${b ? eokTxt(b.mult) : "…"}</em></span><span><small>QQQ 보유</small><em>${q ? eokTxt(q.mult) : "…"}</em></span></div><small>원화·세후 · 과거 계산</small></div>`; }},
+  {title: "평소에는 추세를,<br>공포에는 반등을", desc: "판단은 장 마감 숫자로만 합니다.", art: () => `<div class="tour-checklist"><div style="--i:0"><b>200일선 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 아래</b><span>현금으로 대기</span></div><div style="--i:2"><b>공포 + 급락</b><span>${S.inst} 사고 +${TGT()}%에 매도</span></div></div>`},
+  {title: "단타 종목을<br>고르십시오", desc: "배수가 클수록 수익도 손실도 커집니다. 나중에 머리글에서 바꿀 수 있습니다.", art: () => `<div class="tour-options">${Object.entries(PRODUCTS).map(([s, p], i) => `<button data-tour-product="${s}" class="${S.inst === s ? "selected" : ""}" style="--i:${i};--accent:#3182f6"><b>${s}</b><span>${p.title} · 목표 +${p.target}%</span></button>`).join("")}</div>`},
 ];
 let tourPage = -1;
 function openTour(step=0,restart=false) {
@@ -198,7 +196,8 @@ function openTour(step=0,restart=false) {
   el.innerHTML=`<div class="tour-inner ${direction} ${i===0?'intro':''}"><div class="tour-top"><span>시작 안내</span><button id="tourSkip">건너뛰기</button></div>
   <div class="tour-steps" aria-label="${i+1} / ${TOUR.length} 단계">${TOUR.map((_,p)=>`<i class="${p<=i?'on':''}"></i>`).join("")}</div>
   <div class="tour-copy"><h1>${x.title}</h1><p>${x.desc}</p></div><div class="tour-art">${x.art()}</div>
-  <div class="tour-nav">${i?'<button id="tourPrev">이전</button>':''}<button class="btn" id="tourNext">${i===TOUR.length-1?'홈으로':'다음'}</button></div></div>`;
+  <div class="tour-nav">${i?'<button id="tourPrev">이전</button>':''}<button class="btn" id="tourNext">${i===TOUR.length-1?'시작하기':'다음'}</button></div></div>`;
+  if(i===0&&!H)needHist(()=>{if(tourPage===0)openTour(0,true);});
   $("#tourSkip").onclick=finish;
   $("#tourNext").onclick=i===TOUR.length-1?finish:()=>openTour(i+1);
   if(i)$("#tourPrev").onclick=()=>openTour(i-1);
