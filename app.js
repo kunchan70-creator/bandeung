@@ -276,6 +276,8 @@ function home() {
     const avg = parseFloat((sell.why.match(/\$([\d.]+)/) || [])[1]), q = LQ[S.inst], lots = dedupLots(plan.lots);
     html += `<div class="alert"><b>공포 단타 진행 중 · ${S.inst} ${pctu(tq)}</b><br>${tq>=.5 ? "단타 비중이 높습니다. 실제 계좌에서 감당할 수 있는 손실과 남은 현금을 확인하십시오." : "추가 매수에 따라 단타 비중이 커집니다."}</div>
       <div class="kv2"><div>매수</div><div>${lots.map((l, i) => l.how === "예비" ? "예비" : (i + 1) + "차").join("·")} ${lots.length?`(${ymd(lots[0].d).slice(5)}~${ymd(lots.at(-1).d).slice(5)})`:""}</div>
+      ${lots.length && lots[0].n ? (() => { const amt = lots.map((l) => l.n * l.px), full = tot * S.lot / 100, half = amt.map((x) => x < full * .75), sum = amt.reduce((z, x) => z + x, 0);
+        return `<div>묶음 크기</div><div>${half.map((h) => h ? "반" : "한").join("·")} · 산 금액 계좌의 약 ${pctu(sum / tot, 0)}${half.some((h) => h) ? `<div class="t2">'반' = 느린 하락이라 절반(${S.lot / 2}%)만 산 묶음. 5묶음을 다 사도 100%가 안 되는 이유입니다.</div>` : ""}</div>`; })() : ""}
       <div>전략 기준 단가</div><div>${usd2(avg)}</div><div>목표가(+${PRODUCTS[S.inst].target}%)</div><div class="up">${usd2(sell.limit)}</div>
       ${q ? `<div>현재가</div><div><b>${usd2(q.c)}</b> · 목표가까지 ${pct(sell.limit / q.c - 1)}</div>` : ""}
       <div>보유 기한</div><div>${due ? ymd(due.session) + " 장 마감" : "-"}</div></div>`;

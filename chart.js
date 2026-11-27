@@ -110,8 +110,9 @@
       (p.hlines || []).forEach((h) => { if (h.fit) take(h.y); });
       (p.fix || []).forEach(take);
       if (!isFinite(lo)) { lo = 0; hi = 1; }
-      if (p.log) { const L = Math.log(lo), H = Math.log(hi), pad = (H - L || .1) * .07; return [Math.exp(L - pad), Math.exp(H + pad)]; }
-      const pad = (hi - lo || Math.abs(hi) || 1) * .08; return [p.min0 ? Math.min(0, lo) : lo - pad, hi + pad];
+      const lab = (p.markers || []).some((m) => m.label && m.i >= a && m.i <= b) ? 2.2 : 1;   // 매수 표시 아래 묶음 수 숫자가 잘리지 않게 아래 여백을 더
+      if (p.log) { const L = Math.log(lo), H = Math.log(hi), pad = (H - L || .1) * .07; return [Math.exp(L - pad * lab), Math.exp(H + pad)]; }
+      const pad = (hi - lo || Math.abs(hi) || 1) * .08; if (!p.min0 && lab > 1) lo -= pad * (lab - 1); return [p.min0 ? Math.min(0, lo) : lo - pad, hi + pad];
     }
     draw() {
       const el = this.el, W = el.clientWidth, H = this.o.height || 300; if (!W) return;
