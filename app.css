@@ -384,3 +384,4 @@ em.hl{font-style:normal;font-weight:700;color:var(--ink);background:linear-gradi
 .fg-go>i svg{width:18px;height:18px;fill:none;stroke:#8b95a1;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.fg-go>i.on svg{stroke:#2f6ff5}
 .fg-go>span{flex:1;min-width:0}.fg-go b{display:block;font-size:15px}.fg-go small{display:block;font-size:12px;color:var(--mute);margin-top:2px}
 .fg-go .ch{width:18px;height:18px;flex:none;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fg-t{fill:#191f28!important}.fg-go>i.on{background:#fff0f1}.fg-go>i.on svg{stroke:#f04452}

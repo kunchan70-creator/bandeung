@@ -345,6 +345,9 @@ function startClock() {
   f(); clockT = setInterval(f, 1000);
 }
 const LOGO = {TQQQ: "TQ", QLD: "QL", QQQ: "Q", QQQM: "QM", SGOV: "SG", GLDM: "금", IEF: "IE", "현금": "$"};
+// 11-27 밤 사용자 '극심한 공포가 파란색이 맞냐, 점점 붉어지게' → 공포는 빨강, 중립 노랑, 탐욕 초록(속도계처럼 띠 전체를 보여 주고 지금 값을 짚음)
+const FGS = [[0, [200, 30, 30]], [25, [240, 68, 82]], [45, [255, 140, 50]], [55, [245, 196, 60]], [75, [120, 196, 110]], [100, [18, 161, 80]]];
+function fgCol(v) { v = Math.max(0, Math.min(100, v)); for (let i = 1; i < FGS.length; i++) if (v <= FGS[i][0]) { const [a, ca] = FGS[i - 1], [b, cb] = FGS[i], t = (v - a) / (b - a); return "#" + ca.map((c, k) => Math.round(c + (cb[k] - c) * t).toString(16).padStart(2, "0")).join(""); } return "#12a150"; }
 function home() {
   const k = S.prof, a = D.accounts[k], plan = a.plan || {}, my = myAmt(), tr = D.trend;
   const {g, tot} = composition(a), shown = Object.entries(g).filter(([, x]) => x / tot > .0005).sort((p, q) => q[1] - p[1]);
@@ -358,12 +361,13 @@ function home() {
     const [t1x, t1y] = pt(30, Rr + 14), [t2x, t2y] = pt(30, Rr - 14), [lx, ly] = pt(30, Rr + 26);
     const cs = [sg.fear, sg.band, sg.rsi == null ? null : sg.rsi < 30, room > 0], nm = cs.filter((c) => c === true).length;
     html += `<div class="card fg-card"><div class="fg-h"><b>공포·탐욕지수</b><span class="${live ? "lv" : ""}">${live ? "실시간" : ymd(sg.date).slice(5) + " 종가"}</span></div>
-      <div class="fg-g"><svg viewBox="0 0 220 128" aria-hidden="true"><defs><linearGradient id="fgG" x1="0" x2="1"><stop offset="0" stop-color="#1f5fe6"/><stop offset="1" stop-color="#7fb0ff"/></linearGradient></defs>
-        <path d="${arc(0, 100)}" fill="none" stroke="#e9edf2" stroke-width="18" stroke-linecap="round"/>
-        ${fgv != null ? `<path d="${arc(0, Math.max(1, Math.min(100, fgv)))}" fill="none" stroke="url(#fgG)" stroke-width="18" stroke-linecap="round"/>` : ""}
-        <line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="#f04452" stroke-width="2.4" stroke-linecap="round"/>
-        <text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" class="fg-t">30</text></svg>
-        <div class="fg-v"><b>${fgv == null ? "-" : Math.round(fgv)}</b><span class="fg-l ${lab[1]}">${lab[0]}</span></div></div>
+      <div class="fg-g"><svg viewBox="0 0 220 128" aria-hidden="true">
+        ${Array.from({length: 60}, (_, i) => `<path d="${arc(i * 100 / 60, (i + 1) * 100 / 60 + .4)}" fill="none" stroke="${fgCol((i + .5) * 100 / 60)}" stroke-width="18"/>`).join("")}
+        ${(() => { const [ax, ay] = pt(0, Rr), [bx, by] = pt(100, Rr); return `<circle cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="9" fill="${fgCol(0)}"/><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="9" fill="${fgCol(100)}"/>`; })()}
+        <line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="#191f28" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 3"/>
+        <text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" class="fg-t">30</text>
+        ${fgv != null ? (() => { const [mx, my] = pt(Math.max(0, Math.min(100, fgv)), Rr); return `<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="13" fill="#fff" stroke="${fgCol(fgv)}" stroke-width="5"/><circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="4" fill="#191f28"/>`; })() : ""}</svg>
+        <div class="fg-v"><b style="color:${fgv == null ? "var(--ink)" : fgCol(fgv)}">${fgv == null ? "-" : Math.round(fgv)}</b><span class="fg-l" style="${fgv == null ? "" : `background:${fgCol(fgv)}1f;color:${fgCol(fgv)}`}">${lab[0]}</span></div></div>
       <div class="fg-s">30 이하이면 공포 조건 충족 · VIX ${num(sg.vix, 1)}</div>
       <button class="fg-go" data-go="signal"><i class="${sg.fear ? "on" : ""}"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><span><b>${sg.fear ? "공포 구간" : "공포 구간 아님"} · 매수 조건 ${nm}/4</b><small>${nm === 4 ? "다음 거래일 매수 주문이 나갑니다" : "남은 조건은 신호에서 QQQ 가격으로 확인"}</small></span><svg class="ch" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button></div>`; }
   // 1) 장 시계 + 다음 주문
