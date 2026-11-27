@@ -152,7 +152,7 @@ const INFO = {
   B: {tag: "200일선 추세 추종 + 공포 단타", mix: [["추세 추종(QQQM ↔ 단기국채)", 100, "var(--qm)"]],
       body: "나스닥100(QQQ) 종가를 200일 이동평균선과 비교해 보유 여부를 정합니다. 종가가 200일선보다 3% 이상 높게 마감하면 QQQM을 전부 매수하고, 3% 이상 낮게 마감하면 전량 매도한 뒤 단기국채(SGOV)로 대기합니다. ±3% 완충 구간은 200일선 부근에서 매매가 잦아지는 것을 막습니다."},
 };
-const swingRule = () => `일반 매수는 공포(VIX 30 이상 또는 CNN 공포탐욕 30 이하), 1년 고점 대비 하락률 −10%~−25%, RSI 30 미만, 남은 차수를 함께 봅니다. RSI 26 지정가·급락 매수는 별도 조건입니다. ${S.inst}는 한 묶음이 계좌의 ${S.lot}%(내 설정), 최대 ${CAPN()}묶음입니다. 단, 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반(${S.lot / 2}%)만 매수합니다. 빠르고 깊은 하락이 반등도 컸고, 천천히 흘러내리는 하락에서 크게 사면 손실이 길어졌기 때문입니다. 목표 +${PRODUCTS[S.inst].target}%와 마지막 매수 후 10거래일 기한을 함께 관리합니다. 더 사면 기한도 그날부터 다시 셉니다. 실제 주문 전에 결제된 현금과 체결 주 수를 확인하십시오.`;
+const swingRule = () => `일반 매수는 공포(VIX 30 이상 또는 CNN 공포탐욕 30 이하), 1년 고점 대비 하락률 −10%~−25%, RSI 30 미만, 남은 한도를 함께 봅니다. RSI 26 지정가·급락 매수는 별도 조건입니다. ${S.inst}는 한 묶음이 계좌의 ${S.lot}%(내 설정)이고, 한도는 횟수가 아니라 ${CAPN()}묶음어치 금액(계좌의 ${S.lot * CAPN()}%)입니다. 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반(${S.lot / 2}%)만 매수하고, 남은 한도는 다음 신호에 씁니다. 빠르고 깊은 하락이 반등도 컸고, 천천히 흘러내리는 하락에서 크게 사면 손실이 길어졌기 때문입니다. 목표 +${PRODUCTS[S.inst].target}%와 마지막 매수 후 10거래일 기한을 함께 관리합니다. 더 사면 기한도 그날부터 다시 셉니다. 실제 주문 전에 결제된 현금과 체결 주 수를 확인하십시오.`;
 
 // ── 설정·안내 시트 ──
 const FEES = [["0.0007", "0.07%"], ["0.001", "0.10%"], ["0.0015", "0.15%"], ["0.0025", "0.25%"]];
@@ -224,7 +224,7 @@ function openSettings() {
   if (!RISK) fetch(RISK_URL, {cache: "no-store"}).then((r) => r.json()).then((x) => { RISK = x; const el = $("#lotrisk"); if (el) el.textContent = riskText(Number($("[data-lot].on")?.dataset.lot || S.lot)); }).catch(() => {});
   sheet(`<div class="title">내 설정</div>
     <div class="sub-h">한 묶음 비중</div>${seg(LOTS.map((n) => [String(n), n + "%"]), String(S.lot), "lot")}
-    <div class="desc">공포 구간에서 한 번 살 때 계좌의 몇 %를 살지 정합니다. 최대 ${CAPN()}묶음이라 20%면 다 사면 계좌의 100%이고, 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반만 삽니다. 고른 비중으로 홈·비교·기록·신호의 모든 숫자와 그래프를 다시 계산해 보여 줍니다.</div>
+    <div class="desc">공포 구간에서 한 번 살 때 계좌의 몇 %를 살지 정합니다. 한도는 ${CAPN()}묶음어치 금액이라 20%면 다 사도 계좌의 100%입니다. 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반만 사고, 남은 한도로 다음 신호에 더 삽니다. 고른 비중으로 홈·비교·기록·신호의 모든 숫자와 그래프를 다시 계산해 보여 줍니다.</div>
     <div class="alert" id="lotrisk">${riskText(S.lot)}</div>
     <div class="desc">비중을 키우면 과거 수익은 커지지만, 규칙이 맞지 않는 하락이 오면 손실도 같은 배수로 커집니다. 과거 계산은 앞으로의 결과를 보장하지 않습니다.</div>
     <div class="sub-h">추세 아래일 때 대기 자금</div>${seg(WAITS, S.wait, "wt")}
@@ -596,16 +596,16 @@ function todo() {
 function checks(g, lots, reserveLine) {
   const row = (ok, name, val, rule) => `<div class="chk"><span class="st ${ok === true ? "ok" : ok === false ? "no" : "na"}">${ok === true ? "충족" : ok === false ? "미충족" : "보류"}</span><div><div class="t1">${name}</div><div class="t2">${val} · 기준 ${rule}</div></div></div>`;
   const fear = g.fear === true ? true : g.fear === false ? false : null;
-  const cap=g.max_regular_lots||5, ready=Boolean(fear&&g.band&&g.rsi<30&&lots<cap), waiting=fear===null||g.rsi==null;
+  const cap=g.max_regular_lots||5, room=g.room ?? (cap-lots), ready=Boolean(fear&&g.band&&g.rsi<30&&room>0), waiting=fear===null||g.rsi==null;
   return `<div class="signal-result ${ready?'ready':''}"><b>${waiting?'자료 확인 중':ready?'일반 매수 조건 충족':'일반 매수 조건 대기'}</b><small>아래 네 줄은 모두 충족 · VIX와 공포탐욕은 둘 중 하나</small></div>`
     + row(fear, "공포 구간", `VIX ${num(g.vix, 1)} / 공포탐욕지수 ${g.fg != null ? Math.round(g.fg) : "-"}`, "VIX 30 이상 또는 공포탐욕지수 30 이하")
     + row(g.band, "고점 대비 하락 범위", `QQQ 1년 고점 대비 ${pct(g.dd)}`, "-10% ~ -25%")
     + row(g.rsi != null ? g.rsi < 30 : null, "과매도(RSI 14)", `RSI ${num(g.rsi, 1)}`, "30 미만")
-    + row(lots < cap, "남은 기본 차수", `${lots}차 보유`, `기본 최대 ${cap}차`)
+    + row(room > 0, "남은 한도", `${lots}회 매수 · ${+(g.units ?? lots).toFixed(1)}묶음어치 보유 · ${+room.toFixed(1)}묶음 남음`, `${cap}묶음어치(느린 하락 절반 묶음은 0.5)`)
     + (g.speed != null ? `<div class="chk"><span class="st ${g.slow ? "na" : "ok"}">${g.slow ? "절반" : "전액"}</span><div><div class="t1">하락 속도(매수 크기)</div><div class="t2">QQQ ${g.speed_n || 3}거래일 ${pct(g.speed)} · 기준 -4% 이하면 한 묶음 ${S.lot}%, 아니면 절반 ${S.lot / 2}%${g.speed_line ? ` · 다음 장 QQQ ${usd2(g.speed_line)} 이하 마감 시 빠른 하락` : ""}</div></div></div>` : "")
     + `<details class="more"><summary>일반 조건과 별개로 검토하는 매수</summary>
-    ${row(g.fear===false && g.band && g.rsi>=30 && lots<cap,"RSI 26 지정가", "공포 구간 밖에서 대기 주문", "하락 범위 안 · 계산한 RSI 26 가격")}
-    ${row(g.crash==null?null:g.crash&&lots<cap,"급락 예외", `QQQ 1일 ${pct(g.day_return)} · 5거래일 ${pct(g.five_return)}`, "1일 −2.5%와 5거래일 −7.5% 동시 하회")}
+    ${row(g.fear===false && g.band && g.rsi>=30 && room>0,"RSI 26 지정가", "공포 구간 밖에서 대기 주문", "하락 범위 안 · 계산한 RSI 26 가격")}
+    ${row(g.crash==null?null:g.crash&&room>0,"급락 예외", `QQQ 1일 ${pct(g.day_return)} · 5거래일 ${pct(g.five_return)}`, "1일 −2.5%와 5거래일 −7.5% 동시 하회")}
 </details>`;
 }
 
@@ -716,9 +716,9 @@ function drawLog() {
   const [B0_, B1_] = H.band || [-0.10, -0.25], capN = H.cap || 5;
   function buyWhy(i) {
     const f = (vix[i] != null && vix[i] >= 30) || (fg[i] != null && fg[i] <= 30), inb = qdd[i] != null && qdd[i] <= B0_ && qdd[i] >= B1_;
-    const d = x[i], r = rounds_.find((z) => z.buys[0].d <= d && (!z.sell || z.sell.d >= d)), held = r ? r.buys.filter((b) => b.d <= d).length : 0;
+    const d = x[i], r = rounds_.find((z) => z.buys[0].d <= d && (!z.sell || z.sell.d >= d)), bb = r ? r.buys.filter((b) => b.d <= d) : [], held = bb.reduce((z, b) => z + (b.sig?.w != null ? b.sig.w / (S.lot / 100) : 1), 0);
     const ok = (t, v) => `<span class="${v ? "up" : "mute"}">${t} ${v ? "충족" : "아님"}</span>`;
-    return `<div class="t2">마감 판정: ${ok("공포", f)} · ${ok("하락 범위", inb)}${qdd[i] < B1_ ? "(-25%보다 깊음)" : ""} · ${ok("RSI 30 미만", rsi[i] < 30)}${!(rsi[i] < 30) && rlo[i] != null && rlo[i] < 30 ? "(장중엔 닿음)" : ""}${sym !== "ACC" && held ? ` · 보유 ${held}/${capN}묶음${held >= capN ? " 다 참" : ""}` : ""}</div>`;
+    return `<div class="t2">마감 판정: ${ok("공포", f)} · ${ok("하락 범위", inb)}${qdd[i] < B1_ ? "(-25%보다 깊음)" : ""} · ${ok("RSI 30 미만", rsi[i] < 30)}${!(rsi[i] < 30) && rlo[i] != null && rlo[i] < 30 ? "(장중엔 닿음)" : ""}${sym !== "ACC" && held ? ` · ${bb.length}회 매수 · ${+held.toFixed(1)}/${capN}묶음어치${held >= capN - 1e-6 ? " 다 참" : ""}` : ""}</div>`;
   }
   const pad = (a) => { while (a.length < N) a.push(null); return a; }; pad(rsi); pad(rhi); pad(rlo); pad(qdd);
   logChart = mkChart(el, {x, height: 540, range: [N - Math.min(rg, N), N - 1], xfmt: (d) => ymd(d), tip,
