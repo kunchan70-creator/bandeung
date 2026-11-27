@@ -13,7 +13,7 @@ function v2text(p, set) {
   const rows = L.map(([k, s, px, v]) => k === "b" ? `▲ ${s} 매수 ${usd(px)} · 계좌 ${+(v * lot).toFixed(1)}%(${unitW(v)})`
     : k === "s" ? `▼ ${s} 매도 ${usd(px)} · 보유 전량`
     : k === "e" ? `▼ ${s} ${md(v)} 장 마감 매도 · 보유 기한`
-    : k === "fs" ? `▼ ${s} 매도 · 단타 매수 체결 시 자금 마련`
+    : k === "fs" ? `▼ ${s} 시가 매도 · 단타 자금 마련`
     : k === "tb" ? `▲ QQQM 매수 ${usd(px)} · 200일선 위${v != null ? ` · 목표 비중 ${v}%` : ""}`
     : `▼ QQQM 매도 ${usd(px)} · 200일선 아래${v != null ? ` · 목표 비중 ${v}%` : ""}`);
   const title = rows.length ? `피어바이 · ${md(p.sess)} 주문 ${rows.length}건` : "피어바이 · 내 종목 주문 없음";

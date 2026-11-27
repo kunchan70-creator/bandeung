@@ -814,7 +814,7 @@ const WHY = [
   ["전일 종가 지정가", "신규 매수(전일 종가 지정가)", "매수 조건이 모두 충족된 채 마감했습니다. 다음 거래일에 전일 종가 이하에서 체결되도록 한 묶음(내 설정 비중, 느린 하락이면 절반)을 지정가 매수합니다."],
   ["RSI30 지정가", "신규 매수(과매도 지정가)", "공포 구간이지만 아직 충분히 과매도되지 않았습니다. QQQ가 과매도 가격까지 내려와야 체결되도록 그 가격을 이 종목 가격으로 환산해 지정가 매수합니다."],
   ["RSI26 지정가", "신규 매수(대기 지정가)", "공포 구간이 아닐 때는 더 낮은 가격에서만 체결되도록 대기 주문을 겁니다."],
-  ["단타 자금 마련", "단타 자금 마련 매도", "현금이 모자라 단타 매수가 체결되면 그 금액만큼 QQQM을 시장가로 매도합니다. 단타 매수가 체결되지 않으면 매도하지 않습니다. 단타가 끝나고 10거래일 동안 새 단타가 없으면 그때 QQQM을 다시 매수합니다."],
+  ["단타 자금 마련", "단타 자금 마련 매도", "200일선 위라 현금이 없을 때, 단타 매수에 쓸 만큼 QQQM을 장 시작에 시가로 매도합니다. 단타 매수와 같이 장 시작 전에 걸어 두면 됩니다. 단타가 체결되지 않으면 그 돈은 현금으로 두고, 단타가 끝나거나 체결이 없으면 10거래일 뒤 QQQM을 다시 매수합니다."],
   ["대기자금 매도", "대기자금 매도", "추세 매수(QQQM)에 쓸 자금을 마련하기 위해 대기 중인 단기국채를 매도합니다."],
   ["추세 매수", "추세 매수", "QQQ가 200일 이동평균선 위로 확실히 올라서 상승 추세로 전환되었습니다. 다음 거래일에 QQQM을 목표 비중까지 매수합니다(전일 종가 +2% 이내 지정가)."],
   ["추세 매도", "추세 매도", "QQQ가 200일 이동평균선 아래로 확실히 내려가 하락 추세로 전환되었습니다. 다음 거래일에 QQQM을 매도하고 단기국채로 대기합니다(전일 종가 -2% 이내 지정가)."],
@@ -867,13 +867,13 @@ function todo() {
     html += `<div class="card tk ${o.side}"><div class="tk-h"><span class="badge ${buy ? "b" : "s"}">${buy ? "매수" : "매도"}</span><b>${esc(o.symbol)}</b><span class="tk-w">${esc(title.match(/\((.+)\)$/)?.[1] || title.replace(/ 매도$/, ""))}</span></div>
       <div class="tk-g">
         <div><span>주문 유형</span><b>${o.limit ? "지정가" : "시장가"}</b></div>
-        <div><span>가격</span>${px ? `<b class="tk-big">$${px}</b><button class="tk-cp" data-cp="${px}" data-cl="가격" aria-label="가격 복사">${CP}</button>` : `<b>${o.how === "단타 자금 마련" ? "시장가" : "장 마감 전"}</b>`}</div>
+        <div><span>가격</span>${px ? `<b class="tk-big">$${px}</b><button class="tk-cp" data-cp="${px}" data-cl="가격" aria-label="가격 복사">${CP}</button>` : `<b>${o.how === "단타 자금 마련" ? "시가" : "장 마감 전"}</b>`}</div>
         <div><span>수량</span>${hold ? `<b>보류</b>` : `<b class="tk-big">${mine.toLocaleString()}주</b><button class="tk-cp" data-cp="${mine}" data-cl="수량" aria-label="수량 복사">${CP}</button>`}</div>
         <div><span>주문 시간</span><b>${when}</b></div>
         ${px && !hold ? `<div><span>예상 금액</span><b>${usd2(mine * o.limit)}</b></div>` : ""}
       </div>
       ${mine < planned && !hold ? `<div class="t2">계획 ${planned}주 중 주문 가능 달러 한도만큼</div>` : ""}
-      ${!o.limit ? `<div class="t2">${o.how === "단타 자금 마련" ? "단타 매수가 체결되면 시장가로 넣습니다" : "목표가 매도 주문을 취소한 뒤 넣습니다"}</div>` : ""}
+      ${!o.limit ? `<div class="t2">${o.how === "단타 자금 마련" ? "장 시작 시가로 매도합니다 · 단타가 체결되지 않아도 현금으로 둡니다" : "목표가 매도 주문을 취소한 뒤 넣습니다"}</div>` : ""}
       ${q && o.limit ? `<div class="tk-q">현재가 ${usd2(q.c)} · 주문가까지 <b class="${cls(o.limit / q.c - 1)}">${pct(o.limit / q.c - 1)}</b></div>` : ""}
       <details class="more"><summary>왜 이 주문인가</summary><div class="desc">${theory || esc(title)}</div></details></div>`;
   });
@@ -1256,7 +1256,7 @@ let ALOG = null;
 function alertRows(p) {
   const L = (p.per || {})[S.inst] || [], md = (d) => d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : "";
   return L.map(([k, s, px, v]) => k === "b" ? `<span class="up">▲ ${s} 매수 ${usd2(px)}</span> · ${v === .5 ? "반 묶음" : v === 1 ? "한 묶음" : v + "묶음"}`
-    : k === "s" ? `<span class="down">▼ ${s} 매도 ${usd2(px)}</span> · 보유 전량` : k === "fs" ? `<span class="down">▼ ${s} 매도</span> · 단타 매수 체결 시 자금 마련` : k === "e" ? `<span class="down">▼ ${s} ${md(v)} 장 마감 매도</span> · 보유 기한`
+    : k === "s" ? `<span class="down">▼ ${s} 매도 ${usd2(px)}</span> · 보유 전량` : k === "fs" ? `<span class="down">▼ ${s} 시가 매도</span> · 단타 자금 마련` : k === "e" ? `<span class="down">▼ ${s} ${md(v)} 장 마감 매도</span> · 보유 기한`
     : k === "tb" ? `<span class="up">▲ QQQM 매수 ${usd2(px)}</span> · 200일선 위` : `<span class="down">▼ QQQM 매도 ${usd2(px)}</span> · 200일선 아래`);
 }
 function record() {
