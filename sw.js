@@ -8,7 +8,7 @@ const PUSH = "https://bandeung-push.kunchan70.workers.dev";
 const usd = (v) => "$" + Number(v).toFixed(2);
 const unitW = (u) => u === .5 ? "반 묶음" : u === 1 ? "한 묶음" : `${u}묶음`;
 function v2text(p, set) {
-  const inst = set.inst || "TQQQ", lot = Number(set.lot) || 20, L = (p.per || {})[inst] || [];
+  const inst = (set.inst === "QQQ" ? "QQQM" : set.inst) || "TQQQ", lot = Number(set.lot) || 20, L = (p.per || {})[inst] || [];
   const md = (d) => d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : "";
   const rows = L.map(([k, s, px, v]) => k === "b" ? `▲ ${s} 매수 ${usd(px)} · 계좌 ${+(v * lot).toFixed(1)}%(${unitW(v)})`
     : k === "s" ? `▼ ${s} 매도 ${usd(px)} · 보유 전량`
