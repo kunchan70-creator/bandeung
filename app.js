@@ -408,8 +408,9 @@ function more() {
   const row = (id, t, v) => `<button class="li" data-li="${id}"><span>${t}</span><span class="v">${v}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span></button>`;
   $("#view").innerHTML = `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>전체</button><div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
     <div class="card lst"><div class="lh">앱</div>${row("bell", "알림", pushWord())}${WEB && !STANDALONE ? row("install", "앱 설치", "") : ""}</div>
+    <div class="card lst"><div class="lh">공유·도구</div>${row("diag", "내 보유 진단", "")}${row("report", "오늘의 공포 리포트", "공유")}${row("record", "실시간 기록", "")}${row("invite", "지인에게 앱 공유", "")}</div>
     <div class="card lst"><div class="lh">안내</div>${row("edu", "전략 교육", eduDone() ? "완료" : "미완료")}${eduDone() ? row("cond", "내 거래 조건", condOn() ? `${S.inst} · ${S.lot}%` : "미설정") : ""}${row("guide", "사용 안내", "")}</div>`;
-  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide, edu: () => openEdu(0), cond: () => { CD = null; openCond(); }};
+  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide, edu: () => openEdu(0), cond: () => { CD = null; openCond(); }, diag: () => goSub("diag"), record: () => goSub("record"), report: openReport, invite: inviteShare};
   document.querySelectorAll("[data-li]").forEach((b) => b.onclick = F[b.dataset.li]);
 }
 // 수수료 반영: 날마다 거래 비율(turn) x (내 수수료 - 모델 수수료)만큼 그날부터 곱으로 깎음
@@ -523,7 +524,7 @@ function home() {
     const arc = (v0, v1) => { const [x0, y0] = pt(v0, Rr), [x1, y1] = pt(v1, Rr); return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${Rr} ${Rr} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
     const [t1x, t1y] = pt(30, Rr + 14), [t2x, t2y] = pt(30, Rr - 14), [lx, ly] = pt(30, Rr + 26);
     const cs = [sg.fear, sg.band, sg.rsi == null ? null : sg.rsi < 30, room > 0], nm = cs.filter((c) => c === true).length;
-    html += `<div class="card fg-card"><div class="fg-h"><b>공포·탐욕지수</b><span class="${live ? "lv" : ""}">${live ? "실시간" : ymd(sg.date).slice(5) + " 종가"}</span></div>
+    html += `<div class="card fg-card"><div class="fg-h"><b>공포·탐욕지수</b><span class="${live ? "lv" : ""}">${live ? "실시간" : ymd(sg.date).slice(5) + " 종가"}</span><button class="fg-sh" id="fgShare" aria-label="오늘의 공포 리포트 공유"><svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M5 12.5V19a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19v-6.5"/></svg></button></div>
       <div class="fg-g"><svg viewBox="0 0 220 128" aria-hidden="true">
         ${Array.from({length: 60}, (_, i) => `<path d="${arc(i * 100 / 60, (i + 1) * 100 / 60 + .4)}" fill="none" stroke="${fgCol((i + .5) * 100 / 60)}" stroke-width="18"/>`).join("")}
         ${(() => { const [ax, ay] = pt(0, Rr), [bx, by] = pt(100, Rr); return `<circle cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="9" fill="${fgCol(0)}"/><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="9" fill="${fgCol(100)}"/>`; })()}
@@ -555,10 +556,11 @@ function home() {
   };
   html += `<div class="card hold"><div class="hl-h"><div class="title">보유 현황</div><span class="t2">${ymd(D.last_close)} 종가</span></div>
     <div class="stack hl-stack">${shown.map(([nm, x]) => `<span style="width:${x / tot * 100}%;background:${COMP[nm][2]}"></span>`).join("")}</div>
-    ${shown.map(row).join("")}`;
+    ${shown.map(row).join("")}<button class="mk-go" onclick="goSub('diag')"><span>내 보유 진단 · 산 가격을 넣어 보십시오</span><b>›</b></button>`;
   html += `</div>${D.health.length ? `<div class="foot"><b class="warn">자료 확인 필요 ${D.health.length}건(신호 탭)</b></div>` : ""}`;
   $("#view").innerHTML = html;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
+  $("#fgShare").onclick = openReport;
   startClock();
   if (!tickT) liveTick();
 }
@@ -697,6 +699,13 @@ function compare() {
     <div class="pf-g"><div><small>평균 수익</small><b class="up">${pct(sc.sw_avg)}</b></div><div><small>최악 거래</small><b>${pct(sc.sw_worst)}</b></div><div><small>연평균 거래</small><b>${sc.sw_per_year.toFixed(1)}회</b></div></div>
     <div class="pf-note">보유 중 계좌 최대 평가손실 ${pct(sc.sw_acc_worst, 0)}</div>
     <button class="mk-go" id="pfTrades"><span>모든 거래 보기</span><b>›</b></button></div>`;
+  // 5-1) 11-28 알림 없던 해 · 실시간 기록
+  { const qy = quietYears(); if (qy.length) { const av = (k) => qy.reduce((z, x) => z + x[k], 0) / qy.length;
+    html += `<div class="card pf"><div class="title">공포 단타가 없던 해 ${qy.length}번</div><div class="t2">알림이 거의 없던 해에도 200일선 위에서 QQQM을 보유했습니다</div>
+      <div class="pf-g"><div><small>계좌 평균</small><b class="${cls(av("b"))}">${pct(av("b"))}</b></div><div><small>나스닥 보유 평균</small><b>${pct(av("q"))}</b></div></div>
+      <div class="qy">${qy.map((x) => `<span><b>${x.y}</b><em class="${cls(x.b)}">${pct(x.b, 0)}</em><small>나스닥 ${pct(x.q, 0)}</small></span>`).join("")}</div></div>`; } }
+  html += `<div class="card pf"><div class="title">실시간 기록</div><div class="t2">${ymd(D.start)}부터 보낸 알림과 가상 계좌 체결을 그대로 공개합니다</div>
+    <button class="mk-go" onclick="goSub('record')"><span>실시간 기록 보기</span><b>›</b></button></div>`;
   // 6) 자세히(접기)
   const rbs = H.robust || [];
   // 11-28 '조건 변경 시 성과'는 기준값(RSI 등)이 드러나 숨김
@@ -1125,8 +1134,144 @@ function needChartJs() {   // 옛 index.html(차트 파일 없음)이 캐시에 
   const sc = document.createElement("script"); sc.src = "chart.js?t=" + Date.now(); sc.onload = () => render(); document.head.appendChild(sc);
 }
 
+// ── 11-28 마케팅 기능(사용자 '무료판은 지인에게, 유료판은 구글 플레이 — 지금은 마케팅 기능 채우기') ──
+// 판 구분: 같은 코드. 무료판(지인용·공개 페이지) = 전부 열림. 유료판 = PASS 표시한 기능만 '공포 이용권'이 있을 때 열림(결제는 유료판에서 붙임).
+const EDITION = "free";   // "free" | "paid"
+const passOn = () => EDITION === "free" || !!S.pass;   // PASS: 공포 구간 주문표 · 보유 진단 확률
+const APP_URL = "https://kunchan70-creator.github.io/bandeung/";
+const ALOG_URL = (WEB ? "data/" : "../out/") + "alert_log.json";
+const backBtn = (t) => `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>${t}</button>`;
+const goSub = (t) => { if (S.tab !== t) S.prevTab = S.tab; go(t); };
+window.goSub = goSub;
+const fgLabel = (v) => v == null ? "자료 없음" : v < 25 ? "극심한 공포" : v < 45 ? "공포" : v <= 55 ? "중립" : v <= 75 ? "탐욕" : "극심한 탐욕";
+async function shareIt(title, text, file) {   // 폰: 공유 창(카카오톡 등) / 안 되면 글 복사
+  try {
+    if (file && navigator.canShare?.({files: [file]})) { await navigator.share({title, text, files: [file]}); return; }
+    if (navigator.share) { await navigator.share({title, text, url: APP_URL}); return; }
+  } catch (e) { if (e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(text + "\n" + APP_URL); toast("공유 문구가 복사되었습니다"); } catch (e) { toast("복사하지 못했습니다"); }
+}
+function inviteShare() { shareIt("피어바이", "나스닥이 공포에 빠질 때만 매수하고, 반등에 매도하는 원칙을 알려 주는 앱입니다.\n열광이 아닌 공포에 매수하다. - 피어바이"); }
+
+// ① 오늘의 공포 리포트(글 + 이미지 공유)
+function reportData() {
+  const g = D.accounts[S.prof].plan?.signals || {}, fg = LQ.FG?.v ?? g.fg, room = g.room ?? 5;
+  const nm = [g.fear, g.band, g.rsi == null ? null : g.rsi < 30, room > 0].filter((x) => x === true).length;
+  let ytd = null;
+  if (H) { const bt = H.bt.assume, xs = H.dates.slice(bt.i0), y = xs.at(-1).slice(0, 4), j = xs.findIndex((d) => d.startsWith(y)), p = Math.max(0, j - 1), vb = vals("assume", "B", "krw"), vq = bt.acc.qqq.krw;
+    ytd = {y, b: vb.at(-1) / vb[p] - 1, q: vq.at(-1) / vq[p] - 1}; }
+  return {date: g.date, fg, vix: g.vix, fear: !!g.fear, nm, ytd};
+}
+function reportText(r) {
+  return `[피어바이] ${ymd(r.date).slice(5)} 마감 나스닥 공포 리포트\n공포·탐욕 ${r.fg == null ? "-" : Math.round(r.fg)} (${fgLabel(r.fg)}) · VIX ${num(r.vix, 1)}\n${r.fear ? "공포 구간" : "공포 구간 아님"} · 매수 조건 ${r.nm}/4`
+    + (r.ytd ? `\n${r.ytd.y}년 전략 ${pct(r.ytd.b)} · 나스닥 보유 ${pct(r.ytd.q)} (원화·세후, 과거 계산)` : "") + `\n열광이 아닌 공포에 매수하다.`;
+}
+function reportImage(r) {   // 1080x1350 카드(인스타·카카오톡 공유용)
+  const W = 1080, Hh = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = Hh; const c = cv.getContext("2d");
+  const F = (w, s) => `${w} ${s}px Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif`;
+  const gr = c.createRadialGradient(W / 2, 380, 40, W / 2, 380, 900); gr.addColorStop(0, "#16233d"); gr.addColorStop(1, "#0b1220"); c.fillStyle = gr; c.fillRect(0, 0, W, Hh);
+  c.textAlign = "center"; c.font = F(900, 92); const w1 = c.measureText("FEAR").width, w2 = c.measureText("BUY").width, x0 = W / 2 - (w1 + w2) / 2;
+  c.textAlign = "left"; c.fillStyle = "#fff"; c.fillText("FEAR", x0, 170); c.fillStyle = "#4a9eff"; c.fillText("BUY", x0 + w1, 170);
+  c.textAlign = "center"; c.fillStyle = "#9aa7b8"; c.font = F(600, 36); c.fillText(`${ymd(r.date)} 마감 · 나스닥 공포 리포트`, W / 2, 245);
+  const col = r.fg == null ? "#fff" : fgCol(r.fg);   // 게이지 반원
+  for (let i = 0; i < 60; i++) { c.beginPath(); c.strokeStyle = fgCol((i + .5) * 100 / 60); c.lineWidth = 46; c.arc(W / 2, 640, 300, Math.PI + i / 60 * Math.PI, Math.PI + (i + 1.05) / 60 * Math.PI); c.stroke(); }
+  if (r.fg != null) { const a = Math.PI + Math.max(0, Math.min(100, r.fg)) / 100 * Math.PI, mx = W / 2 + 300 * Math.cos(a), my = 640 + 300 * Math.sin(a); c.beginPath(); c.fillStyle = "#fff"; c.arc(mx, my, 34, 0, 7); c.fill(); c.beginPath(); c.fillStyle = col; c.arc(mx, my, 18, 0, 7); c.fill(); }
+  c.fillStyle = col; c.font = F(900, 170); c.fillText(r.fg == null ? "-" : Math.round(r.fg), W / 2, 620);
+  c.font = F(800, 46); c.fillText(fgLabel(r.fg), W / 2, 690);
+  c.fillStyle = "#e8edf4"; c.font = F(700, 44); c.fillText(`${r.fear ? "공포 구간" : "공포 구간 아님"} · 매수 조건 ${r.nm}/4`, W / 2, 820);
+  c.fillStyle = "#9aa7b8"; c.font = F(500, 34); c.fillText(`VIX ${num(r.vix, 1)}`, W / 2, 875);
+  if (r.ytd) { c.fillStyle = "#121c2f"; c.beginPath(); c.roundRect(110, 935, W - 220, 170, 28); c.fill();
+    c.font = F(600, 32); c.fillStyle = "#8a97aa"; c.fillText(`${r.ytd.y}년 · 원화·세후 · 과거 계산`, W / 2, 990);
+    c.font = F(800, 46); c.fillStyle = "#4a9eff"; c.fillText(`전략 ${pct(r.ytd.b)}`, W / 2 - 200, 1065); c.fillStyle = "#c9d2de"; c.fillText(`나스닥 ${pct(r.ytd.q)}`, W / 2 + 200, 1065); }
+  c.fillStyle = "#fff"; c.font = F(800, 44); c.fillText("열광이 아닌 공포에 매수하다.", W / 2, 1210);
+  c.fillStyle = "#6f7d91"; c.font = F(500, 28); c.fillText("kunchan70-creator.github.io/bandeung", W / 2, 1270);
+  return new Promise((res) => cv.toBlob((b) => res(new File([b], `fearbuy-${r.date}.png`, {type: "image/png"})), "image/png"));
+}
+function openReport() {
+  if (!H) needHist(() => { if (!$("#sheet").hidden) openReport(); });
+  const r = reportData(), t = reportText(r);
+  sheet(`<div class="pk-t">오늘의 공포 리포트</div><div class="rp-card">${esc(t).replace(/\n/g, "<br>")}</div>
+    <button class="btn blue" id="rpImg">이미지로 공유</button><button class="btn ghost" id="rpTxt">글로 공유</button>
+    <div class="pk-f">카카오톡·인스타그램에 바로 올릴 수 있습니다</div>`, () => {
+    $("#rpImg").onclick = async () => { const f = await reportImage(r); if (navigator.canShare?.({files: [f]})) return shareIt("피어바이 공포 리포트", t, f);
+      const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; a.click(); toast("이미지를 저장했습니다"); };
+    $("#rpTxt").onclick = () => shareIt("피어바이 공포 리포트", t);
+  });
+}
+
+// ② 내 보유 진단(11-28 라씨 '매수가 넣으면 맞춤 매도' 벤치마크): 내 평균 매수가 → 지금 손익 · 전략 목표가 · 과거 비슷한 하락에서 목표가/원금까지 간 비율
+function dgStats(sym, need, win) {
+  const px = H.px[sym], c = px.c, h = px.h, q = H.qdd || [], n = H.dates.length, dd = q[n - 1];
+  let tot = 0, hit = 0; const days = [];
+  if (dd == null) return null;
+  for (let i = 250; i < n - win; i++) {
+    if (q[i] == null || c[i] == null || Math.abs(q[i] - dd) > .03) continue;
+    tot++; const tg = c[i] * (1 + need);
+    for (let k = 1; k <= win; k++) if (h[i + k] != null && h[i + k] >= tg) { hit++; days.push(k); break; }
+  }
+  days.sort((a, b) => a - b);
+  return {tot, p: tot ? hit / tot : null, med: days.length ? days[days.length >> 1] : null, dd};
+}
+function diag() {
+  if (!needHist(() => S.tab === "diag" && render())) { $("#view").innerHTML = backBtn("내 보유 진단") + wait("과거 자료를 불러오는 중입니다"); return; }
+  const sym = PRODUCTS[S.dgSym] ? S.dgSym : S.inst, avg = Number(String(S.dgAvg || "").replace(/[^0-9.]/g, "")) || 0;
+  const px = H.px[sym], cur = LQ[sym]?.c ?? px.c.at(-1), T = PRODUCTS[sym].target / 100, tgt = avg * (1 + T);
+  let html = backBtn("내 보유 진단") + `<div class="card dg"><div class="title">내가 산 가격을 넣어 보십시오</div><div class="t2">과거 26년 자료로 지금 상황을 진단합니다</div>
+    ${seg(Object.keys(PRODUCTS).map((s) => [s, s]), sym, "dgs", "sm")}
+    <label class="form-label" for="dgAvg">평균 매수가($)</label><input class="money" id="dgAvg" inputmode="decimal" placeholder="예: ${(cur * 1.1).toFixed(2)}" value="${esc(S.dgAvg || "")}">
+    <div class="t2">현재가 ${usd2(cur)}</div></div>`;
+  if (avg > 0 && cur) {
+    const r = cur / avg - 1, a = dgStats(sym, Math.max(0, tgt / cur - 1), 60), b = r < 0 ? dgStats(sym, avg / cur - 1, 250) : null, sg = D.accounts[S.prof].plan?.signals || {};
+    const swSell = sym === S.inst ? (D.accounts[S.prof].plan?.swing || []).find((o) => o.how === "목표가") : null;
+    html += `<div class="card dg-r"><div class="dg-pl"><small>내 손익</small><b class="${cls(r)}">${pct(r, 1)}</b><span>${usd2(avg)} → ${usd2(cur)}</span></div>
+      <div class="kv2"><div>전략 목표가(+${PRODUCTS[sym].target}%)</div><div><b>${usd2(tgt)}</b> · 현재가 대비 ${pct(tgt / cur - 1)}</div>
+      <div>지금 나스닥</div><div>1년 고점 대비 ${pct(a?.dd)} · ${sg.fear ? "공포 구간" : "공포 구간 아님"}</div>
+      ${swSell ? `<div>전략 매도 주문</div><div>${usd2(swSell.limit)} (전략도 보유 중)</div>` : ""}</div></div>`;
+    if (passOn() && a) html += `<div class="card dg-r"><div class="title">과거 비슷한 하락에서는</div><div class="t2">나스닥이 지금처럼 고점 대비 ${pct(a.dd - .03, 0)}~${pct(a.dd + .03, 0)}였던 날 ${a.tot.toLocaleString()}일 기준</div>
+      ${tgt <= cur ? `<div class="dg-big up">이미 전략 목표가 위입니다</div>` : `<div class="dg-big">${a.p == null ? "-" : Math.round(a.p * 100) + "%"}<small>3개월(60거래일) 안에 목표가 ${usd2(tgt)}에 닿은 비율${a.med ? ` · 중간값 ${a.med}거래일 걸림` : ""}</small></div>`}
+      ${b ? `<div class="dg-big">${b.p == null ? "-" : Math.round(b.p * 100) + "%"}<small>1년(250거래일) 안에 내 매수가 ${usd2(avg)}를 회복한 비율${b.med ? ` · 중간값 ${b.med}거래일 걸림` : ""}</small></div>` : ""}
+      <div class="pk-f">${H.px[sym].real_from && H.px[sym].real_from > H.dates[0] ? `${ymd(H.px[sym].real_from).slice(0, 4)}년 이전 ${sym}는 가정 가격 · ` : ""}과거 계산이며 앞으로를 보장하지 않습니다</div></div>`;
+    html += `<div class="card"><div class="title">피어바이 원칙이라면</div><div class="desc">매수가 체결되면 바로 평균 단가 +${PRODUCTS[sym].target}%에 지정가 매도 주문을 걸어 둡니다. 더 빠지면 공포 구간에서 묶음 단위로 나눠 매수하고 평균 단가와 매도 주문을 함께 낮춥니다. 10거래일 안에 안 되면 정리합니다.</div>
+      <button class="mk-go" onclick="go('todo')"><span>지금 주문표 보기</span><b>›</b></button><button class="mk-go" id="dgShare"><span>이 진단 공유하기</span><b>›</b></button></div>`;
+  }
+  $("#view").innerHTML = html;
+  bindSeg("dgs", (v) => { S.dgSym = v; save(); render(); });
+  const inp = $("#dgAvg"); inp.onchange = () => { S.dgAvg = inp.value; save(); render(); };
+  inp.onkeydown = (e) => { if (e.key === "Enter") inp.blur(); };
+  if ($("#dgShare")) $("#dgShare").onclick = () => shareIt("피어바이 보유 진단", `${sym} 평균 ${usd2(avg)} → 지금 ${pct(cur / avg - 1)}\n피어바이로 과거 26년 비슷한 하락을 확인해 보세요.`);
+}
+
+// ③ 실시간 기록(알림 기록 공개 · 가상 계좌 체결) — 신뢰는 기준 공개 대신 결과 공개로
+let ALOG = null;
+function alertRows(p) {
+  const L = (p.per || {})[S.inst] || [], md = (d) => d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : "";
+  return L.map(([k, s, px, v]) => k === "b" ? `<span class="up">▲ ${s} 매수 ${usd2(px)}</span> · ${v === .5 ? "반 묶음" : v === 1 ? "한 묶음" : v + "묶음"}`
+    : k === "s" ? `<span class="down">▼ ${s} 매도 ${usd2(px)}</span> · 보유 전량` : k === "e" ? `<span class="down">▼ ${s} ${md(v)} 장 마감 매도</span> · 보유 기한`
+    : k === "tb" ? `<span class="up">▲ QQQM 매수 ${usd2(px)}</span> · 200일선 위` : `<span class="down">▼ QQQM 매도 ${usd2(px)}</span> · 200일선 아래`);
+}
+function record() {
+  if (ALOG == null) { $("#view").innerHTML = backBtn("실시간 기록") + wait("기록을 불러오는 중입니다"); fetch(ALOG_URL, {cache: "no-cache"}).then((r) => r.json()).catch(() => []).then((x) => { ALOG = Array.isArray(x) ? x : []; if (S.tab === "record") render(); }); return; }
+  const tr = (D.accounts[S.prof].trades || []).slice().reverse(), al = ALOG.slice().reverse().filter((x) => ((x.per || {})[S.inst] || []).length);
+  let html = backBtn("실시간 기록") + `<div class="card rc-h"><div class="title">피어바이 실시간 기록</div><div class="t2">${ymd(D.start)}부터 · ${S.inst} 기준 · 지우거나 고치지 않습니다</div>
+    <div class="pf-g"><div><small>보낸 알림</small><b>${al.length}번</b></div><div><small>체결</small><b>${tr.length}건</b></div><div><small>시작</small><b>${ymd(D.start).slice(2)}</b></div></div></div>`;
+  html += `<div class="card"><div class="title">보낸 알림</div>${al.length ? al.map((x) => `<div class="rc-a"><small>${kst(Date.parse(x.t) / 1000)} 발송 · ${ymd(x.sess).slice(5)} 장 주문</small>${alertRows(x).map((l) => `<div>${l}</div>`).join("")}</div>`).join("")
+    : `<div class="desc">새 주문이 생기면 보낸 알림이 시각과 함께 여기에 쌓입니다.</div>`}</div>`;
+  html += `<div class="card"><div class="title">가상 계좌 체결</div>${tr.length ? tr.map((t) => `<div class="tr-row"><div class="tr-l"><b><span class="badge ${t.side === "buy" ? "b" : "s"}">${t.side === "buy" ? "매수" : "매도"}</span> ${esc(t.symbol)}</b><small>${ymd(t.date).slice(2)} · ${esc(tw(t.why))}</small></div>
+      <div class="tr-r"><b>${usd2(t.price)}</b><small>${t.qty.toLocaleString()}주</small></div></div>`).join("") : `<div class="desc">아직 체결 내역이 없습니다.</div>`}</div>
+    <div class="foot">가상 계좌 1억 원 기준 · 알림과 같은 규칙으로 자동 체결</div>`;
+  $("#view").innerHTML = html;
+}
+
+// ④ 알림 없던 해(11-28 '몇 년 깜깜 무소식이면 구독이 아깝다' → 그동안에도 시장 수익을 받았다는 근거)
+function quietYears() {
+  const bt = H.bt.assume, xs = H.dates.slice(bt.i0), vb = vals("assume", "B", "krw"), vq = bt.acc.qqq.krw, ry = new Set((bt.acc.B.rounds || []).map((r) => r.buys[0].d.slice(0, 4)));
+  const ys = {}; xs.forEach((d, i) => { (ys[d.slice(0, 4)] = ys[d.slice(0, 4)] || [i, i])[1] = i; });
+  const thisY = xs.at(-1).slice(0, 4);
+  return Object.entries(ys).filter(([y]) => !ry.has(y) && y !== thisY).map(([y, [a, b]]) => ({y, b: vb[b] / vb[Math.max(0, a - 1)] - 1, q: vq[b] / vq[Math.max(0, a - 1)] - 1}));
+}
+
 // ── 뼈대 ──
-const PAGES = {home, compare, todo, log, signal, more};
+const PAGES = {home, compare, todo, log, signal, more, diag, record};
 function go(t) { S.tab = t; save(); render(); window.scrollTo(0, 0); }
 window.go = go;
 function render() {
