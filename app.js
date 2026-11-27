@@ -6,10 +6,10 @@ const WEB = location.hostname.endsWith("github.io");
 // 11-27 사용자: 한 묶음 비중은 각자 정함(5~20%, 최대 5묶음이라 25%는 뺌) → 그 비중으로 계산한 자료 묶음을 통째로 바꿔 읽음(20 = 기본, 나머지 = s{N}/).
 const LOTS = [5, 10, 15, 20];
 const CAPN = () => D?.accounts?.[S.prof]?.plan?.signals?.max_regular_lots || 5;   // 최대 묶음 수(11-27 4 -> 5)
-// 11-27 대기 자금 설정: sgov = 늘 단기국채(SGOV) / cash = 공포 구간(QQQ 1년 고점 -10% 아래)엔 SGOV 안 사고 현금 → 자료 c{N}/
-const lotDir = () => (S.wait === "cash" ? `c${S.lot}/` : S.lot && S.lot !== 20 ? `s${S.lot}/` : "");
-const WAITS = [["sgov", "늘 SGOV"], ["cash", "공포 구간엔 현금"]];
-const waitWord = () => S.wait === "cash" ? "현금 대기(공포 구간)" : "단기국채 대기";
+// 11-27 대기 자금 설정: cash(기본) = 추세 아래에선 현금으로 대기(SGOV 안 삼) / sgov = 단기국채 SGOV 로 대기 → 자료 기본 = 20%·현금, c{N}/ = 현금, s{N}/ = SGOV
+const lotDir = () => (S.wait === "sgov" ? `s${S.lot}/` : S.lot && S.lot !== 20 ? `c${S.lot}/` : "");
+const WAITS = [["cash", "현금"], ["sgov", "단기국채(SGOV)"]];
+const waitWord = () => S.wait === "sgov" ? "단기국채 대기" : "현금 대기";
 const dataUrl = () => (WEB ? "data/" : "../out/") + lotDir() + "app_data.json", histUrl = () => (WEB ? "data/" : "../out/") + lotDir() + "app_hist.json";
 const RISK_URL = WEB ? "data/size_risk.json" : "../out/size_risk.json";
 const ORDER = ["B"];   // 11-26 사용자: 균형형(200일선 추세 + 공포 단타) 하나만. 단타 종목만 선택
@@ -22,8 +22,9 @@ const PRODUCTS = {QQQ: {title:"1배 · 나스닥100", target:2.5}, QLD: {title:"
 const productOptions = Object.entries(PRODUCTS).map(([s,p])=>[s,`${s} · ${p.title.match(/\d배/)[0]}`]);
 const S = load({prof: "B", tab: "home", h: "5", myKrw: "", year: "all", assume: true, view: "krw", cmode: "log",
                 lsym: "TQQQ", ltype: "candle", lrange: "3m", srange: "1y", stype: "line", frange: "5y", fee: "0.001", simd: "", sima: "", guideSeen: false,
-                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:"", lot:20, wait:"sgov"});
-if (!LOTS.includes(Number(S.lot))) S.lot = 20; S.lot = Number(S.lot); if (S.wait !== "cash") S.wait = "sgov";
+                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:"", lot:20, wait:"cash", wait2:1});
+if (!LOTS.includes(Number(S.lot))) S.lot = 20; S.lot = Number(S.lot); if (!S.wait2) { S.wait = "cash"; S.wait2 = 1; }   // 11-27 밤 기본값을 현금으로 바꿈 → 예전 기본(sgov)이 저장된 사람도 한 번 현금으로
+if (S.wait !== "sgov") S.wait = "cash";
 // 묶음 크기 말: 계좌 대비 w 가 내 한 묶음의 3/4 미만이면 반 묶음(느린 하락)
 const lotWord = (w) => w == null ? "" : `${w < S.lot / 100 * .75 ? "반 묶음" : "한 묶음"} ${pctu(w, 0)}`;
 if (!S.simd) S.simd = new Date().getFullYear() + "-01-01";
@@ -75,7 +76,7 @@ const kst = (ts) => new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 16).
 function pills() {
   $("#pills").innerHTML = ""; $("#pills").style.display = "none";   // 유형은 하나뿐 → 단타 종목만 고름
   $("#asof").textContent = D ? `${ymd(D.last_close)} 종가 기준` : "";
-  $("#mylot").textContent = `내 설정 · ${S.lot}%${S.wait === "cash" ? " · 현금" : ""}`; $("#mylot").onclick = openSettings;
+  $("#mylot").textContent = `내 설정 · ${S.lot}%${S.wait === "sgov" ? " · SGOV" : ""}`; $("#mylot").onclick = openSettings;
   $("#ptag").innerHTML = `<span>공포 단타 상품</span>${seg(productOptions,S.inst,"instrument","sm")}`;
   bindSeg("instrument",chooseInstrument); $("#bGuide").onclick = openGuide;
   document.documentElement.style.setProperty("--toph", $(".top").offsetHeight + "px");
@@ -149,8 +150,8 @@ const COMP = {TQQQ: ["TQQQ", "나스닥100 3배 레버리지 · 공포 단타", 
 
 // ── 운용 유형 설명 ──
 const INFO = {
-  B: {tag: "200일선 추세 추종 + 공포 단타", mix: [["추세 추종(QQQM ↔ 단기국채)", 100, "var(--qm)"]],
-      body: "나스닥100(QQQ) 종가를 200일 이동평균선과 비교해 보유 여부를 정합니다. 종가가 200일선보다 3% 이상 높게 마감하면 QQQM을 전부 매수하고, 3% 이상 낮게 마감하면 전량 매도한 뒤 단기국채(SGOV)로 대기합니다. ±3% 완충 구간은 200일선 부근에서 매매가 잦아지는 것을 막습니다."},
+  B: {tag: "200일선 추세 추종 + 공포 단타", mix: [["추세 추종(QQQM ↔ 현금)", 100, "var(--qm)"]],
+      body: "나스닥100(QQQ) 종가를 200일 이동평균선과 비교해 보유 여부를 정합니다. 종가가 200일선보다 3% 이상 높게 마감하면 QQQM을 전부 매수하고, 3% 이상 낮게 마감하면 전량 매도한 뒤 현금으로 대기합니다(내 설정에서 단기국채 SGOV로 바꿀 수 있음). ±3% 완충 구간은 200일선 부근에서 매매가 잦아지는 것을 막습니다."},
 };
 const swingRule = () => `일반 매수는 공포(VIX 30 이상 또는 CNN 공포탐욕 30 이하), 1년 고점 대비 하락률 −10%~−25%, RSI 30 미만, 남은 한도를 함께 봅니다. RSI 26 지정가·급락 매수는 별도 조건입니다. ${S.inst}는 한 묶음이 계좌의 ${S.lot}%(내 설정)이고, 한도는 횟수가 아니라 ${CAPN()}묶음어치 금액(계좌의 ${S.lot * CAPN()}%)입니다. 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반(${S.lot / 2}%)만 매수하고, 남은 한도는 다음 신호에 씁니다. 빠르고 깊은 하락이 반등도 컸고, 천천히 흘러내리는 하락에서 크게 사면 손실이 길어졌기 때문입니다. 목표 +${PRODUCTS[S.inst].target}%와 마지막 매수 후 10거래일 기한을 함께 관리합니다. 더 사면 기한도 그날부터 다시 셉니다. 실제 주문 전에 결제된 현금과 체결 주 수를 확인하십시오.`;
 
@@ -185,7 +186,7 @@ function openGuide() {
 }
 const TOUR = [
   {title:"시장의 흐름과<br>공포를 읽다", desc:"이 앱은 매일의 매수·매도 판단을 규칙으로 정리합니다.", art:()=>`<div class="tour-checklist"><div style="--i:0"><b>평소</b><span>어떤 자산을 보유할까?</span></div><div style="--i:1"><b>시장 급락</b><span>어떤 조건에서 매수할까?</span></div><div style="--i:2"><b>주문 전</b><span>내 현금으로 몇 주를 살 수 있을까?</span></div></div>`},
-  {title:"평소에는<br>200일선을 따릅니다", desc:"나스닥100이 200일 이동평균보다 3% 넘게 위로 마감하면 QQQM 보유, 3% 넘게 아래로 마감하면 전량 매도 후 단기국채로 대기합니다.", art:()=>`<div class="tour-checklist"><div style="--i:0"><b>위</b><span>QQQM 보유</span></div><div style="--i:1"><b>아래</b><span>단기국채 대기</span></div><div style="--i:2"><b>공포</b><span>단타로 반등 익절</span></div></div>`},
+  {title:"평소에는<br>200일선을 따릅니다", desc:"나스닥100이 200일 이동평균보다 3% 넘게 위로 마감하면 QQQM 보유, 3% 넘게 아래로 마감하면 전량 매도 후 현금으로 대기합니다.", art:()=>`<div class="tour-checklist"><div style="--i:0"><b>위</b><span>QQQM 보유</span></div><div style="--i:1"><b>아래</b><span>현금 대기</span></div><div style="--i:2"><b>공포</b><span>단타로 반등 익절</span></div></div>`},
   {title:"단타의 흔들림을<br>내가 정합니다", desc:"QQQ·QLD·TQQQ는 움직임이 다릅니다. 레버리지의 2배·3배 목표는 하루 기준입니다.", art:()=>`<div class="tour-options">${Object.entries(PRODUCTS).map(([s,p],i)=>`<button data-tour-product="${s}" class="${S.inst===s?'selected':''}" style="--i:${i};--accent:#efab5d"><b>${s}</b><span>${p.title} · 목표 +${p.target}%</span></button>`).join("")}</div>`},
   {title:"알림이 오면<br>할 일부터 봅니다", desc:"정해둔 가격과 살 수 있는 수량을 확인한 다음 증권사에서 직접 주문합니다.", art:()=>`<div class="tour-checklist">${["신호와 알림 상태 확인","지정가와 결제된 현금 확인","체결 수량과 종료 날짜 확인"].map((t,i)=>`<div style="--i:${i}"><span>✓</span>${t}</div>`).join("")}</div>`},
 ];
@@ -213,7 +214,7 @@ function openTour(step=0,restart=false) {
 function setLot(n, w) {
   w = w || S.wait; if (n === S.lot && w === S.wait) return; S.lot = n; S.wait = w; save();
   D = null; H = null; rawData = null; rawHist = null; histWaiters = [];
-  $("#view").innerHTML = wait(`한 묶음 ${n}%${w === "cash" ? " · 현금 대기" : ""} 자료를 불러오는 중입니다`); loadData();
+  $("#view").innerHTML = wait(`한 묶음 ${n}%${w === "sgov" ? " · SGOV 대기" : ""} 자료를 불러오는 중입니다`); loadData();
 }
 let RISK = null;
 function riskText(n, w) {
@@ -228,7 +229,7 @@ function openSettings() {
     <div class="alert" id="lotrisk">${riskText(S.lot)}</div>
     <div class="desc">비중을 키우면 과거 수익은 커지지만, 규칙이 맞지 않는 하락이 오면 손실도 같은 배수로 커집니다. 과거 계산은 앞으로의 결과를 보장하지 않습니다.</div>
     <div class="sub-h">추세 아래일 때 대기 자금</div>${seg(WAITS, S.wait, "wt")}
-    <div class="desc">200일선 아래에서는 돈을 단기국채(SGOV)로 기다립니다. '공포 구간엔 현금'을 고르면 QQQ가 1년 고점보다 10% 넘게 빠진 동안은 SGOV를 사지 않고 현금으로 둡니다. 단타가 들어갈 때마다 SGOV를 팔고, 끝나면 다시 사는 주문이 없어집니다. 증권사 달러 예수금 이자(RP 등)는 계좌마다 달라 0으로 계산했습니다. 이자를 받는 계좌라면 실제 결과가 조금 더 낫습니다.</div>
+    <div class="desc">200일선 아래에서 기다리는 돈을 어디에 둘지 정합니다. 기본은 현금입니다. 단기국채(SGOV)는 이자가 붙지만 단타가 들어갈 때마다 팔고 끝나면 다시 사야 해서, 수수료와 배당 원천징수(15%)를 빼면 과거 결과는 현금(이자 0으로 계산)이 조금 더 나았습니다. 증권사 달러 예수금에 이자(RP 등)가 붙는 계좌라면 현금이 더 낫습니다.</div>
     <div class="sub-h">매매 수수료(한쪽)</div>${seg(FEES, S.fee, "fee")}
     <div class="desc">미국 주식 매매 수수료는 증권사와 우대 조건에 따라 한쪽 0.07%~0.25% 정도로 다릅니다. 이용하는 증권사의 수수료를 고르면 모든 과거 성과에 반영합니다(단타·추세 매매 모두, 체결 미끄러짐 0.02%는 별도 포함). 환전 수수료는 처음 환전할 때 한 번이라 반영하지 않습니다.</div>
     <div class="sub-h">기준</div>${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "vw2")}
