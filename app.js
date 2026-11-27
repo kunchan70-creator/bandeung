@@ -349,8 +349,25 @@ function home() {
   const k = S.prof, a = D.accounts[k], plan = a.plan || {}, my = myAmt(), tr = D.trend;
   const {g, tot} = composition(a), shown = Object.entries(g).filter(([, x]) => x / tot > .0005).sort((p, q) => q[1] - p[1]);
   const n = (plan.swing || []).length + (plan.alloc || []).length;
+  let html = "";
+  // 0) 공포·탐욕지수 게이지(11-27 밤 '피어바이' 시안) + 매수 조건 요약
+  { const sg = plan.signals || {}, fgv = LQ.FG?.v ?? sg.fg, live = LQ.FG?.v != null, room = sg.room ?? (sg.max_regular_lots || 5);
+    const lab = fgv == null ? ["자료 없음", "na"] : fgv < 25 ? ["극심한 공포", "xf"] : fgv < 45 ? ["공포", "f"] : fgv <= 55 ? ["중립", "n"] : fgv <= 75 ? ["탐욕", "g"] : ["극심한 탐욕", "xg"];
+    const C = 110, Y = 112, Rr = 88, pt = (v, r) => { const a = Math.PI * (1 - v / 100); return [C + r * Math.cos(a), Y - r * Math.sin(a)]; };
+    const arc = (v0, v1) => { const [x0, y0] = pt(v0, Rr), [x1, y1] = pt(v1, Rr); return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${Rr} ${Rr} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
+    const [t1x, t1y] = pt(30, Rr + 14), [t2x, t2y] = pt(30, Rr - 14), [lx, ly] = pt(30, Rr + 26);
+    const cs = [sg.fear, sg.band, sg.rsi == null ? null : sg.rsi < 30, room > 0], nm = cs.filter((c) => c === true).length;
+    html += `<div class="card fg-card"><div class="fg-h"><b>공포·탐욕지수</b><span class="${live ? "lv" : ""}">${live ? "실시간" : ymd(sg.date).slice(5) + " 종가"}</span></div>
+      <div class="fg-g"><svg viewBox="0 0 220 128" aria-hidden="true"><defs><linearGradient id="fgG" x1="0" x2="1"><stop offset="0" stop-color="#1f5fe6"/><stop offset="1" stop-color="#7fb0ff"/></linearGradient></defs>
+        <path d="${arc(0, 100)}" fill="none" stroke="#e9edf2" stroke-width="18" stroke-linecap="round"/>
+        ${fgv != null ? `<path d="${arc(0, Math.max(1, Math.min(100, fgv)))}" fill="none" stroke="url(#fgG)" stroke-width="18" stroke-linecap="round"/>` : ""}
+        <line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="#f04452" stroke-width="2.4" stroke-linecap="round"/>
+        <text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" class="fg-t">30</text></svg>
+        <div class="fg-v"><b>${fgv == null ? "-" : Math.round(fgv)}</b><span class="fg-l ${lab[1]}">${lab[0]}</span></div></div>
+      <div class="fg-s">30 이하이면 공포 조건 충족 · VIX ${num(sg.vix, 1)}</div>
+      <button class="fg-go" data-go="signal"><i class="${sg.fear ? "on" : ""}"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><span><b>${sg.fear ? "공포 구간" : "공포 구간 아님"} · 매수 조건 ${nm}/4</b><small>${nm === 4 ? "다음 거래일 매수 주문이 나갑니다" : "남은 조건은 신호에서 QQQ 가격으로 확인"}</small></span><svg class="ch" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button></div>`; }
   // 1) 장 시계 + 다음 주문
-  let html = `<div class="card mk"><div id="clockIn"></div>
+  html += `<div class="card mk"><div id="clockIn"></div>
     <button class="mk-go" data-go="todo"><span>다음 거래일 주문</span><b>${n ? `${n}건` : "없음"} ›</b></button></div>`;
   // 2) 보유 현황: 증권 앱 보유 종목 목록처럼(로고 · 이름 · 한 줄 설명 | 비중 · 내 금액)
   const sell = (plan.swing || []).find((o) => o.how === "목표가"), due = (plan.swing || []).find((o) => o.how === "보유기한");
@@ -373,12 +390,6 @@ function home() {
   html += `<div class="card hold"><div class="hl-h"><div class="title">보유 현황</div><span class="t2">${ymd(D.last_close)} 종가</span></div>
     <div class="stack hl-stack">${shown.map(([nm, x]) => `<span style="width:${x / tot * 100}%;background:${COMP[nm][2]}"></span>`).join("")}</div>
     ${shown.map(row).join("")}`;
-  if (!sw) {
-    const sg = plan.signals || {}, room = sg.room ?? (sg.max_regular_lots || 5);
-    const cs = [["공포", sg.fear], ["하락 범위", sg.band], ["RSI 30 미만", sg.rsi == null ? null : sg.rsi < 30], ["남은 한도", room > 0]];
-    html += `<button class="sig-go" data-go="signal"><span class="l"><b>공포 단타 대기</b><small>매수 조건 4개 중 ${cs.filter((c) => c[1] === true).length}개 충족</small>
-      <span class="sig-dots">${cs.map(([t, ok]) => `<em class="${ok === true ? "ok" : ""}">${t}</em>`).join("")}</span></span><b class="mute">›</b></button>`;
-  }
   html += `</div>${D.health.length ? `<div class="foot"><b class="warn">자료 확인 필요 ${D.health.length}건(신호 탭)</b></div>` : ""}`;
   $("#view").innerHTML = html;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
@@ -992,6 +1003,7 @@ const cmFind = (q) => typeof q === "function" ? q() : document.querySelector(q);
 const rowWith = (sel, txt) => () => [...document.querySelectorAll(sel)].find((r) => r.textContent.includes(txt));
 const COACHES = {   // 11-27 밤 사용자 '설명이 너무 길다, 핵심만' → 탭마다 2~3장, 한 문장 + 짧은 보조 한 줄
   home: () => [
+    {q: ".fg-g", lb: "공포·탐욕지수", t: "시장의 공포 정도입니다", g: `${HL("빨간 눈금 30")} 이하이면 매수 조건 하나가 충족됩니다.`},
     {q: ".dl-one", lb: "시계", t: "미국 장 시간을 한국 시간 시계에 표시합니다", g: `${HL("파란 칸")} 정규장 · ${HL("주황 종")} 알림 시각`},
     {q: ".hold .hl-row", lb: "보유 현황", t: "전략의 현재 보유 비중입니다", g: "내 계좌도 같은 비중으로 맞춥니다."},
     {q: '#tabs [data-tab="compare"]', lb: "성과", t: "먼저 지난 성과를 확인하십시오", g: "2000년부터의 결과를 QQQ 보유와 비교합니다.", go: ["성과 보러 가기", "compare"]}],
