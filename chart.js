@@ -103,7 +103,7 @@
       let lo = Infinity, hi = -Infinity;
       const take = (v) => { if (v != null && isFinite(v) && (!p.log || v > 0)) { if (v < lo) lo = v; if (v > hi) hi = v; } };
       for (const s of p.series) {
-        if (s.hidden) continue;
+        if (s.hidden || s.nofit) continue;   // nofit: 범위 계산에서 뺌(사는 구간 선처럼 멀리 있는 참고선)
         if (s.type === "candle") for (let i = a; i <= b; i++) { take(s.h[i]); take(s.l[i]); }
         else for (let i = a; i <= b; i++) take(s.y[i]);
       }
@@ -131,7 +131,7 @@
       this.o.panes.forEach((p, k) => {
         // 범례를 먼저 배치(넘치면 줄바꿈)하고, 그 아래부터 그래프 영역 → 범례가 선을 가리지 않음
         const B0 = boxes[k], li = hi ?? b; g.font = `600 11px ${font}`;
-        const items = p.legend || p.series.filter((s) => s.name && !s.hidden).map((s) => ({name: s.name, color: s.type === "candle" ? C.ink : s.color, v: (s.type === "candle" ? s.c : s.y)[li], fmt: s.fmt}));
+        const items = p.legend || p.series.filter((s) => s.name && !s.hidden && !s.noleg).map((s) => ({name: s.name, color: s.type === "candle" ? C.ink : s.color, v: (s.type === "candle" ? s.c : s.y)[li], fmt: s.fmt}));
         const lay = []; let lx = 4, ly = B0.y0 + 1;
         items.forEach((it) => { const t = "v" in it ? `${it.name} ${it.v != null ? (it.fmt || p.fmt || defFmt)(it.v) : "-"}` : it.name, w = g.measureText(t).width + 15;
           if (lx > 4 && lx + w > pw) { lx = 4; ly += 16; } lay.push([it, t, lx, ly, w]); lx += w + 8; });
@@ -223,7 +223,7 @@
           const t = (p.fmt || defFmt)(v), tw = Math.max(AX - 2, g.measureText(t).width + 8);
           g.fillStyle = C.ink; g.fillRect(W - tw, hy - 8, tw, 16); g.fillStyle = C.card; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(t, W - tw + 4, hy); }
         g.setLineDash([]);
-        this.o.panes.forEach((p) => p.series.forEach((s) => { if (s.hidden || s.type === "candle") return; const v = s.y[hi]; if (v == null) return; g.fillStyle = s.color || C.ink; g.beginPath(); g.arc(x, p._Y(v), 3.2, 0, 7); g.fill(); }));
+        this.o.panes.forEach((p) => p.series.forEach((s) => { if (s.hidden || s.noleg || s.type === "candle") return; const v = s.y[hi]; if (v == null) return; g.fillStyle = s.color || C.ink; g.beginPath(); g.arc(x, p._Y(v), 3.2, 0, 7); g.fill(); }));
         const d = xs[hi]; g.font = `700 11px ${font}`; const t = xf ? xf(d, true) : d, tw = g.measureText(t).width + 12;
         g.fillStyle = C.ink; g.fillRect(Math.max(0, Math.min(pw - tw, x - tw / 2)), H - BOT + 2, tw, 17); g.fillStyle = C.card; g.textAlign = "center"; g.textBaseline = "middle";
         g.fillText(t, Math.max(tw / 2, Math.min(pw - tw / 2, x)), H - BOT + 10.5); g.font = `11px ${font}`;
