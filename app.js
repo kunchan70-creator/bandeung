@@ -175,6 +175,12 @@ function openGuide() {
   sheet(`<div class="pk-t">사용 안내</div>${faqItems().map(([q, a], i) => `<details class="faq"${i === 0 ? " open" : ""}><summary>${q}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></summary><div class="faq-a">${a}</div></details>`).join("")}
     <button class="btn ghost" id="gok">처음 안내 다시 보기</button><button class="btn ghost" id="gco">화면 안내 다시 보기</button>`, (close) => { $("#gok").onclick = () => { close(); openTour(0, true); }; $("#gco").onclick = () => { coachReset(); close(); }; });
 }
+// QQQ 기간 최대 하락(반등 매매 이야기에서 씀)
+function qqqDD(a, b) {   // 그 기간 QQQ 최대 하락(종가, 기간 안 고점 대비)
+  if (!H?.px?.QQQ) return null; const d = H.dates, c = H.px.QQQ.c; let pk = -1, m = 0;
+  for (let i = 0; i < d.length; i++) if (d[i] >= a && d[i] <= b && c[i] != null) { pk = Math.max(pk, c[i]); m = Math.min(m, c[i] / pk - 1); }
+  return m;
+}
 // 처음 안내 3장: 결과 → 방식 → 종목 고르기, 끝나면 '앱으로 받기' 창(maybeEntry)
 const TOUR = [
   {title: "공포 구간에만 매수하고<br>반등에 매도합니다", desc: "나스닥이 크게 하락한 날의 주문을 매일 계산합니다.", art: () => {
@@ -186,7 +192,7 @@ const TOUR = [
 ];
 let tourPage = -1, tourNo = false;
 // 11-27 사용자: 예전 안내를 본 사람은 새 안내가 안 보임 → 안내 판 번호(TOUR_V). '다시 보지 않기'를 체크해야 그 판은 다시 안 보임, 안 하면 다음 방문 때 또 보임
-const TOUR_V = 2;
+const TOUR_V = 2;   // 11-27 밤: 이야기는 따로 한 화면(story), 처음 안내는 3장 그대로
 const tourShown = () => { try { return !!sessionStorage.getItem("tourShown"); } catch (e) { return false; } };
 const tourDue = () => (S.tourV || 0) < TOUR_V && !tourShown();
 function openTour(step=0,restart=false) {
@@ -195,11 +201,11 @@ function openTour(step=0,restart=false) {
   const el=$("#tour"), x=TOUR[i];
   const finish=()=>{tourPage=-1; el.hidden=true; document.body.classList.remove("tour-open"); if(tourNo)S.tourV=TOUR_V; S.tourSeen=true; save(); try{sessionStorage.setItem("tourShown","1");}catch(e){} if(D)render(); maybeEntry();};
   el.hidden=false; document.body.classList.add("tour-open");
-  el.innerHTML=`<div class="tour-inner ${direction} ${i===0?'intro':''}"><div class="tour-top"><span>시작 안내</span><button id="tourSkip">건너뛰기</button></div>
+  el.innerHTML=`<div class="tour-inner ${direction} ${i===0?'intro':''}"><div class="tour-top"><span>${x.tag || "시작 안내"}</span><button id="tourSkip">건너뛰기</button></div>
   <div class="tour-steps" aria-label="${i+1} / ${TOUR.length} 단계">${TOUR.map((_,p)=>`<i class="${p<=i?'on':''}"></i>`).join("")}</div>
   <div class="tour-copy"><h1>${x.title}</h1><p>${x.desc}</p></div><div class="tour-art">${x.art()}</div>
   <label class="tour-no"><input type="checkbox" id="tourNo" ${tourNo?"checked":""}>다시 보지 않기</label><div class="tour-nav">${i?'<button id="tourPrev">이전</button>':''}<button class="btn" id="tourNext">${i===TOUR.length-1?'시작하기':'다음'}</button></div></div>`;
-  if(i===0&&!H)needHist(()=>{if(tourPage===0)openTour(0,true);});
+  if(!H)needHist(()=>{if(tourPage===i)openTour(i,true);});
   $("#tourNo").onchange=(e)=>{tourNo=e.target.checked;};
   $("#tourSkip").onclick=finish;
   $("#tourNext").onclick=i===TOUR.length-1?finish:()=>openTour(i+1);
@@ -215,6 +221,76 @@ function setLot(n, w) {
   w = w || S.wait; if (n === S.lot && w === S.wait) return; S.lot = n; S.wait = w; save();
   D = null; H = null; rawData = null; rawHist = null; histWaiters = [];
   $("#view").innerHTML = wait(`한 묶음 ${n}%${w === "sgov" ? " · SGOV 대기" : ""} 자료를 불러오는 중입니다`); loadData();
+}
+// ── 반등 매매 이야기(11-27 밤 사용자 이야기, 집셈 이야기 페이지와 같은 짜임: 장면 → 문제 → 기준 → 결과 → 운이 아닌지 → 하락장 → 마음 → 못 하는 것) ──
+const STORY_CARD = () => `<button class="st-cd" onclick="go('story')"><span class="st-cdt"><em>반등 매매 이야기 · 3분</em><b>언제가 바닥인지, 아무도 모릅니다</b><small>그래서 공포를 숫자로 재 보았습니다</small></span><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>`;
+function story() {
+  if (!needHist(() => S.tab === "story" && render())) { $("#view").innerHTML = wait("이야기를 불러오는 중입니다"); return; }
+  const bt = H.bt.assume, sc = bt.score.krw.B, b = jstats(vals("assume", "B", "krw")), q = jstats(vals("assume", "qqq", "krw"));
+  const r5 = rollStats("B", "5"), r10 = rollStats("B", "10"), scq = bt.score.krw.qqq, real = H.px.TQQQ?.real_from;
+  const crash = [["닷컴 버블", "2000~2002", "2000-01-01", "2002-12-31"], ["리먼 사태", "2007~2009", "2007-10-01", "2009-06-30"], ["코로나 폭락", "2020", "2020-02-01", "2020-04-30"], ["금리 인상", "2022", "2021-11-01", "2022-12-31"]];
+  const bar = (t, v, w, c) => `<div class="sp-b"><span>${t}</span><i><em style="width:${Math.max(3, w)}%;background:${c}"></em></i><b>${v}</b></div>`;
+  $("#view").innerHTML = `<i class="sp-prog" id="spprog"></i><div class="sp" id="sp">
+  <button class="back" onclick="go(S.prevTab || 'compare')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>뒤로</button>
+  <div class="sp-k">반등 매매 이야기</div>
+  <h1 class="sp-h1">주식을 할 때,<br>다들 이렇게 합니다</h1>
+  <section class="sp-p rv">
+   <p>유튜브를 봅니다. 한 사람은 지금이 마지막 기회라고 하고, 다른 사람은 이제 끝났다고 합니다.</p>
+   <p>유명한 투자 책을 구해 그대로 따라 해 봅니다. 원리도 이해했습니다. 그런데 시장은 공부한 대로 움직이지 않습니다. 오를 줄 알았던 날 내리고, 버티라던 날 더 내립니다.</p>
+   <p>전문가의 말을 들어 봅니다. 오른다는 사람도, 내린다는 사람도 모두 그럴듯합니다. 맞히면 그들의 실력이 되고, 틀리면 잊힙니다. 손실은 내 계좌에 남습니다.</p>
+   <p>그리고 나에게는 생활이 있습니다. 내년에 목돈이 필요할 수도 있습니다. 그렇다고 현금만 쥐고 있으면 물가가 그 돈을 조금씩 줄입니다.</p>
+   <p class="sp-pull">언제가 바닥인지,<br>아무도 모릅니다.</p>
+   <p>이상한 일입니다. ‘공포에 매수하라’는 말은 모두가 압니다. 그런데 얼마나 무서워야 공포인지는 아무도 <b>숫자로</b> 말해 주지 않습니다.</p>
+   <p>반등 매매는 그 숫자를 정해 보려고 시작했습니다.</p></section>
+
+  <section class="sp-sec rv"><h2>폭락의 이름은<br>늘 지나고 나서 붙었습니다</h2>
+   <p>닷컴 버블, 리먼 사태, 코로나 폭락. 떨어지는 동안에는 지금이 시작인지 끝인지 아무도 몰랐습니다. 세계적인 투자자도 바닥은 맞히지 못합니다.</p>
+   <div class="sp-card">${crash.map(([n, y, a, z]) => { const v = qqqDD(a, z); return bar(`<b>${n}</b><small>${y}</small>`, pct(v, 0), Math.abs(v) * 100, "#3182f6"); }).join("")}<div class="sp-cap">나스닥100(QQQ) 고점 대비 최대 하락</div></div>
+   <p>그래서 바닥을 맞히는 일은 하지 않기로 했습니다. 대신 기준을 세웠습니다.</p></section>
+
+  <section class="sp-sec rv"><h2>공포를 숫자로 재었습니다</h2>
+   <p>네 가지가 같은 날 함께 맞을 때만 매수합니다. 하나라도 어긋나면 기다립니다.</p>
+   <div class="sp-card sp-rule">
+    <div><b>공포</b><span>VIX 30 이상 또는 공포탐욕지수 30 이하</span></div>
+    <div><b>하락 폭</b><span>나스닥100 1년 고점 대비 -10% ~ -25%</span></div>
+    <div><b>과매도</b><span>RSI(14) 30 미만</span></div>
+    <div><b>한도</b><span>정해 둔 금액 안에서만</span></div>
+    <div class="ex"><b>급락 예외</b><span>하루 -2.5%와 5거래일 -7.5%가 겹친 날</span></div></div>
+   <p>매도도 정해 두었습니다. 평균 단가보다 <b>+${PRODUCTS[S.inst].target}%</b> 오르면 매도하고, 마지막 매수일부터 10거래일이 지나면 손익과 관계없이 매도합니다. 기다림이 길어질 때 생기는 레버리지 손실을 막기 위해서입니다.</p></section>
+
+  <section class="sp-sec rv"><h2>결과는 이랬습니다</h2>
+   <p>2000년부터 하루도 빼지 않고, 그날까지의 숫자만으로 매수·매도를 다시 계산했습니다.</p>
+   <div class="sp-card sp-proof"><small>2000년부터 공포 단타</small><b>${sc.sw_n}번 중 ${Math.round(sc.sw_n * sc.sw_win)}번 수익</b>
+    <div class="sp-g"><div><small>평균 수익</small><b class="up">${pct(sc.sw_avg)}</b></div><div><small>최악 거래</small><b>${pct(sc.sw_worst)}</b></div><div><small>연평균 거래</small><b>${sc.sw_per_year.toFixed(1)}회</b></div></div></div>
+   <p>평소에는 200일선 추세를 따라 나스닥100을 보유하고, 공포가 올 때만 단타를 더했습니다. 1억 원으로 시작했다면 지금 <b>${eokTxt(b.mult)} 원</b>입니다. 같은 기간 QQQ를 매수해 보유만 했다면 ${eokTxt(q.mult)} 원입니다.</p>
+   <div class="sp-card">${bar("반등 매매", eokTxt(b.mult) + " 원", 100, "var(--B)")}${bar("QQQ 보유", eokTxt(q.mult) + " 원", Math.log(q.mult) / Math.log(b.mult) * 100, "#b0b8c1")}<div class="sp-cap">1억 원 투자 · 원화·세후 · 막대는 로그 비율</div></div></section>
+
+  <section class="sp-sec rv"><h2>운 좋은 시기만 고른 건<br>아닐까요</h2>
+   <p>2000년은 닷컴 버블 꼭대기입니다. QQQ에게 가장 불리한 출발점이라는 뜻입니다. 그래서 시작일을 석 달씩 옮겨 가며 모두 다시 계산했습니다.</p>
+   <div class="sp-card sp-two"><div><small>5년 보유했다면</small><b>${pctu(r5.beat_qqq, 0)}</b><span>시작일 ${r5.n}곳 중 ${Math.round(r5.n * r5.beat_qqq)}곳에서<br>QQQ 보유 대비 초과 수익</span></div>
+    <div><small>10년 보유했다면</small><b>${pctu(r10.beat_qqq, 0)}</b><span>시작일 ${r10.n}곳 중 ${Math.round(r10.n * r10.beat_qqq)}곳에서<br>QQQ 보유 대비 초과 수익</span></div></div></section>
+
+  <section class="sp-sec rv"><h2>하락장에서는<br>이렇게 달랐습니다</h2>
+   <p>수익보다 중요한 것은 버틸 수 있느냐입니다. 계좌가 반 토막 나면 원칙을 지키기 어렵습니다.</p>
+   <div class="sp-card">${bar("반등 매매", pct(b.mdd, 0), Math.abs(b.mdd) * 100, "var(--B)")}${bar("QQQ 보유", pct(q.mdd, 0), Math.abs(q.mdd) * 100, "#b0b8c1")}<div class="sp-cap">고점 대비 최대 낙폭</div>
+    ${sc.uw_days && scq.uw_days ? bar("반등 매매", (sc.uw_days / 365.25).toFixed(1) + "년", sc.uw_days / scq.uw_days * 100, "var(--B)") + bar("QQQ 보유", (scq.uw_days / 365.25).toFixed(1) + "년", 100, "#b0b8c1") + `<div class="sp-cap">고점을 회복하기까지 가장 오래 걸린 기간</div>` : ""}</div></section>
+
+  <section class="sp-p rv sp-sec">
+   <p class="sp-pull">주식으로 속상해하는 사람들이<br>어리석어서가 아닙니다.</p>
+   <p>모두 각자의 자리에서 최선을 다하고 있습니다. 공부하고, 기다리고, 때로는 후회합니다. 저도 그랬습니다.</p>
+   <p>이 기준이 그 최선에 숫자 하나를 더해 드리기를 바랍니다.</p></section>
+
+  <section class="sp-sec rv"><h2>못 하는 것도 말씀드립니다</h2>
+   <div class="sp-hon"><p><b>바닥을 맞히지 않습니다.</b> 매수한 뒤 더 하락하는 일이 흔합니다.</p>
+    <p><b>손실이 없지는 않습니다.</b> 과거 공포 단타 보유 중 계좌 최대 평가손실은 ${pct(sc.sw_acc_worst, 0)}였습니다. 한 묶음 비중을 낮추면 함께 줄어듭니다.</p>
+    <p><b>과거 계산입니다.</b> 같은 일이 앞으로도 반복된다는 보장은 없습니다.</p></div></section>
+
+  <div class="sp-end rv"><b>지금 기준으로<br>어디쯤인지 확인해 보십시오</b><button class="btn blue" onclick="go('signal')">지금 신호 보기</button><button class="btn ghost" onclick="go('compare')">성적 자세히 보기</button></div>
+  <p class="sp-foot">2000년 1월부터 일별 재계산, 원화·세후(양도소득세 22%·연 250만 원 공제), 수수료 ${feeTxt()} 반영. ${real ? `TQQQ는 ${ymd(real).slice(0, 4)}년 상장 전 나스닥100 하루 움직임 × 3배로 만든 가정 가격입니다. ` : ""}과거 결과가 미래 수익을 보장하지 않습니다.</p></div>`;
+  const io = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), {threshold: .15}) : null;
+  document.querySelectorAll("#sp .rv").forEach((el) => io ? io.observe(el) : el.classList.add("in"));
+  const prog = () => { const el = $("#spprog"); if (!el) { removeEventListener("scroll", prog); return; } const h = document.documentElement.scrollHeight - innerHeight; el.style.width = (h > 0 ? scrollY / h * 100 : 0) + "%"; };
+  addEventListener("scroll", prog, {passive: true}); prog();
 }
 // ── 전체 탭(11-27): 설정은 증권 앱 설정 화면처럼 '이름 + 지금 값 ›' 목록, 누르면 그 항목 하나만 고르는 창 ──
 let RISK = null;
@@ -246,10 +322,10 @@ function openInst() {
 const pushWord = () => !WEB ? "웹 앱 전용" : PUSHST === "on" ? "켜짐" : PUSHST === "off" ? "꺼짐" : "";
 function more() {
   const row = (id, t, v) => `<button class="li" data-li="${id}"><span>${t}</span><span class="v">${v}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span></button>`;
-  $("#view").innerHTML = `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>전체</button><div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
+  $("#view").innerHTML = `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>전체</button>${STORY_CARD()}<div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
     <div class="card lst"><div class="lh">앱</div>${row("bell", "알림", pushWord())}${WEB && !STANDALONE ? row("install", "앱 설치", "") : ""}</div>
-    <div class="card lst"><div class="lh">안내</div>${row("guide", "사용 안내", "")}</div>`;
-  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide};
+    <div class="card lst"><div class="lh">안내</div>${row("story", "반등 매매 이야기", "")}${row("guide", "사용 안내", "")}</div>`;
+  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide, story: () => { S.prevTab = "more"; go("story"); }};
   document.querySelectorAll("[data-li]").forEach((b) => b.onclick = F[b.dataset.li]);
 }
 // 수수료 반영: 날마다 거래 비율(turn) x (내 수수료 - 모델 수수료)만큼 그날부터 곱으로 깎음
@@ -492,7 +568,7 @@ function compare() {
   const a = per === "all" ? 0 : Math.max(0, N - 252 * +per), sb = jstats(vb, a), sq = jstats(vq, a), yrs = (N - a) / 252;
   const sc = bt.score[view].B, scq = bt.score[view].qqq, real = H.px[S.inst]?.real_from;
   // 1) 한 문장 숫자 + 성장 차트 + 기간
-  let html = `<div class="card pf-hero"><div class="pf-top"><span class="t2">${+xs[a].slice(0, 4)}년 ${+xs[a].slice(5, 7)}월부터 ${yrs >= 1 ? (+yrs.toFixed(Math.abs(yrs - Math.round(yrs)) < .06 || yrs >= 10 ? 0 : 1)) + "년" : Math.round(yrs * 12) + "개월"}</span>
+  let html = STORY_CARD() + `<div class="card pf-hero"><div class="pf-top"><span class="t2">${+xs[a].slice(0, 4)}년 ${+xs[a].slice(5, 7)}월부터 ${yrs >= 1 ? (+yrs.toFixed(Math.abs(yrs - Math.round(yrs)) < .06 || yrs >= 10 ? 0 : 1)) + "년" : Math.round(yrs * 12) + "개월"}</span>
       <button class="pf-basis" id="pfBasis">${view === "krw" ? "원화·세후" : "달러·세전"}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button></div>
     <div class="pf-big">1억 원 → <b>${eokTxt(sb.mult)} 원</b></div>
     <div class="pf-vs">같은 기간 QQQ 보유 ${eokTxt(sq.mult)} 원</div>
@@ -947,7 +1023,7 @@ function needChartJs() {   // 옛 index.html(차트 파일 없음)이 캐시에 
 }
 
 // ── 뼈대 ──
-const PAGES = {home, compare, todo, log, signal, more};
+const PAGES = {home, compare, todo, log, signal, more, story};
 function go(t) { S.tab = t; save(); render(); window.scrollTo(0, 0); }
 window.go = go;
 function render() {
