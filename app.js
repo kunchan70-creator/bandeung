@@ -168,7 +168,7 @@ function faqItems() {   // 11-27 밤 사용자 '핵심만' → 6개, 답은 한�
   return [
     ["이 앱은 무엇입니까", `나스닥 급락일에만 ${S.inst}를 매수하고 반등 시 매도합니다. 평소에는 200일선 추세에 따라 QQQM 보유 또는 현금 대기입니다.`],
     ["사용 방법", `<ol class="faq-ol"><li>알림 수신</li><li>할 일 탭에서 가격·수량 복사</li><li>증권사 앱에서 정규장 지정가 주문</li></ol>`],
-    ["매수 조건", `<ol class="faq-ol"><li>VIX 30 이상 또는 공포탐욕 30 이하</li><li>QQQ 1년 고점 대비 -10%~-25%</li><li>QQQ RSI(14) 30 미만</li><li>남은 한도</li></ol>급락일(하루 -2.5%·5거래일 -7.5%)은 범위와 관계없이 매수합니다.`],
+    ["매수 조건", `공포 지표(VIX·공포탐욕지수), 나스닥 하락 폭, 과매도 여부, 남은 한도를 함께 봅니다. 조건이 맞으면 알림과 주문표로 알려 드립니다.`],
     ["매도 조건", `평균 단가 +${TGT()}% 목표가 지정가 매도. 마지막 매수일부터 10거래일 경과 시 장 마감 매도.`],
     ["위험", `${S.inst}는 나스닥100 일간 ${k}배입니다.${sc ? ` 과거 보유 중 계좌 최대 평가손실 ${pct(sc.sw_acc_worst, 0)}.` : ""} 한 묶음 비중을 낮추면 손실도 줄어듭니다.`],
     ["계산 기준", `2000년부터 일별 재계산 · 원화·세후(양도소득세 22%) · 수수료 ${feeTxt()} 반영 · ${S.inst} 상장 전은 가정 가격. 과거 성과는 미래 수익을 보장하지 않습니다.`],
@@ -327,15 +327,15 @@ function eduLessons() {
   return [
     {h: "한 번에 다<br>매수하지 않습니다", p: `한 번 매수할 때 쓰는 돈을 <b>한 묶음</b>이라고 합니다. 지금 설정은 한 묶음 = 계좌의 <b>${L}%</b>, 최대 <b>5묶음어치</b>까지입니다. 공포가 이어지면 여러 날에 나눠 매수합니다.`,
       art: `${box(2)}<div class="ed-cap">예: 두 번 매수 = 계좌의 ${L * 2}%</div>`},
-    {h: "반 묶음은<br>천천히 빠질 때입니다", p: `QQQ가 3거래일 동안 -4%보다 덜 하락했으면 한 묶음의 <b>절반(${L / 2}%)</b>만 매수합니다. 남은 한도는 더 깊은 공포에 씁니다.`,
+    {h: "반 묶음은<br>천천히 빠질 때입니다", p: `하락이 천천히 진행되는 날은 한 묶음의 <b>절반(${L / 2}%)</b>만 매수합니다. 남은 한도는 더 깊은 공포에 씁니다.`,
       art: `<div class="ed-two"><div><b>빠른 하락</b>${box(1)}<small>한 묶음 ${L}%</small></div><div><b>느린 하락</b>${box(0, true)}<small>반 묶음 ${L / 2}%</small></div></div>`},
     {h: "매수하자마자<br>매도 주문을 겁니다", p: `기다리면 오르는 것이 아닙니다. 매수가 체결되면 바로 평균 단가 <b>+${T}%</b>에 지정가 매도 주문을 걸어 둡니다. 체결될 때까지 유지합니다.`,
       art: `<div class="ed-flow"><div><em class="up">▲</em><b>$100.00</b><small>매수 체결</small></div><i>→</i><div><em class="down">▼</em><b>$${(100 * (1 + T / 100)).toFixed(2)}</b><small>바로 매도 주문</small></div></div>`},
     {h: "10거래일 안에<br>정리합니다", p: `마지막 매수일부터 <b>10거래일</b> 안에 목표가에 닿지 않으면, 그날 장 마감에 손익과 관계없이 전량 매도합니다. 레버리지는 오래 들고 있을수록 손실이 커질 수 있습니다.`,
       art: `<div class="ed-days">${Array.from({length: 10}, (_, i) => `<i class="${i === 9 ? "end" : ""}">${i + 1}</i>`).join("")}</div><div class="ed-cap">10일째 장 마감 = 정리</div>`},
     {h: "실제 거래로<br>따라가 보십시오", p: `2025년 4월 관세 폭락 때, <b>TQQQ를 고른 경우</b>의 실제 거래입니다(목표 +7.5%). ${S.inst !== "TQQQ" ? `${S.inst}는 날짜와 순서는 같고 가격과 목표(+${PRODUCTS[S.inst].target}%)만 다릅니다. ` : ""}<b>다음 날</b>을 눌러 하루씩 넘겨 보십시오.`, replay: true},
-    {h: "평소에는<br>200일선을 따릅니다", p: `QQQ가 200일선보다 3% 넘게 위에서 마감하면 <b>QQQM 매수</b>, 3% 넘게 아래에서 마감하면 <b>매도 후 현금 대기</b>입니다. 이 주문도 알림으로 옵니다.`,
-      art: `<div class="tour-checklist"><div style="--i:0"><b>200일선 +3% 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 -3% 아래</b><span>현금 대기</span></div></div>`},
+    {h: "평소에는<br>200일선을 따릅니다", p: `QQQ가 200일선 위로 확실히 올라서면 <b>QQQM 매수</b>, 확실히 내려가면 <b>매도 후 현금 대기</b>입니다. 이 주문도 알림으로 옵니다.`,
+      art: `<div class="tour-checklist"><div style="--i:0"><b>200일선 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 아래</b><span>현금 대기</span></div></div>`},
     {h: "손실도<br>날 수 있습니다", p: `과거 성적은 미래를 보장하지 않습니다.${sc ? ` 과거 공포 단타를 보유하는 동안 계좌는 최대 <b>${pct(sc.sw_acc_worst, 0)}</b>까지 평가손실이 났습니다.` : ""} 감당할 수 있는 비중으로 시작하십시오.`,
       art: `<div class="ed-warn">비중은 전체 > 한 묶음 비중에서 바꿀 수 있습니다</div>`},
   ];
@@ -527,20 +527,18 @@ function home() {
       <div class="fg-g"><svg viewBox="0 0 220 128" aria-hidden="true">
         ${Array.from({length: 60}, (_, i) => `<path d="${arc(i * 100 / 60, (i + 1) * 100 / 60 + .4)}" fill="none" stroke="${fgCol((i + .5) * 100 / 60)}" stroke-width="18"/>`).join("")}
         ${(() => { const [ax, ay] = pt(0, Rr), [bx, by] = pt(100, Rr); return `<circle cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="9" fill="${fgCol(0)}"/><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="9" fill="${fgCol(100)}"/>`; })()}
-        <line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="#191f28" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 3"/>
-        <text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" class="fg-t">30</text>
         ${fgv != null ? (() => { const [mx, my] = pt(Math.max(0, Math.min(100, fgv)), Rr); return `<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="13" fill="#fff" stroke="${fgCol(fgv)}" stroke-width="5"/><circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="4" fill="#191f28"/>`; })() : ""}</svg>
         <div class="fg-v"><b style="color:${fgv == null ? "var(--ink)" : fgCol(fgv)}">${fgv == null ? "-" : Math.round(fgv)}</b><span class="fg-l" style="${fgv == null ? "" : `background:${fgCol(fgv)}1f;color:${fgCol(fgv)}`}">${lab[0]}</span></div></div>
-      <div class="fg-s">30 이하이면 공포 조건 충족 · VIX ${num(sg.vix, 1)}</div>
-      <button class="fg-go" data-go="signal"><i class="${sg.fear ? "on" : ""}"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><span><b>${sg.fear ? "공포 구간" : "공포 구간 아님"} · 매수 조건 ${nm}/4</b><small>${nm === 4 ? "다음 거래일 매수 주문이 나갑니다" : "남은 조건은 신호에서 QQQ 가격으로 확인"}</small></span><svg class="ch" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button></div>`; }
+      <div class="fg-s">VIX ${num(sg.vix, 1)}</div>
+      <button class="fg-go" data-go="signal"><i class="${sg.fear ? "on" : ""}"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><span><b>${sg.fear ? "공포 구간" : "공포 구간 아님"} · 매수 조건 ${nm}/4</b><small>${nm === 4 ? "다음 거래일 매수 주문이 나갑니다" : "남은 조건은 신호에서 확인"}</small></span><svg class="ch" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button></div>`; }
   // 1) 장 시계 + 다음 주문
   CLOCK_FEAR = !!(plan.signals || {}).fear;
   html += `<div class="card mk${CLOCK_FEAR ? " fear" : ""}"><div id="clockIn"></div>
     <button class="mk-go" data-go="todo"><span>다음 거래일 주문</span><b>${n ? `${n}건` : "없음"} ›</b></button></div>`;
   // 2) 보유 현황: 증권 앱 보유 종목 목록처럼(로고 · 이름 · 한 줄 설명 | 비중 · 내 금액)
   const sell = (plan.swing || []).find((o) => o.how === "목표가"), due = (plan.swing || []).find((o) => o.how === "보유기한");
-  const wait = tr && !tr.next_in ? `200일선 아래 · 재진입 QQQ $${Math.round(tr.entry_line)}` : null;
-  const desc = (nm) => nm === "QQQM" && tr?.next_in ? `200일선 위 · 이탈 QQQ $${Math.round(tr.exit_line)}` : (nm === "현금" || nm === "SGOV") && wait ? wait : COMP[nm][1];
+  const wait = tr && !tr.next_in ? `200일선 아래 · ${waitWord()}` : null;   // 11-28 기준선 가격은 공개하지 않음
+  const desc = (nm) => nm === "QQQM" && tr?.next_in ? `200일선 위 · 추세 보유` : (nm === "현금" || nm === "SGOV") && wait ? wait : COMP[nm][1];
   let sw = null;
   if (sell && g[S.inst] > 0) {
     const avg = parseFloat((sell.why.match(/\$([\d.]+)/) || [])[1]), q = LQ[S.inst], lots = dedupLots(plan.lots), c = q ? q.c : null;
@@ -701,7 +699,8 @@ function compare() {
     <button class="mk-go" id="pfTrades"><span>모든 거래 보기</span><b>›</b></button></div>`;
   // 6) 자세히(접기)
   const rbs = H.robust || [];
-  if (rbs.length) { const mx = Math.max(...rbs.map((r) => r.cagr));
+  // 11-28 '조건 변경 시 성과'는 기준값(RSI 등)이 드러나 숨김
+  if (false && rbs.length) { const mx = Math.max(...rbs.map((r) => r.cagr));
     html += fold("robust", "조건 변경 시 성과", `목표·기한·RSI 기준 변경 후 재계산`, rbs.map((r, i) => `<div class="pf-rb${i === 0 ? " on" : ""}"><span>${esc(r.label)}</span><i><b style="width:${Math.max(3, r.cagr / mx * 100)}%"></b></i><em>${pct(r.cagr)}</em></div>`).join("") + `<div class="pk-f">2000년부터 연평균 · 달러·세전</div>`); }
   html += fold("sim", "기간·금액 직접 계산", "시작일과 금액을 지정해 재계산", simCard().replace(/^<div class="card">/, "<div>"))
     + fold("score", "전체 성과표", "변동성·샤프·월별 등 모든 지표", `<div id="sctable"></div>`);
@@ -801,20 +800,20 @@ function rollTable(el, h) {
 
 // ── 할 일 ──
 const WHY = [
-  ["목표가", "목표가 매도", "평균 매수단가 대비 +7.5%(QQQ 기준 약 +2.5%에 해당)에 지정가로 전량 매도합니다. 공포 구간 직후의 단기 반등 폭을 노리는 규칙이며, 주문은 체결될 때까지 유지(GTC)합니다."],
+  ["목표가", "목표가 매도", "평균 매수단가 대비 고른 종목의 목표 수익률에 지정가로 전량 매도합니다. 공포 구간 직후의 단기 반등 폭을 노리는 규칙이며, 주문은 체결될 때까지 유지(GTC)합니다."],
   ["보유기한", "보유 기한 매도", "마지막 매수일로부터 10거래일 안에 목표가에 도달하지 못하면 손익과 관계없이 기한일 장 마감에 전량 매도합니다. 반등이 늦어질 때 레버리지 상품을 오래 보유하면 생기는 변동성 손실을 막기 위한 규칙입니다."],
-  ["전일 종가 지정가", "신규 매수(전일 종가 지정가)", "공포 구간이고, QQQ가 1년 고점 대비 -10%~-25% 범위이며, RSI(14)가 이미 30 미만으로 마감했습니다. 다음 거래일에 전일 종가 이하에서 체결되도록 한 묶음(내 설정 비중, 느린 하락이면 절반)을 지정가 매수합니다."],
-  ["RSI30 지정가", "신규 매수(RSI 30 지정가)", "공포 구간이고 고점 대비 하락 범위 안에 있지만 RSI(14)가 아직 30 이상입니다. QQQ가 RSI 30에 해당하는 가격까지 내려와야 체결되도록, 그 가격을 TQQQ 가격으로 환산해 지정가 매수합니다."],
-  ["RSI26 지정가", "신규 매수(RSI 26 지정가)", "공포 구간이 아닐 때는 기준을 강화해 RSI 26에 해당하는 가격에서만 매수합니다."],
+  ["전일 종가 지정가", "신규 매수(전일 종가 지정가)", "매수 조건이 모두 충족된 채 마감했습니다. 다음 거래일에 전일 종가 이하에서 체결되도록 한 묶음(내 설정 비중, 느린 하락이면 절반)을 지정가 매수합니다."],
+  ["RSI30 지정가", "신규 매수(과매도 지정가)", "공포 구간이지만 아직 충분히 과매도되지 않았습니다. QQQ가 과매도 가격까지 내려와야 체결되도록 그 가격을 이 종목 가격으로 환산해 지정가 매수합니다."],
+  ["RSI26 지정가", "신규 매수(대기 지정가)", "공포 구간이 아닐 때는 더 낮은 가격에서만 체결되도록 대기 주문을 겁니다."],
   ["대기자금 매도", "대기자금 매도", "추세 매수(QQQM)에 쓸 자금을 마련하기 위해 대기 중인 단기국채를 매도합니다."],
-  ["추세 매수", "추세 매수", "QQQ 종가가 200일 이동평균선보다 3% 이상 높게 마감해 상승 추세로 전환되었습니다. 다음 거래일에 QQQM을 목표 비중까지 매수합니다(전일 종가 +2% 이내 지정가)."],
-  ["추세 매도", "추세 매도", "QQQ 종가가 200일 이동평균선보다 3% 이상 낮게 마감해 하락 추세로 전환되었습니다. 다음 거래일에 QQQM을 매도하고 단기국채로 대기합니다(전일 종가 -2% 이내 지정가)."],
+  ["추세 매수", "추세 매수", "QQQ가 200일 이동평균선 위로 확실히 올라서 상승 추세로 전환되었습니다. 다음 거래일에 QQQM을 목표 비중까지 매수합니다(전일 종가 +2% 이내 지정가)."],
+  ["추세 매도", "추세 매도", "QQQ가 200일 이동평균선 아래로 확실히 내려가 하락 추세로 전환되었습니다. 다음 거래일에 QQQM을 매도하고 단기국채로 대기합니다(전일 종가 -2% 이내 지정가)."],
   ["단기국채 매수", "단기국채 매수", "하락 추세 구간에는 주식 대신 단기국채(SGOV)로 이자를 받으며 대기합니다."],
   ["자산배분 리밸런싱", "자산배분 리밸런싱", "안정형의 자산배분 모델(계좌의 50%)이 목표 비중을 바꿨습니다. 전일 종가 ±2% 이내 지정가로 비중을 조정합니다."]];
 const whyOf = (how) => WHY.find(([k]) => String(how).startsWith(k)) || [how, how, ""];
 // 과거 체결 기록의 사유(봇 내부 이름) → 표시 이름
-const TRADE_WHY = {"목표가": "목표가 매도", "보유 기한": "보유 기한 매도", "시가 익절": "시가 매도(목표가 이상 출발)", "종가 지정가": "전일 종가 지정가 매수", "RSI30 지정가": "RSI 30 지정가 매수",
-  "RSI26 지정가": "RSI 26 지정가 매수", "마감": "장 마감 매수(시간외)", "예비": "예비 매수", "급락": "급락 예외 매수", "추세 위: QQQM": "추세 매수(QQQM)", "추세 아래: 대기": "추세 매도(단기국채 대기)",
+const TRADE_WHY = {"목표가": "목표가 매도", "보유 기한": "보유 기한 매도", "시가 익절": "시가 매도(목표가 이상 출발)", "종가 지정가": "전일 종가 지정가 매수", "RSI30 지정가": "과매도 지정가 매수",
+  "RSI26 지정가": "대기 지정가 매수", "마감": "장 마감 매수(시간외)", "예비": "예비 매수", "급락": "급락 예외 매수", "추세 위: QQQM": "추세 매수(QQQM)", "추세 아래: 대기": "추세 매도(단기국채 대기)",
   "단타 끝, 자산배분 되사기": "단타 종료 후 재매수", "남는 돈 맞추기": "잔여 자금 재배분", "자산배분": "자산배분 리밸런싱", "단타 자금 마련": "단타 자금 마련 매도"};
 const tw = (w) => TRADE_WHY[w] || w;
 // 5단계 할 일(11-27): 증권사 앱에 주문 넣는 순서(구분·종목 → 주문 유형 → 가격 → 수량 → 주문 시간) 그대로, 가격·수량은 눌러서 복사
@@ -866,7 +865,7 @@ function todo() {
       ${mine < planned && !hold ? `<div class="t2">계획 ${planned}주 중 주문 가능 달러 한도만큼</div>` : ""}
       ${!o.limit ? `<div class="t2">목표가 매도 주문을 취소한 뒤 넣습니다</div>` : ""}
       ${q && o.limit ? `<div class="tk-q">현재가 ${usd2(q.c)} · 주문가까지 <b class="${cls(o.limit / q.c - 1)}">${pct(o.limit / q.c - 1)}</b></div>` : ""}
-      <details class="more"><summary>왜 이 주문인가</summary><div class="desc">${esc(o.why)}${theory ? `<br><br>${theory}` : ""}</div></details></div>`;
+      <details class="more"><summary>왜 이 주문인가</summary><div class="desc">${theory || esc(title)}</div></details></div>`;
   });
   html += `<div class="foot">실제 체결과 잔고는 증권사에서 확인하십시오.</div>`;
   $("#view").innerHTML = html;
@@ -961,16 +960,10 @@ function drawLog() {
     (sacc[k]?.trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why, "acc", t.info?.w));
     const plan = sacc[k]?.plan || {}, sell = (plan.swing || []).find((z) => z.how === "목표가" && z.symbol === sym);
     const vb = own ? sbt.acc[k].swing.map(([a, b]) => ({i0: sbt.i0 + a, i1: sbt.i0 + b, color: css("--tq") + "26"})) : [];
-    // 11-27 사용자: 사는 구간(QQQ 1년 고점 대비 -10%~-25%)을 이 종목 가격으로 옮겨 흐리게. 레버리지는 '그날 QQQ가 그 선에서 마감했다면' 근사(일간 배수)
-    const kx = {QQQ: 1, QQQM: 1, QLD: 2, TQQQ: 3}[sym] || 1, [B0, B1] = H.band || [-0.10, -0.25];
-    const bl = (B) => c.map((v, i) => (i < n0 && H.qdd?.[i] != null && v != null) ? v * (1 + kx * ((1 + B) / (1 + H.qdd[i]) - 1)) : null);
-    const bTop = bl(B0), bBot = bl(B1), bcol = css("--up");
     rounds_ = (sbt.acc[k].rounds || []);
     price = {pane: {h: 3, log: S.lrange === "all" || S.lrange === "5y", fmt: (y) => "$" + (y >= 100 ? y.toFixed(0) : y.toFixed(2)),
       series: [{type: S.ltype === "line" ? "line" : "candle", name: sym, o, h, l, c, y: c, color: css("--ink"), w: 1.6},
-        {type: "line", y: bTop, color: bcol + "55", w: 1, dash: [3, 3], nofit: true, noleg: true},
-        {type: "line", y: bBot, color: bcol + "55", w: 1, dash: [3, 3], nofit: true, noleg: true}],
-      bands: [{ya: bTop, yb: bBot, color: bcol + "0d"}],
+],
       markers: mk, vbands: vb, hlines: sell ? [{y: sell.limit, label: `목표가 ${usd2(sell.limit)}`, color: css("--up"), dash: [6, 4]}] : []}, mk};
   }
   const N = x.length, rg = BARS[S.lrange] || 126, real = sym !== "ACC" ? H.px[sym].real_from : null;
@@ -991,18 +984,17 @@ function drawLog() {
     const f = (vix[i] != null && vix[i] >= 30) || (fg[i] != null && fg[i] <= 30), inb = qdd[i] != null && qdd[i] <= B0_ && qdd[i] >= B1_;
     const d = x[i], r = rounds_.find((z) => z.buys[0].d <= d && (!z.sell || z.sell.d >= d)), bb = r ? r.buys.filter((b) => b.d <= d) : [], held = bb.reduce((z, b) => z + (b.sig?.w != null ? b.sig.w / (S.lot / 100) : 1), 0);
     const ok = (t, v) => `<span class="${v ? "up" : "mute"}">${t} ${v ? "충족" : "아님"}</span>`;
-    return `<div class="t2">마감 판정: ${ok("공포", f)} · ${ok("하락 범위", inb)}${qdd[i] < B1_ ? "(-25%보다 깊음)" : ""} · ${ok("RSI 30 미만", rsi[i] < 30)}${!(rsi[i] < 30) && rlo[i] != null && rlo[i] < 30 ? "(장중엔 닿음)" : ""}${sym !== "ACC" && held ? ` · ${bb.length}회 매수 · ${+held.toFixed(1)}/${capN}묶음어치${held >= capN - 1e-6 ? " 다 참" : ""}` : ""}</div>`;
+    return `<div class="t2">마감 판정: ${ok("공포", f)} · ${ok("하락 폭", inb)} · ${ok("과매도", rsi[i] < 30)}${sym !== "ACC" && held ? ` · ${bb.length}회 매수 · ${+held.toFixed(1)}/${capN}묶음어치${held >= capN - 1e-6 ? " 다 참" : ""}` : ""}</div>`;
   }
   const pad = (a) => { while (a.length < N) a.push(null); return a; }; pad(rsi); pad(rhi); pad(rlo); pad(qdd);
   logChart = mkChart(el, {x, height: 540, range: [N - Math.min(rg, N), N - 1], xfmt: (d) => ymd(d), tip,
     panes: [price.pane,
       {h: 1, fmt: (y) => y.toFixed(0), fix: [20, 80], series: [{type: "line", name: "QQQ RSI(마감)", y: rsi, color: css("--ink"), w: 1.3}],
-        bands: [{ya: rhi, yb: rlo, color: css("--B") + "40"}, {y0: 0, y1: 30, color: css("--up") + "10"}],
-        hlines: [{y: 30, label: "매수 기준 30", color: css("--up")}, {y: 26, label: "26", color: css("--up"), dash: [2, 3]}]},
-      {h: 1, fmt: (y) => y.toFixed(0), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}]},
-      {h: 1, fmt: (y) => y.toFixed(0), fix: [0, 100], series: [{type: "line", name: "공포탐욕지수", y: fg, color: css("--B"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}], bands: [{y0: 0, y1: 30, color: css("--up") + "14"}]}]});
+        bands: [{ya: rhi, yb: rlo, color: css("--B") + "40"}]},
+      {h: 1, fmt: (y) => y.toFixed(0), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}]},
+      {h: 1, fmt: (y) => y.toFixed(0), fix: [0, 100], series: [{type: "line", name: "공포탐욕지수", y: fg, color: css("--B"), w: 1.3}]}]});
   cap.innerHTML = sym === "ACC" ? `<span><i style="background:${css(P[k].v)}"></i>${P[k].name}</span><span><i style="background:${css("--Q")}"></i>QQQ 보유</span><span><i class="sq" style="background:${css("--tq")}40"></i>단타 보유</span><span class="mute">2000년=1 배수</span>`
-    : `<span><b class="up">▲</b>매수</span><span><b style="color:#f08a00">▲</b>급락 예외 매수</span><span><b class="down">▼</b>매도</span><span><i class="dash"></i>매수 구간</span>${sym === S.inst ? `<span><i class="sq" style="background:${css("--tq")}26"></i>단타 보유</span>` : ""}${real && real > H.dates[0] ? `<span class="mute">${ymd(real).slice(0, 4)}년 이전 가정 가격</span>` : ""}`;
+    : `<span><b class="up">▲</b>매수</span><span><b style="color:#f08a00">▲</b>급락 예외 매수</span><span><b class="down">▼</b>매도</span>${sym === S.inst ? `<span><i class="sq" style="background:${css("--tq")}26"></i>단타 보유</span>` : ""}${real && real > H.dates[0] ? `<span class="mute">${ymd(real).slice(0, 4)}년 이전 가정 가격</span>` : ""}`;
 }
 async function drawIntraday(sym) {
   const el = $("#logchart"); if (!logChart || !el.querySelector("canvas")) el.innerHTML = wait("실시간 시세를 불러오는 중입니다");
@@ -1021,7 +1013,7 @@ async function drawIntraday(sym) {
   logChart = mkChart(el, {x, height: 380, range: keep || [0, x.length - 1], xfmt: (d) => d.slice(5), minBars: 6,
     tip: (i) => `<b>${x[i]} KST</b><div class="g4"><span>시가</span><b>${usd2(o[i])}</b><span>고가</span><b class="up">${usd2(h[i])}</b><span>저가</span><b class="down">${usd2(l[i])}</b><span>종가</span><b>${usd2(c[i])}</b></div><div class="${cls(c[i] - prev)}">전일 종가 대비 ${pct(c[i] / prev - 1, 2)}</div><div class="t2">VIX ${num(vix[i], 2)}${reg(ix[i]) ? "" : " · 시간외"}</div>`,
     panes: [{h: 3, fmt: (y) => "$" + y.toFixed(2), series: [{type: S.ltype === "line" ? "line" : "candle", name: sym, o, h, l, c, y: c, color: css("--ink")}], hlines: [{y: prev, label: `전일 종가 ${usd2(prev)}`, color: css("--mute")}], vbands: vb},
-            {h: 1, fmt: (y) => y.toFixed(1), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}]}]});
+            {h: 1, fmt: (y) => y.toFixed(1), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}]}]});
   if (logChart) logChart._intra = sym + S.lrange;
   $("#logcap").innerHTML = `${S.lrange === "1d" ? "5분" : "15분"} 봉 · 한국시간 · 회색 음영 = 시간외 거래 · 1분마다 자동 갱신(야후 파이낸스 시세)`;
 }
@@ -1045,28 +1037,29 @@ function signal() {
   const fear = g.fear === true ? true : g.fear === false ? false : null, rsiOk = g.rsi == null ? null : g.rsi < 30, met = [fear, g.band, rsiOk, room > 0];
   const nMet = met.filter((x) => x === true).length, ready = nMet === 4;
   // 무엇이 남았나: 가격으로 말할 수 있으면 가격으로
-  const need = ready ? "다음 장 주문이 나갑니다" : fear === false ? "VIX 30 이상 또는 공포탐욕 30 이하가 되어야 합니다"
-    : g.band === false && g.dd > -0.10 ? `QQQ ${usd2(w.band_qqq?.[0])} 이하로 마감해야 합니다` : g.band === false ? "1년 고점 대비 -25%보다 깊어 일반 매수는 쉽니다"
-    : rsiOk === false ? `QQQ ${usd2(w.close_buy_qqq || g.rsi30_qqq)} 이하로 마감하면 매수합니다` : room <= 0 ? "한도를 다 썼습니다" : "";
+  // 11-28 사용자 '매수 기준 숫자는 공개하지 않음' → 기준값·기준선 없이 지금 값과 충족 여부만
+  const need = ready ? "다음 장 주문이 나갑니다" : fear === false ? "공포 구간을 기다립니다"
+    : g.band === false ? "하락 폭이 매수 범위 밖입니다"
+    : rsiOk === false ? `과매도 가격(QQQ ${usd2(w.close_buy_qqq || g.rsi30_qqq)}) 이하로 마감하면 매수합니다` : room <= 0 ? "한도를 다 썼습니다" : "";
   let html = `<div class="card sg"><div class="sg-h"><div><div class="t2">${ymd(g.date)} 종가 · ${S.inst}</div><div class="sg-v ${ready ? "up" : ""}">매수 조건 ${nMet}/4</div></div>
       <button class="secondary" id="signalTodo">주문 보기</button></div>
     <div class="sg-need">${need}${!ready && rsiOk === false && fear !== false && g.band ? `<span>${toQ(w.close_buy_qqq || g.rsi30_qqq).slice(3)}</span>` : ""}</div>
-    ${sgRow(fear, "공포", `VIX ${num(g.vix, 1)} · 공포탐욕 ${g.fg != null ? Math.round(g.fg) : "-"}`, "VIX 30 이상 또는 공포탐욕 30 이하")}
-    ${sgRow(g.band, "하락 범위", `고점 대비 ${pct(g.dd)}`, `QQQ ${usd2(w.band_qqq?.[1])} ~ ${usd2(w.band_qqq?.[0])} 사이`, sgBar(-0.35, 0, g.dd, [-0.25, -0.10], [[0, "0%"], [-0.10, "-10%"], [-0.25, "-25%"]]))}
-    ${sgRow(rsiOk, "RSI(14)", num(g.rsi, 1), `30 미만 · QQQ ${usd2(w.close_buy_qqq || g.rsi30_qqq)} 이하 마감${toQ(w.close_buy_qqq || g.rsi30_qqq)}`, sgBar(10, 70, g.rsi, [10, 30], [[30, "30"], [50, "50"]]))}
+    ${sgRow(fear, "공포", `VIX ${num(g.vix, 1)} · 공포탐욕 ${g.fg != null ? Math.round(g.fg) : "-"}`, "")}
+    ${sgRow(g.band, "하락 폭", `1년 고점 대비 ${pct(g.dd)}`, "")}
+    ${sgRow(rsiOk, "과매도", `RSI ${num(g.rsi, 1)}`, "")}
     ${sgRow(room > 0, "남은 한도", `${+room.toFixed(1)}/${cap}묶음`, g.units ? `${+(+g.units).toFixed(1)}묶음어치 보유 중` : "")}
     <div class="sg-sub">매수 크기</div>
-    ${sgRow(g.slow ? null : true, g.slow ? "절반 묶음" : "한 묶음", `QQQ 3일 ${pct(g.speed)}`, `3거래일 -4% 이상 하락 시 한 묶음${g.speed_line ? ` · QQQ ${usd2(g.speed_line)} 이하 마감` : ""}`)}
+    ${sgRow(g.slow ? null : true, g.slow ? "절반 묶음" : "한 묶음", `QQQ 3일 ${pct(g.speed)}`, g.slow ? "하락이 느려 절반만 매수합니다" : "")}
     <div class="sg-sub">하락 범위와 별개</div>
-    ${sgRow(g.crash === true && room > 0 ? true : g.crash == null ? null : false, "급락 예외", `하루 ${pct(g.day_return)} · 5일 ${pct(g.five_return)}`, `하루 -2.5%와 5일 -7.5% 동시면 범위 밖이어도 매수${w.crash_qqq ? ` · QQQ ${usd2(w.crash_qqq)} 이하 마감` : ""}`)}
-    ${fear === false ? sgRow(g.band && g.rsi >= 30 && room > 0 ? null : false, "RSI 26 지정가", "공포 아닐 때", "하락 범위 안에서 RSI 26 가격에 대기 주문") : ""}
+    ${sgRow(g.crash === true && room > 0 ? true : g.crash == null ? null : false, "급락 예외", `하루 ${pct(g.day_return)} · 5일 ${pct(g.five_return)}`, "급락일에는 하락 폭과 관계없이 매수합니다")}
+    ${fear === false ? sgRow(g.band && g.rsi >= 30 && room > 0 ? null : false, "대기 지정가", "공포 아닐 때", "하락 폭 안이면 더 낮은 가격에 대기 주문") : ""}
   </div>`;
-  // 추세(200일선 ±3%)
+  // 추세(200일선)
   html += `<div class="card sg"><div class="sg-h"><div class="title">추세</div><span class="sg-chip ${tr.next_in ? "up" : "down"}">${tr.next_in === true ? "상승 · QQQM 보유" : tr.next_in === false ? `하락 · ${waitWord()}` : "-"}</span></div>
-    ${sgRow(null, "QQQ와 200일선", `${pct(tr.gap)}`, tr.next_in ? `QQQ ${usd2(tr.exit_line)} 아래로 마감하면 매도` : `QQQ ${usd2(tr.entry_line)} 위로 마감하면 QQQM 매수`, sgBar(-0.15, 0.15, tr.gap, [-0.03, 0.03], [[-0.10, "-10%"], [-0.03, "-3%"], [0.03, "+3%"], [0.10, "+10%"]]))}
+    ${sgRow(null, "QQQ와 200일선", `${pct(tr.gap)}`, tr.next_in ? "추세가 꺾이면 매도 알림이 옵니다" : "추세가 살아나면 QQQM 매수 알림이 옵니다")}
   </div>`;
   html += `<div class="card"><div class="title">QQQ 차트</div>${seg(LR.slice(2), S.srange, "sr", "sm")}${seg([["candle", "캔들"], ["line", "라인"]], S.stype, "st", "sm tiny")}
-    <div id="sigchart"></div><div class="lg-leg"><span><i style="background:var(--B)"></i>200일선</span><span><i class="dash" style="border-color:var(--down)"></i>이탈선</span><span><i class="dash"></i>재진입선</span><span><i style="background:var(--up);opacity:.3"></i>매수 구간</span></div></div>`;
+    <div id="sigchart"></div><div class="lg-leg"><span><i style="background:var(--B)"></i>200일선</span></div></div>`;
   const rate = (v) => v == null ? "—" : Math.round(v).toLocaleString("ko-KR") + "원";
   html += fold("fx", "달러 → 원화 환전", fx.on ? "환전 검토 신호" : `1달러 ${rate(fx.rate)} · 신호 없음`, `<div class="kv2"><div>지금 1달러</div><div><b>${rate(fx.rate)}</b></div><div>5년 평균</div><div>${rate(fx.avg5y)} (${pct(fx.gap)})</div><div>신호 발생</div><div>${rate(fx.on_line)} 이상에서 고점 -5%</div><div>최근 65일 고점</div><div>${rate(fx.high65)} (${pct(fx.drop)})</div></div>
     ${seg([["1y", "1년"], ["5y", "5년"], ["all", "전체"]], S.frange, "fr", "sm")}<div id="fxchart"></div>`);
@@ -1085,17 +1078,15 @@ function drawSignal() {
   const tb = LQ.QQQ; if (tb && tb.day > H.last) { x.push(tb.day); o.push(tb.o); h.push(tb.h); l.push(tb.l); c.push(tb.c); rsi.push(null); vix.push(LQ["^VIX"] ? LQ["^VIX"].c : null); fg.push(LQ.FG ? LQ.FG.v : null); }
   const N = x.length, ma = Array(N).fill(null), hi = Array(N).fill(null); let sum = 0;
   for (let i = 0; i < N; i++) { sum += c[i]; if (i >= 200) sum -= c[i - 200]; if (i >= 199) ma[i] = sum / 200; let m = -Infinity; for (let j = Math.max(0, i - 251); j <= i; j++) m = Math.max(m, c[j]); hi[i] = m; }
-  const ex = ma.map((v) => v && v * .97), en = ma.map((v) => v && v * 1.03), z0 = hi.map((v) => v * .90), z1 = hi.map((v) => v * .75);
-  const rg = BARS[S.srange] || 252;
+    const rg = BARS[S.srange] || 252;
   const keep = sigChart && sigChart.el.isConnected && sigChart._k === S.srange ? sigChart.r : null;
   sigChart = mkChart($("#sigchart"), {x, height: 520, range: [N - Math.min(rg, N), N - 1], xfmt: (d) => ymd(d),
     tip: (i) => `<b>${ymd(x[i])}${i >= H.dates.length ? " (장중)" : ""}</b><div class="tr">QQQ 종가<b>${usd2(c[i])}</b></div><div class="tr">200일선<b>${usd2(ma[i])}</b><span class="${cls(c[i] / ma[i] - 1)}">${pct(c[i] / ma[i] - 1)}</span></div><div class="tr">1년 고점 대비<b>${pct(c[i] / hi[i] - 1)}</b></div><div class="tr">RSI(14)<b>${num(rsi[i], 1)}</b></div><div class="tr">VIX<b>${num(vix[i], 1)}</b></div><div class="tr">공포탐욕<b>${fg[i] != null ? Math.round(fg[i]) : "-"}</b></div>`,
     panes: [{h: 3, fmt: (y) => "$" + y.toFixed(0), series: [{type: S.stype === "line" ? "line" : "candle", name: "QQQ", o, h, l, c, y: c, color: css("--ink"), w: 1.6},
-        {type: "line", name: "200일선", y: ma, color: css("--B"), w: 1.6}, {type: "line", y: ex, color: css("--down"), w: 1, dash: [4, 3]}, {type: "line", y: en, color: css("--up"), w: 1, dash: [4, 3]}],
-        bands: [{ya: z0, yb: z1, color: css("--up") + "0f"}]},
-      {h: 1, fmt: (y) => y.toFixed(0), fix: [20, 80], series: [{type: "line", name: "RSI(14)", y: rsi, color: css("--B"), w: 1.3}], hlines: [{y: 30, label: "매수 기준 30", color: css("--up")}, {y: 26, color: css("--up"), dash: [2, 3]}], bands: [{y0: 0, y1: 30, color: css("--up") + "14"}]},
-      {h: 1, fmt: (y) => y.toFixed(0), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}], bands: [{y0: 30, y1: 100, color: css("--up") + "10"}]},
-      {h: 1, fmt: (y) => y.toFixed(0), fix: [0, 100], series: [{type: "line", name: "공포탐욕지수", y: fg, color: css("--C"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}], bands: [{y0: 0, y1: 30, color: css("--up") + "14"}]}]});
+        {type: "line", name: "200일선", y: ma, color: css("--B"), w: 1.6}]},
+      {h: 1, fmt: (y) => y.toFixed(0), fix: [20, 80], series: [{type: "line", name: "RSI(14)", y: rsi, color: css("--B"), w: 1.3}]},
+      {h: 1, fmt: (y) => y.toFixed(0), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}]},
+      {h: 1, fmt: (y) => y.toFixed(0), fix: [0, 100], series: [{type: "line", name: "공포탐욕지수", y: fg, color: css("--C"), w: 1.3}]}]});
   if (!sigChart) return; sigChart._k = S.srange; if (keep) sigChart.setRange(keep[0], keep[1] + (N > H.dates.length && keep[1] === H.dates.length - 1 ? 1 : 0));
 }
 function drawFx() {
@@ -1180,7 +1171,7 @@ const cmFind = (q) => typeof q === "function" ? q() : document.querySelector(q);
 const rowWith = (sel, txt) => () => [...document.querySelectorAll(sel)].find((r) => r.textContent.includes(txt));
 const COACHES = {   // 11-27 밤 사용자 '설명이 너무 길다, 핵심만' → 탭마다 2~3장, 한 문장 + 짧은 보조 한 줄
   home: () => [
-    {q: ".fg-g", lb: "공포·탐욕지수", t: "시장의 공포 정도입니다", g: `${HL("빨간 눈금 30")} 이하이면 매수 조건 하나가 충족됩니다.`},
+    {q: ".fg-g", lb: "공포·탐욕지수", t: "시장의 공포 정도입니다", g: `${HL("붉을수록")} 공포가 깊습니다. 매수 조건 중 하나입니다.`},
     {q: ".dl-one", lb: "시계", t: "미국 장 시간을 한국 시간 시계에 표시합니다", g: `${HL("파란 칸")} 정규장 · ${HL("주황 종")} 알림 시각`},
     {q: ".hold .hl-row", lb: "보유 현황", t: "전략의 현재 보유 비중입니다", g: "내 계좌도 같은 비중으로 맞춥니다."},
     {q: '#tabs [data-tab="compare"]', lb: "성과", t: "먼저 지난 성과를 확인하십시오", g: "2000년부터의 결과를 QQQ 보유와 비교합니다.", go: ["성과 보러 가기", "compare"]}],
@@ -1192,8 +1183,8 @@ const COACHES = {   // 11-27 밤 사용자 '설명이 너무 길다, 핵심만' 
     {q: ".td-amt", lb: "수량", t: "운용 금액을 넣으면 내 수량으로 바뀝니다", g: ""}]
     : [{q: ".td-empty", lb: "할 일", t: "주문이 생기면 여기에 표시됩니다", g: "알림도 함께 옵니다."}],
   signal: () => [
-    {q: ".sg-need", lb: "신호", t: "남은 매수 조건을 QQQ 가격으로 표시합니다", g: ""},
-    {q: rowWith(".sg-r", "급락 예외"), lb: "급락 예외", t: "급락일에는 하락 범위와 관계없이 매수합니다", g: "하루 -2.5%와 5거래일 -7.5% 동시 하락"}],
+    {q: ".sg-need", lb: "신호", t: "지금 매수 조건이 몇 개 맞았는지 보여 줍니다", g: ""},
+    {q: rowWith(".sg-r", "급락 예외"), lb: "급락 예외", t: "급락일에는 하락 폭과 관계없이 매수합니다", g: ""}],
   log: () => [
     {q: "#logchart", lb: "차트", t: "▲ 매수, ▼ 매도 시점입니다", g: `${HL("주황 ▲")} 급락 예외 매수`},
     {q: ".tr-row", lb: "거래", t: "거래를 누르면 해당 기간 차트로 이동합니다", g: ""}],
