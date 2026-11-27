@@ -18,9 +18,24 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="피어바이">
-<link rel="stylesheet" href="app.css?v=20fee5e7">
+<link rel="stylesheet" href="app.css?v=f4cf1920">
+<!-- 11-28 사용자 '앱 켤 때 첫 화면을 FEARBUY 컨셉으로, 멘트 Buy Fear. Not Hype. / 열광이 아닌 공포에 매수하다.' → 시작 화면(앱 자료가 뜰 때까지, 최소 1.1초) -->
+<style>
+.splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 38%,#16233d 0%,#0b1220 64%);color:#fff;font-family:inherit;transition:opacity .45s ease,visibility .45s}
+.splash.out{opacity:0;visibility:hidden}
+.splash img{width:84px;height:84px;border-radius:22px;box-shadow:0 14px 40px rgba(49,130,246,.38);animation:spIn .6s cubic-bezier(.2,.8,.2,1) both}
+.sp-w{margin-top:24px;font-size:clamp(50px,15vw,64px);font-weight:900;letter-spacing:-.02em;line-height:1;animation:spIn .6s .08s cubic-bezier(.2,.8,.2,1) both}.sp-w span{color:#fff}.sp-w b{color:#4a9eff;font-weight:900}
+.sp-en{margin-top:16px;font-size:20px;font-weight:700;color:#e8edf4;animation:spIn .6s .18s both}.sp-ko{margin-top:7px;font-size:15px;color:#9aa7b8;animation:spIn .6s .26s both}
+@keyframes spIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.splash *{animation:none!important}}
+</style>
 </head>
 <body>
+<div id="splash" class="splash" aria-hidden="true"><img src="icons/icon-192.png" alt=""><div class="sp-w"><span>FEAR</span><b>BUY</b></div><div class="sp-en">Buy Fear. Not Hype.</div><div class="sp-ko">열광이 아닌 공포에 매수하다.</div></div>
+<script>(function(){var s=document.getElementById("splash"),t0=Date.now(),seen=false;try{seen=!!sessionStorage.getItem("sp");sessionStorage.setItem("sp","1");}catch(e){}
+if(seen){s.remove();return;}   // 같은 실행 안에서 다시 불러올 때(알림 눌러 이동 등)는 건너뜀
+function hide(){s.classList.add("out");setTimeout(function(){s.remove();},500);}
+(function chk(){var v=document.getElementById("view"),ready=v&&!v.querySelector(".loading"),dt=Date.now()-t0;if((ready&&dt>1100)||dt>3500)hide();else setTimeout(chk,100);})();})();</script>
 <header class="top">
   <div class="hd"><b class="hd-name"><svg class="hd-mk" viewBox="0 0 34 22" aria-hidden="true"><path d="M2 13C5 7.5 8.5 7.5 11.5 12L15 17L31.5 3" fill="none" stroke="#2f6ff5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15" cy="17" r="3.3" fill="#fff" stroke="#2f6ff5" stroke-width="2.4"/></svg><span>피어</span><em>바이</em></b><span class="hd-r"><button id="instBtn" class="hd-inst" aria-label="단타 종목 선택"></button><button id="bellBtn" class="hd-bell" aria-label="알림"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 004 0"/></svg></button><button id="moreBtn" class="hd-bell" aria-label="전체"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg></button></span></div>
 </header>
@@ -35,6 +50,6 @@
   <button data-tab="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M5 15l4.5-4.5 3.5 3 6-7"/></svg>차트</button>
 </nav>
 <script src="chart.js?v=b49040ec"></script>
-<script src="app.js?v=d1d35808"></script>
+<script src="app.js?v=edd62e24"></script>
 </body>
 </html>
