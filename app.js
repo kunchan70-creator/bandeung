@@ -285,7 +285,7 @@ function home() {
     html += `<div class="alert"><b>공포 단타 진행 중 · ${S.inst} ${pctu(tq)}</b><br>${tq>=.5 ? "단타 비중이 높습니다. 실제 계좌에서 감당할 수 있는 손실과 남은 현금을 확인하십시오." : "추가 매수에 따라 단타 비중이 커집니다."}</div>
       <div class="kv2"><div>매수</div><div>${lots.map((l, i) => l.how === "예비" ? "예비" : (i + 1) + "차").join("·")} ${lots.length?`(${ymd(lots[0].d).slice(5)}~${ymd(lots.at(-1).d).slice(5)})`:""}</div>
       ${lots.length && lots[0].n ? (() => { const amt = lots.map((l) => l.n * l.px), full = tot * S.lot / 100, half = amt.map((x) => x < full * .75), sum = amt.reduce((z, x) => z + x, 0);
-        return `<div>묶음 크기</div><div>${half.map((h) => h ? "반" : "한").join("·")} · 산 금액 계좌의 약 ${pctu(sum / tot, 0)}${half.some((h) => h) ? `<div class="t2">'반' = 느린 하락이라 절반(${S.lot / 2}%)만 산 묶음. 5묶음을 다 사도 100%가 안 되는 이유입니다.</div>` : ""}</div>`; })() : ""}
+        return `<div>묶음 크기</div><div>${amt.map((x) => pctu(x / tot, 0)).join("·")} · 합계 약 ${pctu(sum / tot, 0)}${half.some((h) => h) ? `<div class="t2">하락이 느린 날은 한 묶음의 절반(${S.lot / 2}%)만 삽니다.</div>` : ""}</div>`; })() : ""}
       <div>전략 기준 단가</div><div>${usd2(avg)}</div><div>목표가(+${PRODUCTS[S.inst].target}%)</div><div class="up">${usd2(sell.limit)}</div>
       ${q ? `<div>현재가</div><div><b>${usd2(q.c)}</b> · 목표가까지 ${pct(sell.limit / q.c - 1)}</div>` : ""}
       <div>보유 기한</div><div>${due ? ymd(due.session) + " 장 마감" : "-"}</div></div>`;
@@ -635,7 +635,7 @@ function log() {
     ${seg(histOptions(), S.assume ? "1" : "0", "as")}
     <select id="yr"><option value="all">전체 연도</option>${years.map((y) => `<option ${S.year === y ? "selected" : ""}>${y}</option>`).join("")}</select>
     <table class="tbl rounds"><thead><tr><th>매수 → 매도</th><th>매수 시 지표</th><th class="r">수익률</th></tr></thead><tbody>
-    ${shown.map((r, j) => { const g = r.buys[0].sig || {}; return `<tr data-rd="${j}"><td>${ymd(r.buys[0].d).slice(2)}<br><span class="mute">${r.sell ? "→ " + ymd(r.sell.d).slice(2) : "보유 중"} · ${r.buys.length}회 매수${r.buys[0].sig?.w != null ? `<br>${r.buys.map((b) => lotWord(b.sig?.w).split(" ")[0] === "반" ? "반" : "한").join("·")} · 계좌 ${pctu(r.buys.reduce((z, b) => z + (b.sig?.w || 0), 0), 0)}` : ""}</span>${r.proxy ? `<br><span class="chip as">가정 가격</span>` : ""}</td>
+    ${shown.map((r, j) => { const g = r.buys[0].sig || {}; return `<tr data-rd="${j}"><td>${ymd(r.buys[0].d).slice(2)}<br><span class="mute">${r.sell ? "→ " + ymd(r.sell.d).slice(2) : "보유 중"} · ${r.buys.length}회 매수${r.buys[0].sig?.w != null ? `<br>${r.buys.map((b) => pctu(b.sig?.w || 0, 0)).join("·")} · 합계 ${pctu(r.buys.reduce((z, b) => z + (b.sig?.w || 0), 0), 0)}` : ""}</span>${r.proxy ? `<br><span class="chip as">가정 가격</span>` : ""}</td>
       <td class="t2">RSI ${num(g.rsi, 1)} · VIX ${num(g.vix, 1)}<br>공포탐욕 ${g.fg != null ? Math.round(g.fg) : "자료 없음"} · 고점 ${pct(g.dd)}<br>${r.sell ? esc(tw(r.sell.why)) : ""}</td><td class="r"><b class="${cls(r.ret)}">${r.ret == null ? "진행 중" : pct(r.ret)}</b></td></tr>`; }).join("") || `<tr><td colspan="3" class="desc">해당 연도에는 공포 단타가 없었습니다.</td></tr>`}</tbody></table></div>`;
   bindSeg("as", (v) => { S.assume = v === "1"; save(); render(); });
   $("#yr").onchange = (e) => { S.year = e.target.value; save(); render(); };
