@@ -439,3 +439,16 @@ em.hl{font-style:normal;font-weight:700;color:var(--ink);background:linear-gradi
 .cd-s .money{margin-top:0;background:#fff}.cd-n{display:block;font-size:12px;color:#8b95a1;margin-top:5px}
 .ed-lock b,.ed-lock small{word-break:keep-all}
 .cd.still .tour-copy,.cd.still .tour-art{animation:none}
+/* 11-28 첫 장 FEARBUY 브랜드 화면(어두운 바탕 · FEAR 흰색 / BUY 파랑) */
+.tour-inner.fb{background:radial-gradient(ellipse at 50% 18%,#16233d 0%,#0b1220 62%);color:#fff}
+.fb .tour-top{color:#7d8a9e}.fb .tour-top button{color:#c9d2de;border-color:#2a3850}.fb .tour-steps i{background:#24324a}.fb .tour-steps .on{background:#4a9eff}
+.fb-brand{text-align:center;margin-top:34px;animation:tourEnter .5s cubic-bezier(.2,.8,.2,1) both}
+.fb-ic{width:68px;height:68px;border-radius:18px;display:block;margin:0 auto 18px;box-shadow:0 10px 30px rgba(49,130,246,.35)}
+.fb-word{font-size:clamp(46px,14vw,60px);font-weight:900;letter-spacing:-.02em;line-height:1}.fb-word span{color:#fff}.fb-word b{color:#4a9eff;font-weight:900}
+.fb-en{margin-top:14px;font-size:19px;font-weight:700;color:#e8edf4;letter-spacing:-.01em}.fb-ko{margin-top:6px;font-size:15px;color:#9aa7b8}
+.fb .tour-copy{margin-top:30px;text-align:center}.fb .tour-copy h1{font-size:clamp(21px,6vw,25px);color:#fff;letter-spacing:-.03em}.fb .tour-copy p{color:#9aa7b8;font-size:13px;margin-top:7px}
+.fb .tour-art{min-height:0;margin:20px 0}
+.fb .tour-stat{background:#121c2f;border-color:#22304a}.fb .tour-stat>small{color:#8a97aa}.fb .tour-stat>b{color:#fff;font-size:24px}
+.fb .tour-vs span{background:#0b1220}.fb .tour-vs small{color:#8a97aa}.fb .tour-vs em{color:#c9d2de}.fb .tour-stat>small:last-child{color:#6f7d91}
+.fb .tour-no{color:#8a97aa}.fb .tour-nav .btn{background:#3182f6}
+.fb .tour-vs em[style]{color:#4a9eff!important}

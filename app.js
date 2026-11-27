@@ -181,7 +181,8 @@ function openGuide() {
 }
 // 처음 안내 3장: 결과 → 방식 → 종목 고르기, 끝나면 '앱으로 받기' 창(maybeEntry)
 const TOUR = [
-  {title: "공포 구간에만 매수하고<br>반등에 매도합니다", desc: "나스닥이 크게 하락한 날의 주문을 매일 계산합니다.", art: () => {
+  // 11-28 사용자 '첫 장 로고를 FEARBUY 컨셉에 맞게, 멘트는 Buy Fear. Not Hype. / 열광이 아닌 공포에 매수하다.' → 첫 장은 어두운 브랜드 화면
+  {brand: true, title: "공포 구간에만 매수하고<br>반등에 매도합니다", desc: "나스닥이 크게 하락한 날의 주문을 매일 계산합니다.", art: () => {
     const sc = H?.bt?.assume?.score?.krw?.B, b = H ? jstats(vals("assume", "B", "krw")) : null, q = H ? jstats(vals("assume", "qqq", "krw")) : null;
     return `<div class="tour-stat"><small>2000년부터 공포 단타</small><b>${sc ? `${sc.sw_n}번 중 ${Math.round(sc.sw_n * sc.sw_win)}번 수익` : "…"}</b>
       <div class="tour-vs"><span><small>1억 원 투자</small><em style="color:#6d5df6">${b ? eokTxt(b.mult) : "…"}</em></span><span><small>QQQ 보유</small><em>${q ? eokTxt(q.mult) : "…"}</em></span></div><small>원화·세후 · 과거 계산</small></div>`; }},
@@ -199,9 +200,10 @@ function openTour(step=0,restart=false) {
   const el=$("#tour"), x=TOUR[i];
   const finish=()=>{tourPage=-1; el.hidden=true; document.body.classList.remove("tour-open"); if(tourNo)S.tourV=TOUR_V; S.tourSeen=true; save(); try{sessionStorage.setItem("tourShown","1");}catch(e){} if(D)render(); maybeEntry();};
   el.hidden=false; document.body.classList.add("tour-open");
-  el.innerHTML=`<div class="tour-inner ${direction} ${i===0?'intro':''}"><div class="tour-top"><span>${x.tag || "시작 안내"}</span><button id="tourSkip">건너뛰기</button></div>
+  const brand=x.brand?`<div class="fb-brand"><img class="fb-ic" src="icons/icon-192.png" alt=""><div class="fb-word"><span>FEAR</span><b>BUY</b></div><div class="fb-en">Buy Fear. Not Hype.</div><div class="fb-ko">열광이 아닌 공포에 매수하다.</div></div>`:"";
+  el.innerHTML=`<div class="tour-inner ${direction} ${i===0?'intro':''}${x.brand?' fb':''}"><div class="tour-top"><span>${x.tag || "시작 안내"}</span><button id="tourSkip">건너뛰기</button></div>
   <div class="tour-steps" aria-label="${i+1} / ${TOUR.length} 단계">${TOUR.map((_,p)=>`<i class="${p<=i?'on':''}"></i>`).join("")}</div>
-  <div class="tour-copy"><h1>${x.title}</h1><p>${x.desc}</p></div><div class="tour-art">${x.art()}</div>
+  ${brand}<div class="tour-copy"><h1>${x.title}</h1><p>${x.desc}</p></div><div class="tour-art">${x.art()}</div>
   <label class="tour-no"><input type="checkbox" id="tourNo" ${tourNo?"checked":""}>다시 보지 않기</label><div class="tour-nav">${i?'<button id="tourPrev">이전</button>':''}<button class="btn" id="tourNext">${i===TOUR.length-1?'시작하기':'다음'}</button></div></div>`;
   if(!H)needHist(()=>{if(tourPage===i)openTour(i,true);});
   $("#tourNo").onchange=(e)=>{tourNo=e.target.checked;};
