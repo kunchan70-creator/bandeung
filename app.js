@@ -297,8 +297,11 @@ const kHM = (ms) => kIso(ms).slice(11, 16);
 function kDay(ms, now) { const d = kIso(ms).slice(0, 10); return d === kIso(now).slice(0, 10) ? "오늘" : d === kIso(now + 864e5).slice(0, 10) ? "내일" : WD[new Date(d + "T12:00:00Z").getUTCDay()] + "요일"; }
 function dur(ms) { const m = Math.max(0, Math.round(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60; return d ? `${d}일 ${h}시간` : h ? `${h}시간 ${mi}분` : `${mi}분`; }
 // 11-27 밤 사용자 '24시간 시계는 직관성이 떨어진다, 12시간 시계 두 개로, 구간 이름은 시계 안에' → 낮 12시~밤 12시 / 밤 12시~낮 12시 두 문자판. 바늘은 지금이 속한 쪽에만
-const SEGF = {night: "#cdc6fa", pre: "#b7d4fb", reg: "#3182f6", aft: "#b7d4fb"};
-const SEGT = {night: "#5b4ce0", pre: "#1b64da", reg: "#1b64da", aft: "#1b64da"};
+// 11-27 밤 사용자 '공포 구간이면 시계도 붉게' → 공포(신호의 fear)일 때 빨강 계열
+let CLOCK_FEAR = false;
+const SEGF0 = {night: "#cdc6fa", pre: "#b7d4fb", reg: "#3182f6", aft: "#b7d4fb"}, SEGF1 = {night: "#ffd6da", pre: "#ffc2c8", reg: "#f04452", aft: "#ffc2c8"};
+const SEGT0 = {night: "#5b4ce0", pre: "#1b64da", reg: "#1b64da", aft: "#1b64da"}, SEGT1 = {night: "#d22d3c", pre: "#d22d3c", reg: "#d22d3c", aft: "#d22d3c"};
+const SEGF = new Proxy({}, {get: (_, k) => (CLOCK_FEAR ? SEGF1 : SEGF0)[k]}), SEGT = new Proxy({}, {get: (_, k) => (CLOCK_FEAR ? SEGT1 : SEGT0)[k]});
 const SEGN = {night: "밤", pre: "프리", reg: "정규장", aft: "애프터"};
 const kHour = (ms) => { const s = kIso(ms); return +s.slice(11, 13) + +s.slice(14, 16) / 60; };
 function clip12(a, b, s) {   // 한국 시각 [a,b)(자정 넘김 가능)를 문자판 [s, s+12) 안으로 자른 조각들
@@ -371,7 +374,8 @@ function home() {
       <div class="fg-s">30 이하이면 공포 조건 충족 · VIX ${num(sg.vix, 1)}</div>
       <button class="fg-go" data-go="signal"><i class="${sg.fear ? "on" : ""}"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><span><b>${sg.fear ? "공포 구간" : "공포 구간 아님"} · 매수 조건 ${nm}/4</b><small>${nm === 4 ? "다음 거래일 매수 주문이 나갑니다" : "남은 조건은 신호에서 QQQ 가격으로 확인"}</small></span><svg class="ch" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button></div>`; }
   // 1) 장 시계 + 다음 주문
-  html += `<div class="card mk"><div id="clockIn"></div>
+  CLOCK_FEAR = !!(plan.signals || {}).fear;
+  html += `<div class="card mk${CLOCK_FEAR ? " fear" : ""}"><div id="clockIn"></div>
     <button class="mk-go" data-go="todo"><span>다음 거래일 주문</span><b>${n ? `${n}건` : "없음"} ›</b></button></div>`;
   // 2) 보유 현황: 증권 앱 보유 종목 목록처럼(로고 · 이름 · 한 줄 설명 | 비중 · 내 금액)
   const sell = (plan.swing || []).find((o) => o.how === "목표가"), due = (plan.swing || []).find((o) => o.how === "보유기한");
@@ -672,7 +676,14 @@ function todo() {
   const hold = (plan.hold || []).length > 0;
   const currentAfter = (plan.after || []).filter((o) => Date.parse(o.expires_at) > Date.now());
   const os = [...currentAfter, ...(plan.swing || []), ...(plan.alloc || [])].filter((o) => o.qty > 0);
-  let html = `<div class="card td-h"><div><div class="title">주문 ${os.length}건</div><div class="t2">${D.next_session ? openKst(D.next_session) + " 개장" : "다음 개장 확인 중"} · ${ymd(D.last_close).slice(5)} 종가 기준</div></div>
+  // 11-27 밤 사용자 '알림을 누르면 자료를 보고 판단할 화면으로' → 할 일 맨 위에 근거 카드(공포·탐욕 · 조건 n/4 · 과거 같은 매수 성적 · 차트 바로 가기)
+  const sgw = plan.signals || {}, fgw = sgw.fg, roomw = sgw.room ?? (sgw.max_regular_lots || 5), nmw = [sgw.fear, sgw.band, sgw.rsi == null ? null : sgw.rsi < 30, roomw > 0].filter((c) => c === true).length;
+  const scw = H?.bt?.assume?.score?.krw?.B; if (!H) needHist(() => S.tab === "todo" && render());
+  const whyCard = `<div class="card tw"><div class="tw-g"><div><small>공포·탐욕</small><b style="color:${fgw == null ? "var(--ink)" : fgCol(fgw)}">${fgw == null ? "-" : Math.round(fgw)}</b></div>
+      <div><small>매수 조건</small><b>${nmw}/4</b></div><div><small>과거 같은 매수</small><b>${scw ? `${Math.round(scw.sw_n * scw.sw_win)}/${scw.sw_n}` : "…"}</b></div></div>
+    <div class="tw-s">${scw ? `과거 공포 단타 ${scw.sw_n}번 중 ${Math.round(scw.sw_n * scw.sw_win)}번 수익 · 평균 ${pct(scw.sw_avg)}` : "과거 성과를 불러오는 중입니다"}</div>
+    <div class="tw-b"><button data-twg="signal">조건 자세히</button><button data-twg="log">차트로 확인</button></div></div>`;
+  let html = whyCard + `<div class="card td-h"><div><div class="title">주문 ${os.length}건</div><div class="t2">${D.next_session ? openKst(D.next_session) + " 개장" : "다음 개장 확인 중"} · ${ymd(D.last_close).slice(5)} 종가 기준</div></div>
     <button class="td-amt" id="orderSize"><small>수량 기준</small>${f ? won(myAmt()) : "가상 계좌"}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button></div>`;
   if (hold) html += `<div class="card"><div class="alert" style="margin:0"><b>주문 보류</b><br>${esc(plan.hold.join(" · "))}</div></div>`;
   if (!os.length) html += `<div class="card td-empty"><div class="title">예정된 주문이 없습니다</div><div class="t2">장 마감 뒤 새 주문이 생기면 알림이 옵니다</div>${WEB && PUSHST === "off" ? `<button class="btn blue" id="todoPush">알림 받기</button>` : ""}</div>`;
@@ -699,6 +710,7 @@ function todo() {
   html += `<div class="foot">실제 체결과 잔고는 증권사에서 확인하십시오.</div>`;
   $("#view").innerHTML = html;
   $("#orderSize").onclick = openAmt;
+  document.querySelectorAll("[data-twg]").forEach((b) => b.onclick = () => { if (b.dataset.twg === "log") { S.lsym = S.inst; S.lrange = "6m"; save(); } go(b.dataset.twg); });
   if ($("#todoPush")) $("#todoPush").onclick = openBell;
   document.querySelectorAll("[data-cp]").forEach((b) => b.onclick = () => copyTxt(b.dataset.cp, b.dataset.cl));
 }
