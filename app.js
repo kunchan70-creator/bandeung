@@ -159,17 +159,15 @@ function sheet(html, onBind, o = {}) {
 }
 // 9단계 사용 안내(11-27): 증권 앱 '자주 묻는 질문'처럼 질문 하나에 답 몇 줄. 숫자는 지금 자료에서
 const TGT = () => PRODUCTS[S.inst].target;
-function faqItems() {
-  const sc = H?.bt?.assume?.score?.krw?.B, pre = sc ? ` 과거 공포 단타 중 계좌가 가장 크게 빠졌던 때는 ${pct(sc.sw_acc_worst, 0)}였습니다.` : "";
+function faqItems() {   // 11-27 밤 사용자 '핵심만' → 6개, 답은 한두 줄
+  const sc = H?.bt?.assume?.score?.krw?.B, k = ({QQQ: 1, QLD: 2, TQQQ: 3})[S.inst];
   return [
-    ["이 앱은 무엇입니까", `나스닥이 크게 빠진 날에만 ${S.inst}를 사서 짧은 반등에 팝니다. 평소에는 200일선 추세에 따라 QQQM을 들고 있거나 현금으로 기다립니다. 주문은 직접 증권사에서 넣습니다.`],
-    ["하루에 할 일", `<ol class="faq-ol"><li>알림을 받습니다(장 마감 뒤, 개장 전)</li><li>할 일 탭에서 가격·수량을 복사합니다</li><li>증권사 앱에 지정가로 주문합니다</li></ol>알림이 없는 날은 할 일이 없습니다.`],
-    ["언제 삽니까", `<ol class="faq-ol"><li>공포: VIX 30 이상 또는 공포탐욕 30 이하</li><li>QQQ가 1년 고점 대비 -10%~-25%</li><li>QQQ RSI(14) 30 미만</li><li>남은 한도(${CAPN()}묶음어치)</li></ol>넷이 맞으면 삽니다. QQQ가 하루 -2.5%와 5일 -7.5%를 함께 넘게 빠진 날은 하락 범위와 상관없이 삽니다(급락 예외). 천천히 빠지는 날은 절반만 삽니다.`],
-    ["언제 팝니까", `평균 단가보다 +${TGT()}% 높은 목표가에 지정가로 전량 팝니다. 마지막으로 산 날부터 10거래일 안에 닿지 않으면 그날 장 마감에 손익과 상관없이 팝니다.`],
-    ["평소에는 무엇을 합니까", `QQQ가 200일선보다 3% 넘게 위에서 마감하면 QQQM을 사고, 3% 넘게 아래에서 마감하면 팔고 기다립니다. 그 사이에서는 그대로 둡니다.`],
-    ["주문은 언제 넣습니까", `<ol class="faq-ol"><li>목표가 매도: 산 직후 한 번, 체결될 때까지 유지</li><li>신규 매수: 전날 밤 개장 전 알림을 보고</li><li>장 마감 매수: 한국 아침 6시대 애프터마켓</li></ol>12월 7일부터 생기는 밤 세션에는 주문하지 않습니다.`],
-    ["얼마나 위험합니까", `${S.inst}는 나스닥100 하루 움직임의 ${({QQQ: 1, QLD: 2, TQQQ: 3})[S.inst]}배로 움직입니다.${pre} 한 묶음 비중(전체 > 내 설정)을 낮추면 손실도 같은 비율로 줄어듭니다.`],
-    ["숫자는 어떻게 계산했습니까", `2000년부터 하루 단위로 다시 계산했습니다. 원화·세후는 양도소득세 22%(연 250만 원 공제)와 환율을 반영합니다. 수수료는 내 설정 값(지금 ${feeTxt()})을 씁니다. ${S.inst} 상장 전은 나스닥100 하루 움직임으로 만든 가정 가격입니다. 과거 결과가 앞으로를 보장하지 않습니다.`],
+    ["이 앱은 무엇입니까", `나스닥 급락일에만 ${S.inst}를 매수하고 반등 시 매도합니다. 평소에는 200일선 추세에 따라 QQQM 보유 또는 현금 대기입니다.`],
+    ["사용 방법", `<ol class="faq-ol"><li>알림 수신</li><li>할 일 탭에서 가격·수량 복사</li><li>증권사 앱에서 정규장 지정가 주문</li></ol>`],
+    ["매수 조건", `<ol class="faq-ol"><li>VIX 30 이상 또는 공포탐욕 30 이하</li><li>QQQ 1년 고점 대비 -10%~-25%</li><li>QQQ RSI(14) 30 미만</li><li>남은 한도</li></ol>급락일(하루 -2.5%·5거래일 -7.5%)은 범위와 관계없이 매수합니다.`],
+    ["매도 조건", `평균 단가 +${TGT()}% 목표가 지정가 매도. 마지막 매수일부터 10거래일 경과 시 장 마감 매도.`],
+    ["위험", `${S.inst}는 나스닥100 일간 ${k}배입니다.${sc ? ` 과거 보유 중 계좌 최대 평가손실 ${pct(sc.sw_acc_worst, 0)}.` : ""} 한 묶음 비중을 낮추면 손실도 줄어듭니다.`],
+    ["계산 기준", `2000년부터 일별 재계산 · 원화·세후(양도소득세 22%) · 수수료 ${feeTxt()} 반영 · ${S.inst} 상장 전은 가정 가격. 과거 성과는 미래 수익을 보장하지 않습니다.`],
   ];
 }
 function openGuide() {
@@ -179,11 +177,11 @@ function openGuide() {
 }
 // 처음 안내 3장: 결과 → 방식 → 종목 고르기, 끝나면 '앱으로 받기' 창(maybeEntry)
 const TOUR = [
-  {title: "공포가 클 때만 사고<br>반등에 팝니다", desc: "나스닥이 크게 빠진 날의 주문을 매일 계산해 드립니다.", art: () => {
+  {title: "공포 구간에만 매수하고<br>반등에 매도합니다", desc: "나스닥이 크게 하락한 날의 주문을 매일 계산합니다.", art: () => {
     const sc = H?.bt?.assume?.score?.krw?.B, b = H ? jstats(vals("assume", "B", "krw")) : null, q = H ? jstats(vals("assume", "qqq", "krw")) : null;
     return `<div class="tour-stat"><small>2000년부터 공포 단타</small><b>${sc ? `${sc.sw_n}번 중 ${Math.round(sc.sw_n * sc.sw_win)}번 수익` : "…"}</b>
-      <div class="tour-vs"><span><small>1억이</small><em style="color:#6d5df6">${b ? eokTxt(b.mult) : "…"}</em></span><span><small>QQQ 보유</small><em>${q ? eokTxt(q.mult) : "…"}</em></span></div><small>원화·세후 · 과거 계산</small></div>`; }},
-  {title: "평소에는 추세를,<br>공포에는 반등을", desc: "판단은 장 마감 숫자로만 합니다.", art: () => `<div class="tour-checklist"><div style="--i:0"><b>200일선 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 아래</b><span>현금으로 대기</span></div><div style="--i:2"><b>공포 + 급락</b><span>${S.inst} 사고 +${TGT()}%에 매도</span></div></div>`},
+      <div class="tour-vs"><span><small>1억 원 투자</small><em style="color:#6d5df6">${b ? eokTxt(b.mult) : "…"}</em></span><span><small>QQQ 보유</small><em>${q ? eokTxt(q.mult) : "…"}</em></span></div><small>원화·세후 · 과거 계산</small></div>`; }},
+  {title: "평소에는 추세를,<br>공포에는 반등을", desc: "판단은 장 마감 숫자로만 합니다.", art: () => `<div class="tour-checklist"><div style="--i:0"><b>200일선 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 아래</b><span>현금으로 대기</span></div><div style="--i:2"><b>공포 + 급락</b><span>${S.inst} 매수 · +${TGT()}% 매도</span></div></div>`},
   {title: "단타 종목을<br>고르십시오", desc: "배수가 클수록 수익도 손실도 커집니다. 나중에 머리글에서 바꿀 수 있습니다.", art: () => `<div class="tour-options">${Object.entries(PRODUCTS).map(([s, p], i) => `<button data-tour-product="${s}" class="${S.inst === s ? "selected" : ""}" style="--i:${i};--accent:#3182f6"><b>${s}</b><span>${p.title} · 목표 +${p.target}%</span></button>`).join("")}</div>`},
 ];
 let tourPage = -1, tourNo = false;
@@ -230,7 +228,7 @@ function pick(title, opts, cur, onPick, foot) {   // 한 항목 고르기 창: �
   sheet(`<div class="pk-t">${title}</div><div class="pk">${opts.map(([v, t, sub]) => `<button data-pk="${v}" class="${String(v) === String(cur) ? "on" : ""}"><span><b>${t}</b>${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`).join("")}</div>${foot ? `<div class="pk-f">${foot}</div>` : ""}`,
     (close) => document.querySelectorAll("[data-pk]").forEach((b) => b.onclick = () => { const v = b.dataset.pk; close(); if (String(v) !== String(cur)) onPick(v); }));
 }
-const openLot = () => needRisk(() => pick("한 묶음 비중", LOTS.map((n) => [n, `${n}%`, riskSub(riskOf(n))]), S.lot, (v) => setLot(+v), `공포 구간에서 한 번 살 때 쓰는 비율 · 최대 ${CAPN()}묶음 · 2000년부터 계산`));
+const openLot = () => needRisk(() => pick("한 묶음 비중", LOTS.map((n) => [n, `${n}%`, riskSub(riskOf(n))]), S.lot, (v) => setLot(+v), `공포 구간 1회 매수 비중 · 최대 ${CAPN()}묶음 · 2000년부터 계산`));
 const openWait = () => needRisk(() => pick("대기 자금", WAITS.map(([v, t]) => [v, t, riskSub(riskOf(S.lot, v))]), S.wait, (v) => setLot(S.lot, v), "200일선 아래에서 기다리는 돈"));
 const openFee = () => pick("매매 수수료", FEES.map(([v, t]) => [v, t]), S.fee, (v) => { S.fee = v; save(); render(); }, "증권사 한쪽 수수료 · 모든 과거 성과에 반영");
 const openView = () => pick("금액 기준", [["krw", "원화·세후", "양도소득세 22%·환율 반영"], ["usd", "달러·세전", "세금·환율 제외"]], S.view, (v) => { S.view = v; save(); render(); });
@@ -298,39 +296,47 @@ const kIso = (ms) => new Date(ms + 9 * 3600e3).toISOString();
 const kHM = (ms) => kIso(ms).slice(11, 16);
 function kDay(ms, now) { const d = kIso(ms).slice(0, 10); return d === kIso(now).slice(0, 10) ? "오늘" : d === kIso(now + 864e5).slice(0, 10) ? "내일" : WD[new Date(d + "T12:00:00Z").getUTCDay()] + "요일"; }
 function dur(ms) { const m = Math.max(0, Math.round(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60; return d ? `${d}일 ${h}시간` : h ? `${h}시간 ${mi}분` : `${mi}분`; }
-// 11-27 밤 사용자 '막대는 시계가 아니라 직관성이 떨어진다' → 24시간 문자판(한국 시간). 파란 호 = 정규장, 옅은 호 = 프리·애프터, 보라 = 밤 세션, 주황 종 = 알림, 바늘 = 지금
+// 11-27 밤 사용자 '24시간 시계는 직관성이 떨어진다, 12시간 시계 두 개로, 구간 이름은 시계 안에' → 낮 12시~밤 12시 / 밤 12시~낮 12시 두 문자판. 바늘은 지금이 속한 쪽에만
 const SEGF = {night: "#cdc6fa", pre: "#b7d4fb", reg: "#3182f6", aft: "#b7d4fb"};
+const SEGT = {night: "#5b4ce0", pre: "#1b64da", reg: "#1b64da", aft: "#1b64da"};
+const SEGN = {night: "밤", pre: "프리", reg: "정규장", aft: "애프터"};
 const kHour = (ms) => { const s = kIso(ms); return +s.slice(11, 13) + +s.slice(14, 16) / 60; };
-function dialArc(cx, cy, r, h1, h2) {
-  if (h2 <= h1) h2 += 24; const a = (h) => (h / 24) * 2 * Math.PI - Math.PI / 2, p = (h) => [cx + r * Math.cos(a(h)), cy + r * Math.sin(a(h))];
-  const [x1, y1] = p(h1), [x2, y2] = p(h2); return `M${x1.toFixed(2)} ${y1.toFixed(2)}A${r} ${r} 0 ${h2 - h1 > 12 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+function clip12(a, b, s) {   // 한국 시각 [a,b)(자정 넘김 가능)를 문자판 [s, s+12) 안으로 자른 조각들
+  if (b <= a) b += 24; const out = [];
+  [s, s + 24].forEach((w) => { const x = Math.max(a, w), y = Math.min(b, w + 12); if (y > x) out.push([x - w, y - w]); });
+  return out;
 }
-function dialSVG(M, now, cur, night0) {
-  const C = 84, R = 52, W = 14, pt = (h, r) => { const a = (h / 24) * 2 * Math.PI - Math.PI / 2; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
-  let s = `<svg class="dl" viewBox="0 0 168 168" aria-hidden="true"><circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="#eef1f4" stroke-width="${W}"/>`;
-  if (!M.segs.some((x) => x.k === "night")) s += `<path d="${dialArc(C, C, R, kHour(etMs(dayAdd(M.ds, -1), 21, 0)), kHour(etMs(M.ds, 4, 0)))}" fill="none" stroke="#c9cfd6" stroke-width="2" stroke-dasharray="3 4"/>`;
-  M.segs.forEach((x) => { s += `<path d="${dialArc(C, C, R, kHour(x.a), kHour(x.b))}" fill="none" stroke="${SEGF[x.k]}" stroke-width="${cur === x ? W + 4 : W}"/>`; });
-  [0, 6, 12, 18].forEach((h) => { const [x, y] = pt(h, R + 23); s += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" class="dl-h">${h}시</text>`; });
-  for (let h = 0; h < 24; h++) { const [x1, y1] = pt(h, R + W / 2 + 2), [x2, y2] = pt(h, R + W / 2 + (h % 6 ? 4 : 7)); s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#c9cfd6" stroke-width="${h % 6 ? 1 : 1.6}"/>`; }
-  M.alarms.forEach((al) => { const [x, y] = pt(kHour(al.t), R); s += `<g class="dl-bell" transform="translate(${(x - 8).toFixed(1)} ${(y - 8).toFixed(1)})"><circle cx="8" cy="8" r="8.5" fill="#fff" stroke="#f08a00" stroke-width="1.4"/><path d="M4.6 10.4V7.6a3.4 3.4 0 016.8 0v2.8l.9 1.1H3.7z M6.9 12.6a1.2 1.2 0 002.2 0" fill="none" stroke="#f08a00" stroke-width="1.3" stroke-linejoin="round"/></g>`; });
-  const hn = kHour(now), [hx, hy] = pt(hn, R + W / 2 + 3), [ix, iy] = pt(hn, R - W / 2 - 9); s += `<line x1="${ix.toFixed(1)}" y1="${iy.toFixed(1)}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="#191f28" stroke-width="3.2" stroke-linecap="round"/>`;
-  return s + `</svg>`;
+function dial12(s, M, now, cur, nightPh) {
+  const C = 80, R = 54, W = 18, ang = (h) => (h / 12) * 2 * Math.PI - Math.PI / 2, pt = (h, r) => [C + r * Math.cos(ang(h)), C + r * Math.sin(ang(h))];
+  const arc = (h1, h2, r) => { const [x1, y1] = pt(h1, r), [x2, y2] = pt(h2, r); return `M${x1.toFixed(2)} ${y1.toFixed(2)}A${r} ${r} 0 ${h2 - h1 > 6 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`; };
+  let g = `<svg class="dl" viewBox="0 0 160 160" aria-hidden="true"><circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="#eef1f4" stroke-width="${W}"/>`, lab = "";
+  if (nightPh) clip12(...nightPh, s).forEach(([x, y]) => { g += `<path d="${arc(x, y, R)}" fill="none" stroke="#c9cfd6" stroke-width="2" stroke-dasharray="3 4"/>`; });
+  M.segs.forEach((sg) => clip12(kHour(sg.a), kHour(sg.b), s).forEach(([x, y]) => {
+    g += `<path d="${arc(x, y, R)}" fill="none" stroke="${SEGF[sg.k]}" stroke-width="${cur === sg ? W + 3 : W}"/>`;
+    if (y - x >= 1.6) { const [lx, ly] = pt((x + y) / 2, R - W / 2 - 15); lab += `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" class="dl-l" fill="${SEGT[sg.k]}">${SEGN[sg.k]}</text>`; }
+  }));
+  for (let h = 0; h < 12; h++) { const [x1, y1] = pt(h, R + W / 2 + 2), [x2, y2] = pt(h, R + W / 2 + (h % 3 ? 4 : 7)); g += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#c9cfd6" stroke-width="${h % 3 ? 1 : 1.6}"/>`; }
+  [[0, "12"], [3, "3"], [6, "6"], [9, "9"]].forEach(([h, t]) => { const [x, y] = pt(h, R + W / 2 + 14); g += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" class="dl-h">${t}</text>`; });
+  g += lab;
+  M.alarms.forEach((al) => clip12(kHour(al.t), kHour(al.t) + .01, s).forEach(([x]) => { const [bx, by] = pt(x, R); g += `<g transform="translate(${(bx - 8).toFixed(1)} ${(by - 8).toFixed(1)})"><circle cx="8" cy="8" r="8.5" fill="#fff" stroke="#f08a00" stroke-width="1.4"/><path d="M4.6 10.4V7.6a3.4 3.4 0 016.8 0v2.8l.9 1.1H3.7z M6.9 12.6a1.2 1.2 0 002.2 0" fill="none" stroke="#f08a00" stroke-width="1.3" stroke-linejoin="round"/></g>`; }));
+  const hn = kHour(now), on = hn >= s && hn < s + 12;
+  if (on) { const h = hn - s, [hx, hy] = pt(h, R - W / 2 - 22), [mx, my] = [C + (R - W / 2 - 6) * Math.cos(((hn % 1) * 60 / 60) * 2 * Math.PI - Math.PI / 2), C + (R - W / 2 - 6) * Math.sin(((hn % 1) * 60 / 60) * 2 * Math.PI - Math.PI / 2)];
+    g += `<line x1="${C}" y1="${C}" x2="${mx.toFixed(1)}" y2="${my.toFixed(1)}" stroke="#4e5968" stroke-width="2" stroke-linecap="round"/><line x1="${C}" y1="${C}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="#191f28" stroke-width="3.6" stroke-linecap="round"/><circle cx="${C}" cy="${C}" r="3.6" fill="#191f28"/>`; }
+  return {svg: g + `</svg>`, on};
 }
 function clockHTML() {
   const now = Date.now(), M = sessFrom(now, (x) => now < x.segs.at(-1).b), R = sessFrom(now, (x) => now < x.reg.b);
   if (!M || !R) return `<div class="t2">장 달력을 확인할 수 없습니다.</div>`;
   const cur = M.segs.find((x) => now >= x.a && now < x.b), et = etParts(now), wkend = !cur && (et.wd === "Sat" || et.wd === "Sun");
   const st = cur ? cur.n + " 거래 중" : wkend ? "주말 휴장" : !isSess(et.ds) && now < M.w0 ? "휴장일" : "장 닫힘";
-  const open = now >= R.reg.a, ki = kIso(now), night0 = etMs(NIGHT_FROM, 21, 0), seg = (k) => M.segs.find((x) => x.k === k);
-  const span = (x) => x ? `${kHM(x.a)}~${kHM(x.b)}` : "";
-  const leg = [["reg", "정규장", span(seg("reg"))], ["pre", "프리", span(seg("pre"))], ["aft", "애프터", span(seg("aft"))],
-    seg("night") ? ["night", "밤", span(seg("night"))] : null].filter(Boolean);
-  return `<div class="dl-w"><div class="dl-box">${dialSVG(M, now, cur, night0)}<div class="dl-c"><small>한국</small><b>${ki.slice(11, 16)}</b></div></div>
-    <div class="dl-r"><span class="mk-st ${cur ? cur.k : "off"}">${st}</span>
-      <div class="dl-cd">${open ? "정규장 마감까지" : "정규장 개장까지"}<b>${dur((open ? R.reg.b : R.reg.a) - now)}</b><small>${open ? kHM(R.reg.b) : `${kDay(R.reg.a, now)} ${kHM(R.reg.a)}`}${R.early ? " · 오늘 조기 마감" : ""}</small></div></div></div>
-    <div class="dl-leg">${leg.map(([k, n, t]) => `<div><i style="background:${SEGF[k]}"></i><span>${n}</span><b>${t}</b></div>`).join("")}
-      <div class="al"><i></i><span>알림</span><b>${M.alarms.map((a) => kHM(a.t)).join(" · ")}</b></div>
-      ${now < night0 ? `<div class="mute2"><i class="ph"></i><span>밤</span><b>${+kIso(night0).slice(5, 7)}/${+kIso(night0).slice(8, 10)}부터</b></div>` : ""}</div>`;
+  const open = now >= R.reg.a, ki = kIso(now), night0 = etMs(NIGHT_FROM, 21, 0);
+  const ph = M.segs.some((x) => x.k === "night") ? null : [kHour(etMs(dayAdd(M.ds, -1), 21, 0)), kHour(etMs(M.ds, 4, 0))];
+  const half = kHour(now) >= 12 ? 12 : 0, d = dial12(half, M, now, cur, ph);   // 11-27 밤 사용자: 시계는 하나 — 지금이 오전이면 오전 12시간, 오후면 오후 12시간
+  return `<div class="dl-w"><div class="dl-one">${d.svg}<span>${half ? "오후" : "오전"}</span></div>
+    <div class="dl-r"><span class="mk-st ${cur ? cur.k : "off"}">${st}</span><div class="dl-now">${ki.slice(11, 16)}<small>:${ki.slice(17, 19)}</small></div>
+      <div class="t2">뉴욕 ${String(et.h).padStart(2, "0")}:${String(et.mi).padStart(2, "0")}</div>
+      <div class="dl-cd">${open ? "정규장 마감까지" : "정규장 개장까지"}<b>${dur((open ? R.reg.b - now : R.reg.a - now))}</b><small>${open ? kHM(R.reg.b) : `${kDay(R.reg.a, now)} ${kHM(R.reg.a)}`}${R.early ? " · 조기 마감" : ""}</small></div></div></div>
+    <div class="dl-al"><i></i>알림 ${M.alarms.map((a) => kHM(a.t)).join(" · ")}${now < night0 ? `<em>밤 세션 ${+kIso(night0).slice(5, 7)}/${+kIso(night0).slice(8, 10)}부터</em>` : ""}</div>`;
 }
 let clockT = null;
 function startClock() {
@@ -488,37 +494,37 @@ function compare() {
   // 1) 한 문장 숫자 + 성장 차트 + 기간
   let html = `<div class="card pf-hero"><div class="pf-top"><span class="t2">${+xs[a].slice(0, 4)}년 ${+xs[a].slice(5, 7)}월부터 ${yrs >= 1 ? (+yrs.toFixed(Math.abs(yrs - Math.round(yrs)) < .06 || yrs >= 10 ? 0 : 1)) + "년" : Math.round(yrs * 12) + "개월"}</span>
       <button class="pf-basis" id="pfBasis">${view === "krw" ? "원화·세후" : "달러·세전"}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button></div>
-    <div class="pf-big">1억이 <b>${eokTxt(sb.mult)}</b></div>
-    <div class="pf-vs">같은 기간 QQQ 보유는 ${eokTxt(sq.mult)}</div>
+    <div class="pf-big">1억 원 → <b>${eokTxt(sb.mult)} 원</b></div>
+    <div class="pf-vs">같은 기간 QQQ 보유 ${eokTxt(sq.mult)} 원</div>
     <div class="pf-kpi"><div><small>연평균</small><b style="color:var(--B)">${pct(sb.cagr)}</b><span>QQQ ${pct(sq.cagr)}</span></div>
       <div><small>최대 낙폭</small><b>${pct(sb.mdd, 0)}</b><span>QQQ ${pct(sq.mdd, 0)}</span></div></div>
     <div id="pfchart"></div>${seg(CPER, per, "cp", "sm")}</div>`;
   // 2) 적립식
   const dca = (v) => { let u = 0, put = 0, m0 = ""; for (let i = a; i < N; i++) { const m = xs[i].slice(0, 7); if (m !== m0) { m0 = m; u += 100 / v[i]; put += 100; } } return {put, end: u * v[N - 1]}; };
   const db = dca(vb), dq = dca(vq);
-  html += `<div class="card pf"><div class="title">매달 100만 원씩 모았다면</div><div class="t2">같은 기간, 매달 첫 거래일에 넣었을 때</div>
-    <div class="pf-d">${[["넣은 돈", db.put * 1e4, "#d5dbe1"], ["QQQ 적립", dq.end * 1e4, "#b0b8c1"], [P.B.name, db.end * 1e4, "var(--B)"]].map(([t, v, c]) => `<div><span>${t}</span><i><b style="width:${Math.max(3, v / Math.max(db.end, dq.end, db.put) / 1e4 * 100)}%;background:${c}"></b></i><em>${wonC(v)}</em></div>`).join("")}</div>
-    ${db.end > dq.end ? `<div class="pf-note">QQQ 적립보다 <b>${wonC((db.end - dq.end) * 1e4)}</b> 더</div>` : ""}</div>`;
+  html += `<div class="card pf"><div class="title">매월 100만 원 적립 투자</div><div class="t2">같은 기간 · 매월 첫 거래일 매수 기준</div>
+    <div class="pf-d">${[["투자 원금", db.put * 1e4, "#d5dbe1"], ["QQQ 적립", dq.end * 1e4, "#b0b8c1"], [P.B.name, db.end * 1e4, "var(--B)"]].map(([t, v, c]) => `<div><span>${t}</span><i><b style="width:${Math.max(3, v / Math.max(db.end, dq.end, db.put) / 1e4 * 100)}%;background:${c}"></b></i><em>${wonC(v)}</em></div>`).join("")}</div>
+    ${db.end > dq.end ? `<div class="pf-note">QQQ 적립 대비 <b>+${wonC((db.end - dq.end) * 1e4)}</b></div>` : ""}</div>`;
   // 3) 언제 시작해도
   const h = HSEG.some(([v]) => v === S.h) ? S.h : "5", rb = rollStats("B", h), rq = rollStats("qqq", h);
-  if (rb && rq) html += `<div class="card pf"><div class="title">언제 시작했어도</div>${seg(HSEG.map(([v, t]) => [v, t + " 보유"]), h, "h", "sm")}
-    <div class="pf-big2">QQQ를 이긴 경우 <b>${pctu(rb.beat_qqq, 0)}</b></div><div class="t2">2000년부터 시작일 ${rb.n}곳 중 ${Math.round(rb.n * rb.beat_qqq)}곳</div>
-    ${cmpRow("연평균 수익(가운데 값)", rb.median_ann, rq.median_ann, (v) => pct(v))}
-    ${cmpRow("가장 나빴던 시작일", rb.worst - 1, rq.worst - 1, (v) => pct(v, 0), "원금 대비")}</div>`;
+  if (rb && rq) html += `<div class="card pf"><div class="title">시작 시점별 성과</div>${seg(HSEG.map(([v, t]) => [v, t + " 보유"]), h, "h", "sm")}
+    <div class="pf-big2">QQQ 대비 초과 수익 <b>${pctu(rb.beat_qqq, 0)}</b></div><div class="t2">2000년부터 시작일 ${rb.n}곳 중 ${Math.round(rb.n * rb.beat_qqq)}곳</div>
+    ${cmpRow("연평균 수익률(중앙값)", rb.median_ann, rq.median_ann, (v) => pct(v))}
+    ${cmpRow("최저 성과 시작일", rb.worst - 1, rq.worst - 1, (v) => pct(v, 0), "원금 대비")}</div>`;
   // 4) 덜 잃음
-  html += `<div class="card pf"><div class="title">하락장에서 덜 잃었습니다</div>
-    ${cmpRow("가장 크게 빠졌을 때", sb.mdd, sq.mdd, (v) => pct(v, 0), "직전 고점 대비")}
+  html += `<div class="card pf"><div class="title">하락장 손실 비교</div>
+    ${cmpRow("최대 낙폭", sb.mdd, sq.mdd, (v) => pct(v, 0), "직전 고점 대비")}
     ${per === "all" && sc.uw_days && scq.uw_days ? cmpRow("고점 회복까지 가장 오래 걸린 기간", sc.uw_days / 365.25, scq.uw_days / 365.25, (v) => v.toFixed(1) + "년") : ""}</div>`;
   // 5) 공포 단타
   html += `<div class="card pf"><div class="title">공포 단타 ${sc.sw_n}번</div><div class="pf-big2"><b>${Math.round(sc.sw_n * sc.sw_win)}번</b> 수익</div>
-    <div class="pf-g"><div><small>평균 수익</small><b class="up">${pct(sc.sw_avg)}</b></div><div><small>최악 거래</small><b>${pct(sc.sw_worst)}</b></div><div><small>1년에</small><b>${sc.sw_per_year.toFixed(1)}번</b></div></div>
-    <div class="pf-note">들고 있는 동안 계좌가 가장 크게 빠졌던 때 ${pct(sc.sw_acc_worst, 0)}</div>
+    <div class="pf-g"><div><small>평균 수익</small><b class="up">${pct(sc.sw_avg)}</b></div><div><small>최악 거래</small><b>${pct(sc.sw_worst)}</b></div><div><small>연평균 거래</small><b>${sc.sw_per_year.toFixed(1)}회</b></div></div>
+    <div class="pf-note">보유 중 계좌 최대 평가손실 ${pct(sc.sw_acc_worst, 0)}</div>
     <button class="mk-go" id="pfTrades"><span>모든 거래 보기</span><b>›</b></button></div>`;
   // 6) 자세히(접기)
   const rbs = H.robust || [];
   if (rbs.length) { const mx = Math.max(...rbs.map((r) => r.cagr));
-    html += fold("robust", "규칙을 바꿔도 유지되나", `목표·기한·RSI 기준을 바꿔 다시 계산`, rbs.map((r, i) => `<div class="pf-rb${i === 0 ? " on" : ""}"><span>${esc(r.label)}</span><i><b style="width:${Math.max(3, r.cagr / mx * 100)}%"></b></i><em>${pct(r.cagr)}</em></div>`).join("") + `<div class="pk-f">2000년부터 연평균 · 달러·세전</div>`); }
-  html += fold("sim", "날짜·금액 직접 넣어 보기", "시작일을 골라 다시 계산", simCard().replace(/^<div class="card">/, "<div>"))
+    html += fold("robust", "조건 변경 시 성과", `목표·기한·RSI 기준 변경 후 재계산`, rbs.map((r, i) => `<div class="pf-rb${i === 0 ? " on" : ""}"><span>${esc(r.label)}</span><i><b style="width:${Math.max(3, r.cagr / mx * 100)}%"></b></i><em>${pct(r.cagr)}</em></div>`).join("") + `<div class="pk-f">2000년부터 연평균 · 달러·세전</div>`); }
+  html += fold("sim", "기간·금액 직접 계산", "시작일과 금액을 지정해 재계산", simCard().replace(/^<div class="card">/, "<div>"))
     + fold("score", "전체 성적표", "변동성·샤프·월별 등 모든 지표", `<div id="sctable"></div>`);
   html += `<div class="foot">과거 계산이며 앞으로를 보장하지 않습니다 · 수수료 한쪽 ${feeTxt()} 반영${S.assume && real && xs[a] < real ? ` · ${ymd(real).slice(0, 4)}년 이전 ${S.inst}는 가정 가격` : ""}</div>`;
   $("#view").innerHTML = html;
@@ -617,7 +623,7 @@ function rollTable(el, h) {
 // ── 할 일 ──
 const WHY = [
   ["목표가", "목표가 매도", "평균 매수단가 대비 +7.5%(QQQ 기준 약 +2.5%에 해당)에 지정가로 전량 매도합니다. 공포 구간 직후의 단기 반등 폭을 노리는 규칙이며, 주문은 체결될 때까지 유지(GTC)합니다."],
-  ["보유기한", "보유 기한 매도", "마지막 매수일로부터 10거래일 안에 목표가에 도달하지 못하면 손익과 관계없이 기한일 장 마감에 전량 매도합니다. 반등이 늦어질 때 레버리지 상품을 오래 들고 있으면 생기는 변동성 손실을 막기 위한 규칙입니다."],
+  ["보유기한", "보유 기한 매도", "마지막 매수일로부터 10거래일 안에 목표가에 도달하지 못하면 손익과 관계없이 기한일 장 마감에 전량 매도합니다. 반등이 늦어질 때 레버리지 상품을 오래 보유하면 생기는 변동성 손실을 막기 위한 규칙입니다."],
   ["전일 종가 지정가", "신규 매수(전일 종가 지정가)", "공포 구간이고, QQQ가 1년 고점 대비 -10%~-25% 범위이며, RSI(14)가 이미 30 미만으로 마감했습니다. 다음 거래일에 전일 종가 이하에서 체결되도록 한 묶음(내 설정 비중, 느린 하락이면 절반)을 지정가 매수합니다."],
   ["RSI30 지정가", "신규 매수(RSI 30 지정가)", "공포 구간이고 고점 대비 하락 범위 안에 있지만 RSI(14)가 아직 30 이상입니다. QQQ가 RSI 30에 해당하는 가격까지 내려와야 체결되도록, 그 가격을 TQQQ 가격으로 환산해 지정가 매수합니다."],
   ["RSI26 지정가", "신규 매수(RSI 26 지정가)", "공포 구간이 아닐 때는 기준을 강화해 RSI 26에 해당하는 가격에서만 매수합니다."],
@@ -808,7 +814,7 @@ function drawLog() {
       {h: 1, fmt: (y) => y.toFixed(0), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}]},
       {h: 1, fmt: (y) => y.toFixed(0), fix: [0, 100], series: [{type: "line", name: "공포탐욕지수", y: fg, color: css("--B"), w: 1.3}], hlines: [{y: 30, label: "공포 기준 30", color: css("--up")}], bands: [{y0: 0, y1: 30, color: css("--up") + "14"}]}]});
   cap.innerHTML = sym === "ACC" ? `<span><i style="background:${css(P[k].v)}"></i>${P[k].name}</span><span><i style="background:${css("--Q")}"></i>QQQ 보유</span><span><i class="sq" style="background:${css("--tq")}40"></i>단타 보유</span><span class="mute">2000년=1 배수</span>`
-    : `<span><b class="up">▲</b>매수</span><span><b style="color:#f08a00">▲</b>급락 예외 매수</span><span><b class="down">▼</b>매도</span><span><i class="dash"></i>사는 구간</span>${sym === S.inst ? `<span><i class="sq" style="background:${css("--tq")}26"></i>단타 보유</span>` : ""}${real && real > H.dates[0] ? `<span class="mute">${ymd(real).slice(0, 4)}년 이전 가정 가격</span>` : ""}`;
+    : `<span><b class="up">▲</b>매수</span><span><b style="color:#f08a00">▲</b>급락 예외 매수</span><span><b class="down">▼</b>매도</span><span><i class="dash"></i>매수 구간</span>${sym === S.inst ? `<span><i class="sq" style="background:${css("--tq")}26"></i>단타 보유</span>` : ""}${real && real > H.dates[0] ? `<span class="mute">${ymd(real).slice(0, 4)}년 이전 가정 가격</span>` : ""}`;
 }
 async function drawIntraday(sym) {
   const el = $("#logchart"); if (!logChart || !el.querySelector("canvas")) el.innerHTML = wait("실시간 시세를 불러오는 중입니다");
@@ -862,7 +868,7 @@ function signal() {
     ${sgRow(rsiOk, "RSI(14)", num(g.rsi, 1), `30 미만 · QQQ ${usd2(w.close_buy_qqq || g.rsi30_qqq)} 이하 마감${toQ(w.close_buy_qqq || g.rsi30_qqq)}`, sgBar(10, 70, g.rsi, [10, 30], [[30, "30"], [50, "50"]]))}
     ${sgRow(room > 0, "남은 한도", `${+room.toFixed(1)}/${cap}묶음`, g.units ? `${+(+g.units).toFixed(1)}묶음어치 보유 중` : "")}
     <div class="sg-sub">매수 크기</div>
-    ${sgRow(g.slow ? null : true, g.slow ? "절반 묶음" : "한 묶음", `QQQ 3일 ${pct(g.speed)}`, `3일 -4% 이상 빠지면 한 묶음${g.speed_line ? ` · QQQ ${usd2(g.speed_line)} 이하 마감` : ""}`)}
+    ${sgRow(g.slow ? null : true, g.slow ? "절반 묶음" : "한 묶음", `QQQ 3일 ${pct(g.speed)}`, `3거래일 -4% 이상 하락 시 한 묶음${g.speed_line ? ` · QQQ ${usd2(g.speed_line)} 이하 마감` : ""}`)}
     <div class="sg-sub">하락 범위와 별개</div>
     ${sgRow(g.crash === true && room > 0 ? true : g.crash == null ? null : false, "급락 예외", `하루 ${pct(g.day_return)} · 5일 ${pct(g.five_return)}`, `하루 -2.5%와 5일 -7.5% 동시면 범위 밖이어도 매수${w.crash_qqq ? ` · QQQ ${usd2(w.crash_qqq)} 이하 마감` : ""}`)}
     ${fear === false ? sgRow(g.band && g.rsi >= 30 && room > 0 ? null : false, "RSI 26 지정가", "공포 아닐 때", "하락 범위 안에서 RSI 26 가격에 대기 주문") : ""}
@@ -872,7 +878,7 @@ function signal() {
     ${sgRow(null, "QQQ와 200일선", `${pct(tr.gap)}`, tr.next_in ? `QQQ ${usd2(tr.exit_line)} 아래로 마감하면 매도` : `QQQ ${usd2(tr.entry_line)} 위로 마감하면 QQQM 매수`, sgBar(-0.15, 0.15, tr.gap, [-0.03, 0.03], [[-0.10, "-10%"], [-0.03, "-3%"], [0.03, "+3%"], [0.10, "+10%"]]))}
   </div>`;
   html += `<div class="card"><div class="title">QQQ 차트</div>${seg(LR.slice(2), S.srange, "sr", "sm")}${seg([["candle", "캔들"], ["line", "라인"]], S.stype, "st", "sm tiny")}
-    <div id="sigchart"></div><div class="lg-leg"><span><i style="background:var(--B)"></i>200일선</span><span><i class="dash" style="border-color:var(--down)"></i>이탈선</span><span><i class="dash"></i>재진입선</span><span><i style="background:var(--up);opacity:.3"></i>사는 구간</span></div></div>`;
+    <div id="sigchart"></div><div class="lg-leg"><span><i style="background:var(--B)"></i>200일선</span><span><i class="dash" style="border-color:var(--down)"></i>이탈선</span><span><i class="dash"></i>재진입선</span><span><i style="background:var(--up);opacity:.3"></i>매수 구간</span></div></div>`;
   const rate = (v) => v == null ? "—" : Math.round(v).toLocaleString("ko-KR") + "원";
   html += fold("fx", "달러 → 원화 환전", fx.on ? "환전 검토 신호" : `1달러 ${rate(fx.rate)} · 신호 없음`, `<div class="kv2"><div>지금 1달러</div><div><b>${rate(fx.rate)}</b></div><div>5년 평균</div><div>${rate(fx.avg5y)} (${pct(fx.gap)})</div><div>신호 발생</div><div>${rate(fx.on_line)} 이상에서 고점 -5%</div><div>최근 65일 고점</div><div>${rate(fx.high65)} (${pct(fx.drop)})</div></div>
     ${seg([["1y", "1년"], ["5y", "5년"], ["all", "전체"]], S.frange, "fr", "sm")}<div id="fxchart"></div>`);
@@ -983,38 +989,24 @@ const cmKeyOf = (k) => "bdCoach_" + k;
 const cmNever = (k) => { try { return localStorage.getItem(cmKeyOf(k)) === "x"; } catch (e) { return false; } };
 const cmFind = (q) => typeof q === "function" ? q() : document.querySelector(q);
 const rowWith = (sel, txt) => () => [...document.querySelectorAll(sel)].find((r) => r.textContent.includes(txt));
-const COACHES = {
+const COACHES = {   // 11-27 밤 사용자 '설명이 너무 길다, 핵심만' → 탭마다 2~3장, 한 문장 + 짧은 보조 한 줄
   home: () => [
-    {q: ".dl-box", lb: "시계", t: "미국 장 시간을 한국 시간 시계로 보여 줍니다", g: `${HL("파란 호")}가 정규장, 옅은 호가 프리·애프터마켓입니다. 겨울엔 밤 23:30~새벽 6:00, 서머타임(3~11월)엔 22:30~새벽 5:00입니다. 검은 바늘이 지금 시각입니다.`},
-    {q: ".dl-leg .al", lb: "알림", t: "주황 종이 알림이 오는 시각입니다", g: `개장 전 알림은 ${HL("걸어 둘 주문")}이 있을 때, 마감 후 알림은 ${HL("새 주문")}이 생겼을 때만 옵니다. 알림이 없는 날은 할 일이 없습니다.`},
-    {q: ".mk-go", lb: "주문", t: "주문이 생기면 여기에 건수가 뜹니다", g: `누르면 증권사에 넣을 ${HL("가격과 수량")}이 나옵니다.`},
-    {q: ".hold .hl-row", lb: "보유 현황", t: "전략이 지금 들고 있는 비중입니다", g: `내 계좌도 ${HL("같은 비중")}으로 맞추면 됩니다. 현금 100%면 기다리는 때입니다.`},
-    document.querySelector(".hl-sw") ? {q: ".hl-sw", lb: "공포 단타", t: "막대가 끝까지 차면 목표가에 팝니다", g: `평균 단가에서 목표가까지 얼마나 왔는지입니다. ${HL("보유 기한")}이 지나면 손익과 상관없이 팝니다.`}
-      : {q: ".sig-go", lb: "공포 단타", t: "조건 4개가 모두 차면 삽니다", g: `빨간 칸이 충족된 조건입니다. 누르면 남은 조건을 ${HL("QQQ 가격")}으로 보여 줍니다.`},
-    {q: '#tabs [data-tab="log"]', lb: "매매 차트", t: "언제 사고 언제 팔았는지 모두 볼 수 있습니다", g: `2000년부터의 거래를 차트 위 ${HL("▲ 매수 · ▼ 매도")}로 하나하나 확인합니다.`},
-    {q: '#tabs [data-tab="compare"]', lb: "성적", t: "따라 하기 전에 지난 결과부터 확인하십시오", g: `2000년부터 1억이 얼마가 됐는지, ${HL("QQQ를 사서 들고만 있었을 때")}와 나란히 보여 드립니다.`, go: ["성적 보러 가기", "compare"]}],
+    {q: ".dl-one", lb: "시계", t: "미국 장 시간을 한국 시간 시계에 표시합니다", g: `${HL("파란 칸")} 정규장 · ${HL("주황 종")} 알림 시각`},
+    {q: ".hold .hl-row", lb: "보유 현황", t: "전략의 현재 보유 비중입니다", g: "내 계좌도 같은 비중으로 맞춥니다."},
+    {q: '#tabs [data-tab="compare"]', lb: "성적", t: "먼저 지난 성과를 확인하십시오", g: "2000년부터의 결과를 QQQ 보유와 비교합니다.", go: ["성적 보러 가기", "compare"]}],
   compare: () => [
-    {q: ".pf-big", lb: "성적", t: "1억을 넣었다면 지금 얼마인지입니다", g: `${HL("세금·환율·수수료")}를 뺀 금액입니다. 같은 기간 QQQ를 사서 들고만 있었을 때와 나란히 봅니다.`},
-    {q: ".pf-hero .seg", lb: "기간", t: "기간을 바꿔 보십시오", g: `2000년은 닷컴 꼭대기라 QQQ에 불리한 출발점입니다. ${HL("10년·5년")}으로 바꿔도 이기는지 확인할 수 있습니다.`},
-    {q: ".pf-d", lb: "적립식", t: "매달 모으는 방법과 비교합니다", g: `매달 100만 원을 ${HL("QQQ에 적립")}했을 때와 이 전략에 넣었을 때입니다.`},
-    {q: ".pf-big2", lb: "시작일", t: "아무 날에 시작했어도 이겼는지 봅니다", g: `2000년부터 시작일을 석 달씩 옮겨 가며 다시 계산했습니다. ${HL("보유 기간")}을 눌러 바꿔 보십시오.`},
-    {q: '[data-fold="score"]', lb: "자세히", t: "모든 지표는 전체 성적표에 있습니다", g: "변동성·월별 수익 등 숫자를 더 보고 싶을 때 펼치십시오."},
-    {q: '#tabs [data-tab="log"]', lb: "매매 차트", t: "이 성적을 만든 거래를 직접 보십시오", g: `산 날과 판 날, 거래마다 ${HL("몇 % 남겼는지")} 모두 공개합니다.`, go: ["매매 차트 보기", "log"]}],
+    {q: ".pf-hero", lb: "성적", t: "1억 원 투자 시 현재 평가금액입니다", g: `기간을 바꿔 ${HL("10년·5년")} 기준도 확인하십시오.`},
+    {q: '#tabs [data-tab="log"]', lb: "매매 차트", t: "모든 매수·매도 내역은 매매 차트에 있습니다", g: "", go: ["매매 차트 보기", "log"]}],
   todo: () => document.querySelector(".tk") ? [
-    {q: ".td-h", lb: "할 일", t: "다음 장에 넣을 주문입니다", g: `장 마감 숫자로 계산해 개장 전에 올라옵니다. ${HL("주문이 없는 날")}이 대부분입니다.`},
-    {q: ".tk-g", lb: "주문표", t: "증권사 앱에 이 순서대로 넣습니다", g: `종목 → ${HL("지정가")} → 가격 → 수량. 주문 시간은 ${HL("정규장")}으로 고르십시오.`},
-    {q: ".tk-cp", lb: "복사", t: "누르면 복사됩니다", g: "가격과 수량을 복사해 증권사 앱에 붙여 넣으십시오."},
-    {q: ".td-amt", lb: "수량", t: "내 금액으로 수량을 바꿉니다", g: `운용 금액을 넣으면 주문 수량이 ${HL("내 계좌 기준")}으로 바뀝니다.`}]
-    : [{q: ".td-empty", lb: "할 일", t: "오늘은 넣을 주문이 없습니다", g: `주문이 생기면 여기 ${HL("가격과 수량")}이 나오고 알림이 옵니다.`}, {q: ".td-amt", lb: "수량", t: "내 금액으로 수량을 바꿉니다", g: `운용 금액을 넣어 두면 주문 수량이 ${HL("내 계좌 기준")}으로 나옵니다.`}],
+    {q: ".tk-g", lb: "주문표", t: "증권사 앱에 이 순서대로 주문합니다", g: `가격·수량은 ${HL("복사")} 버튼으로 붙여 넣으십시오.`},
+    {q: ".td-amt", lb: "수량", t: "운용 금액을 넣으면 내 수량으로 바뀝니다", g: ""}]
+    : [{q: ".td-empty", lb: "할 일", t: "주문이 생기면 여기에 표시됩니다", g: "알림도 함께 옵니다."}],
   signal: () => [
-    {q: ".sg-need", lb: "신호", t: "지금 무엇이 남았는지 가격으로 알려 줍니다", g: `QQQ가 ${HL("이 가격 아래로 마감")}하면 다음 장에 삽니다.`},
-    {q: ".sg-r", lb: "조건", t: "파란 체크 4개가 모두 차야 삽니다", g: `막대의 검은 선이 ${HL("지금 값")}, 파란 띠가 기준 구간입니다.`},
-    {q: rowWith(".sg-r", "급락 예외"), lb: "급락 예외", t: "갑자기 크게 빠진 날은 따로 삽니다", g: `하루 -2.5%와 5일 -7.5%가 겹치면 ${HL("하락 범위와 상관없이")} 삽니다.`},
-    {q: () => document.querySelectorAll(".sg")[1], lb: "추세", t: "평소 보유는 200일선으로 정합니다", g: `QQQ가 200일선보다 ${HL("3% 위")}면 QQQM 보유, ${HL("3% 아래")}면 현금입니다.`}],
+    {q: ".sg-need", lb: "신호", t: "남은 매수 조건을 QQQ 가격으로 표시합니다", g: ""},
+    {q: rowWith(".sg-r", "급락 예외"), lb: "급락 예외", t: "급락일에는 하락 범위와 관계없이 매수합니다", g: "하루 -2.5%와 5거래일 -7.5% 동시 하락"}],
   log: () => [
-    {q: "#logchart", lb: "차트", t: "▲는 산 날, ▼는 판 날입니다", g: `${HL("주황 ▲")}는 급락 예외로 산 날입니다. 손가락으로 끌면 기간이 움직이고, 누르면 그날 값이 위에 나옵니다.`},
-    {q: ".tr-row", lb: "거래", t: "거래를 누르면 차트가 그 구간으로 갑니다", g: `2000년부터 과거 거래를 ${HL("한 번도 빠짐없이")} 볼 수 있습니다.`},
-    {q: ".tr-c .seg", lb: "가상 계좌", t: "실제로 따라 한 기록도 있습니다", g: `가상 계좌는 ${ymd(D.start)}부터 알림대로 주문했다고 보고 쌓은 체결입니다.`}],
+    {q: "#logchart", lb: "차트", t: "▲ 매수, ▼ 매도 시점입니다", g: `${HL("주황 ▲")} 급락 예외 매수`},
+    {q: ".tr-row", lb: "거래", t: "거래를 누르면 해당 기간 차트로 이동합니다", g: ""}],
 };
 function maybeCoach() {
   const k = S.tab; if (!D || !COACHES[k] || COACH || tourPage >= 0 || !$("#sheet").hidden || cmDone.has(k) || cmNever(k)) return;
@@ -1036,7 +1028,7 @@ function cmPlace() {
 function coachShow() {
   const C = COACH; if (!C) return; const s = C.steps[C.i], last = C.i + 1 >= C.steps.length; C.ready = false; C.lk = "";
   const e = cmFind(s.q), r = e.getBoundingClientRect(); if (!e.closest("#tabs, .top")) window.scrollTo({top: Math.max(0, scrollY + r.top - Math.max(90, (innerHeight - r.height) / 2 - 80))});
-  C.tip.innerHTML = `<div class="cm-lb">${s.lb}${C.steps.length > 1 ? `<span>${C.i + 1} / ${C.steps.length}</span>` : ""}</div><b>${s.t}</b><p>${s.g}</p>
+  C.tip.innerHTML = `<div class="cm-lb">${s.lb}${C.steps.length > 1 ? `<span>${C.i + 1} / ${C.steps.length}</span>` : ""}</div><b>${s.t}</b>${s.g ? `<p>${s.g}</p>` : ""}
     <div class="cm-ft"><button class="cm-no" id="cmNo">다시 보지 않기</button><button class="cm-go" id="cmGo">${s.go ? s.go[0] : last ? "알겠습니다" : "다음"}</button></div>`;
   $("#cmNo").onclick = () => coachEnd(true); C.bg.onclick = coachNext;
   $("#cmGo").onclick = s.go ? () => { coachEnd(false); go(s.go[1]); } : coachNext;
