@@ -186,18 +186,23 @@ const TOUR = [
   {title: "평소에는 추세를,<br>공포에는 반등을", desc: "판단은 장 마감 숫자로만 합니다.", art: () => `<div class="tour-checklist"><div style="--i:0"><b>200일선 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 아래</b><span>현금으로 대기</span></div><div style="--i:2"><b>공포 + 급락</b><span>${S.inst} 사고 +${TGT()}%에 매도</span></div></div>`},
   {title: "단타 종목을<br>고르십시오", desc: "배수가 클수록 수익도 손실도 커집니다. 나중에 머리글에서 바꿀 수 있습니다.", art: () => `<div class="tour-options">${Object.entries(PRODUCTS).map(([s, p], i) => `<button data-tour-product="${s}" class="${S.inst === s ? "selected" : ""}" style="--i:${i};--accent:#3182f6"><b>${s}</b><span>${p.title} · 목표 +${p.target}%</span></button>`).join("")}</div>`},
 ];
-let tourPage = -1;
+let tourPage = -1, tourNo = false;
+// 11-27 사용자: 예전 안내를 본 사람은 새 안내가 안 보임 → 안내 판 번호(TOUR_V). '다시 보지 않기'를 체크해야 그 판은 다시 안 보임, 안 하면 다음 방문 때 또 보임
+const TOUR_V = 2;
+const tourShown = () => { try { return !!sessionStorage.getItem("tourShown"); } catch (e) { return false; } };
+const tourDue = () => (S.tourV || 0) < TOUR_V && !tourShown();
 function openTour(step=0,restart=false) {
   const i=Math.max(0,Math.min(TOUR.length-1,step)), direction=i<tourPage&&!restart?"back":"forward";
   tourPage=i;
   const el=$("#tour"), x=TOUR[i];
-  const finish=()=>{tourPage=-1; el.hidden=true; document.body.classList.remove("tour-open"); S.tourSeen=true; save(); if(D)render(); maybeEntry();};
+  const finish=()=>{tourPage=-1; el.hidden=true; document.body.classList.remove("tour-open"); if(tourNo)S.tourV=TOUR_V; S.tourSeen=true; save(); try{sessionStorage.setItem("tourShown","1");}catch(e){} if(D)render(); maybeEntry();};
   el.hidden=false; document.body.classList.add("tour-open");
   el.innerHTML=`<div class="tour-inner ${direction} ${i===0?'intro':''}"><div class="tour-top"><span>시작 안내</span><button id="tourSkip">건너뛰기</button></div>
   <div class="tour-steps" aria-label="${i+1} / ${TOUR.length} 단계">${TOUR.map((_,p)=>`<i class="${p<=i?'on':''}"></i>`).join("")}</div>
   <div class="tour-copy"><h1>${x.title}</h1><p>${x.desc}</p></div><div class="tour-art">${x.art()}</div>
-  <div class="tour-nav">${i?'<button id="tourPrev">이전</button>':''}<button class="btn" id="tourNext">${i===TOUR.length-1?'시작하기':'다음'}</button></div></div>`;
+  <label class="tour-no"><input type="checkbox" id="tourNo" ${tourNo?"checked":""}>다시 보지 않기</label><div class="tour-nav">${i?'<button id="tourPrev">이전</button>':''}<button class="btn" id="tourNext">${i===TOUR.length-1?'시작하기':'다음'}</button></div></div>`;
   if(i===0&&!H)needHist(()=>{if(tourPage===0)openTour(0,true);});
+  $("#tourNo").onchange=(e)=>{tourNo=e.target.checked;};
   $("#tourSkip").onclick=finish;
   $("#tourNext").onclick=i===TOUR.length-1?finish:()=>openTour(i+1);
   if(i)$("#tourPrev").onclick=()=>openTour(i-1);
@@ -955,7 +960,7 @@ function fromAndroid() {
   if (s) { try { rawData = JSON.parse(s); selectModels(); if(AND.consumeOrdersEntry?.())S.tab="todo"; save(); render(); firstGuide(); return; } catch (e) {} }
   if (!AND.hasToken()) tokenCard("");
 }
-function firstGuide() { if (!S.tourSeen&&tourPage<0) openTour(); else maybeEntry(); }
+function firstGuide() { if (tourDue() && tourPage < 0) openTour(); else maybeEntry(); }
 window.onAndroidData = (ok) => { if (ok) return fromAndroid(); if (!D) tokenCard(AND.lastError()); };
 window.onAndroidHist = () => { const s = AND.getHist && AND.getHist(); if (s) { try { histReady(JSON.parse(s)); render(); } catch (e) {} } };
 window.goBackTab = () => { if(tourPage>0){openTour(tourPage-1);return true;} if(tourPage===0){$("#tourSkip").click();return true;} if (S.tab !== "home") { go("home"); return true; } return false; };

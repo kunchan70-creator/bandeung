@@ -316,3 +316,5 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 .tour-stat>small{display:block;font-size:13px;color:#6b7684}.tour-stat>b{display:block;font-size:27px;font-weight:850;letter-spacing:-.6px;margin:6px 0 16px;color:#191f28}
 .tour-vs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.tour-vs span{background:#fff;border-radius:14px;padding:12px 8px}
 .tour-vs small{display:block;font-size:12px;color:#8b95a1}.tour-vs em{display:block;font-style:normal;font-size:24px;font-weight:850;margin-top:2px;color:#4e5968}
+.tour-no{display:flex;align-items:center;justify-content:center;gap:7px;font-size:14px;color:#6b7684;margin:0 0 12px;cursor:pointer}
+.tour-no input{width:18px;height:18px;margin:0;accent-color:#3182f6}
