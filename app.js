@@ -22,7 +22,7 @@ const PRODUCTS = {QQQ: {title:"1배 · 나스닥100", target:2.5}, QLD: {title:"
 const productOptions = Object.entries(PRODUCTS).map(([s,p])=>[s,`${s} · ${p.title.match(/\d배/)[0]}`]);
 const S = load({prof: "B", tab: "home", h: "5", myKrw: "", year: "all", assume: true, view: "krw", cmode: "log",
                 lsym: "TQQQ", ltype: "candle", lrange: "3m", srange: "1y", stype: "line", frange: "5y", fee: "0.001", simd: "", sima: "", guideSeen: false,
-                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:"", lot:20, wait:"cash", wait2:1});
+                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:"", lot:20, wait:"cash"});
 if (!LOTS.includes(Number(S.lot))) S.lot = 20; S.lot = Number(S.lot); if (!S.wait2) { S.wait = "cash"; S.wait2 = 1; }   // 11-27 밤 기본값을 현금으로 바꿈 → 예전 기본(sgov)이 저장된 사람도 한 번 현금으로
 if (S.wait !== "sgov") S.wait = "cash";
 // 묶음 크기 말: 계좌 대비 w 가 내 한 묶음의 3/4 미만이면 반 묶음(느린 하락)
