@@ -429,3 +429,13 @@ em.hl{font-style:normal;font-weight:700;color:var(--ink);background:linear-gradi
 .rp-p .up{color:#f04452}.rp-p .down{color:#3182f6}
 .rp-b{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:10px}.rp-b button{border-radius:12px;padding:12px 0;font-size:15px;font-weight:700;background:#f2f4f6;color:#4e5968}
 .rp-b button.go{background:#191f28;color:#fff}.rp-b button[disabled]{opacity:.4}
+/* 11-28 내 거래 조건(교육 뒤 활성화 단계) */
+.cd .tour-copy{margin-top:18px}.cd .tour-copy h1{font-size:clamp(26px,7.4vw,34px)}.cd-a{justify-content:flex-start;gap:14px;margin:16px 0}
+.cd-h{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#191f28;margin-bottom:7px}.cd-h em{font-style:normal;width:19px;height:19px;border-radius:50%;background:#3182f6;color:#fff;font-size:11px;display:grid;place-items:center}
+.cd-o{display:grid;gap:6px}.cd-o.c3{grid-template-columns:repeat(3,1fr)}.cd-o.c4{grid-template-columns:repeat(4,1fr)}.cd-o.c2{grid-template-columns:repeat(2,1fr)}
+.cd-o button{font:inherit;background:#f2f4f6;border:1.5px solid #e5e8eb;border-radius:12px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;color:#191f28;cursor:pointer}
+.cd-o button b{font-size:15px}.cd-o button small{font-size:11px;color:#8b95a1}.cd-o button.on{border-color:#3182f6;background:#e8f3ff;color:#1b64da}.cd-o button.on small{color:#3182f6}
+.cd-r{background:#f9fafb;border:1px solid #eef0f2;border-radius:12px;padding:10px 12px;font-size:13px;color:#333d4b}.cd-r b.down{color:#3182f6}.cd-r small{display:block;margin-top:3px;font-size:11px;color:#8b95a1}
+.cd-s .money{margin-top:0;background:#fff}.cd-n{display:block;font-size:12px;color:#8b95a1;margin-top:5px}
+.ed-lock b,.ed-lock small{word-break:keep-all}
+.cd.still .tour-copy,.cd.still .tour-art{animation:none}

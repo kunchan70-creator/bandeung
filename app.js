@@ -222,7 +222,47 @@ function setLot(n, w) {
 }
 // ── 전략 교육(11-27 밤 사용자 '교육이 중요하다, 활성화한 사람만 모든 기능'): 수업 6장 + 퀴즈 3문제(모두 정답이어야 활성화). 활성화 전엔 할 일(주문표)·알림 받기 잠금 ──
 const EDU_V = 1;
-const eduOn = () => (S.edu || 0) >= EDU_V;
+// 11-28 사용자 '교육이 끝나고 조건을 정해야 주문표가 열려야' → 활성화 = 교육(확인 문제) + 내 거래 조건(종목·한 묶음 비중·대기 자금·운용 금액)
+const COND_V = 1;
+const eduDone = () => (S.edu || 0) >= EDU_V, condOn = () => (S.cond || 0) >= COND_V;
+const eduOn = () => eduDone() && condOn();
+let CD = null;   // 조건 고르는 중인 값(확인을 눌러야 적용)
+function openCond(still) {
+  const el = $("#tour"); el.hidden = false; document.body.classList.add("tour-open"); eduPage = -1;
+  if (!CD) CD = {inst: S.inst, lot: Number(S.lot), wait: S.wait, amt: S.myKrw || ""};
+  if (!RISK) needRisk(() => { if (!el.hidden && CD) openCond(true); });
+  const amtN = Number(String(CD.amt).replace(/[^0-9]/g, "")), ok = amtN >= 1e6;
+  const r = (n, w, i) => RISK?.[i || CD.inst]?.[w === "cash" ? "c" + n : n]?.krw;
+  const opt = (key, v, t, sub) => `<button data-cd="${key}" data-v="${v}" class="${String(CD[key]) === String(v) ? "on" : ""}"><b>${t}</b>${sub ? `<small>${sub}</small>` : ""}</button>`;
+  const sec = (n, h, body) => `<div class="cd-s"><div class="cd-h"><em>${n}</em>${h}</div>${body}</div>`;
+  const rr = r(CD.lot, CD.wait);
+  el.innerHTML = `<div class="tour-inner forward cd${still ? " still" : ""}"><div class="tour-top"><span>내 거래 조건</span><button id="cdX">나중에</button></div>
+    <div class="tour-copy"><h1>내 거래 조건을<br>정하십시오</h1><p>주문표의 종목·수량이 이 조건으로 계산됩니다. 나중에 전체 메뉴에서 바꿀 수 있습니다.</p></div>
+    <div class="tour-art cd-a">
+      ${sec(1, "단타 종목", `<div class="cd-o c3">${Object.entries(PRODUCTS).map(([s, p]) => opt("inst", s, s, `목표 +${p.target}%`)).join("")}</div>`)}
+      ${sec(2, "한 묶음 비중", `<div class="cd-o c4">${LOTS.map((n) => opt("lot", n, n + "%", "")).join("")}</div>`)}
+      ${sec(3, "대기 자금", `<div class="cd-o c2">${WAITS.map(([v, t]) => opt("wait", v, t.replace("(SGOV)", ""), v === "sgov" ? "SGOV" : "달러 예수금")).join("")}</div>`)}
+      <div class="cd-r">${rr ? `2000년부터 이 조건: 연 <b>${pct(rr.cagr)}</b> · 최대 낙폭 <b class="down">${pct(rr.mdd, 0)}</b>` : "과거 성과를 불러오는 중입니다"}<small>원화·세후 · 과거 계산 · 한 번 매수 = 계좌의 ${CD.lot}%(느린 하락은 ${CD.lot / 2}%) · 최대 ${CD.lot * 5}%</small></div>
+      ${sec(4, "운용 금액", `<input class="money" id="cdAmt" inputmode="numeric" placeholder="예: 30,000,000" value="${esc(CD.amt ? Number(String(CD.amt).replace(/[^0-9]/g, "")).toLocaleString() : "")}"><small class="cd-n" id="cdAmtN">${amtN ? won(amtN) : "주문 수량을 이 금액으로 계산합니다(원)"}</small>`)}
+    </div>
+    <div class="tour-nav"><button id="cdP">교육</button><button class="btn" id="cdN" ${ok ? "" : "disabled"}>${ok ? "이 조건으로 시작하기" : "운용 금액을 입력하십시오"}</button></div></div>`;
+  el.querySelectorAll("[data-cd]").forEach((b) => b.onclick = () => { const k = b.dataset.cd; CD[k] = k === "lot" ? +b.dataset.v : b.dataset.v; openCond(true); });
+  const inp = $("#cdAmt");
+  inp.oninput = () => { const n = Number(inp.value.replace(/[^0-9]/g, "")); CD.amt = n ? String(n) : ""; $("#cdAmtN").textContent = n ? won(n) : "주문 수량을 이 금액으로 계산합니다(원)";
+    const b = $("#cdN"), good = n >= 1e6; b.disabled = !good; b.textContent = good ? "이 조건으로 시작하기" : n ? "100만 원 이상 입력하십시오" : "운용 금액을 입력하십시오"; };
+  inp.onblur = () => { const n = Number(inp.value.replace(/[^0-9]/g, "")); inp.value = n ? n.toLocaleString() : ""; };
+  const close = () => { el.hidden = true; document.body.classList.remove("tour-open"); if (D) render(); };
+  $("#cdX").onclick = () => { CD = null; close(); };
+  $("#cdP").onclick = () => { openEdu(0); };
+  $("#cdN").onclick = () => {
+    const c = CD; if (Number(c.amt) < 1e6) return; CD = null;
+    S.myKrw = Number(c.amt).toLocaleString(); if (!S.sima) S.sima = S.myKrw; S.cond = COND_V; S.edu = EDU_V; save();
+    if (c.inst !== S.inst) chooseInstrument(c.inst);
+    el.hidden = true; document.body.classList.remove("tour-open");
+    if (c.lot !== S.lot || c.wait !== S.wait) setLot(c.lot, c.wait); else if (D) render();
+    toast("모든 기능이 활성화되었습니다");
+  };
+}
 // 11-27 밤 사용자 '가장 복잡한 실제 거래를 차트로, 하루하루 넘어가며 알림·매수·평단 낮춰 매도가 다시 정하기를 보여 줘' → 2025-04 관세 폭락 거래 재생
 const RP_FIRST = "2025-04-03";
 let RP = null;
@@ -326,15 +366,16 @@ function openEdu(i = 0) {
     el.innerHTML = `<div class="tour-inner forward">${top}<div class="tour-copy"><h1 class="ed-q">${x.q}</h1></div>
       <div class="tour-art"><div class="ed-opts">${x.o.map((t, j) => `<button data-o="${j}" class="${picked == null ? "" : j === x.a ? "ok" : j === picked ? "no" : ""}">${t}</button>`).join("")}</div>
       ${picked == null ? "" : `<div class="ed-why ${picked === x.a ? "ok" : "no"}">${picked === x.a ? "정답입니다. " : "다시 생각해 보십시오. "}${x.why}</div>`}</div>
-      <div class="tour-nav"><button id="edP">이전</button><button class="btn" id="edN" ${picked === x.a ? "" : "disabled"}>${k === Q.length - 1 ? "활성화하기" : "다음 문제"}</button></div></div>`;
+      <div class="tour-nav"><button id="edP">이전</button><button class="btn" id="edN" ${picked === x.a ? "" : "disabled"}>${k === Q.length - 1 ? "내 거래 조건 정하기" : "다음 문제"}</button></div></div>`;
     el.querySelectorAll("[data-o]").forEach((b) => b.onclick = () => { if (eduAns[k] === x.a) return; eduAns[k] = +b.dataset.o; openEdu(i); });
     $("#edP").onclick = () => openEdu(i - 1);
-    $("#edN").onclick = () => { if (eduAns[k] !== x.a) return; if (k < Q.length - 1) return openEdu(i + 1); S.edu = EDU_V; save(); close(); toast("모든 기능이 활성화되었습니다"); };
+    $("#edN").onclick = () => { if (eduAns[k] !== x.a) return; if (k < Q.length - 1) return openEdu(i + 1); S.edu = EDU_V; save(); openCond(); };
   }
   $("#edX").onclick = close;
 }
 const eduLock = (what) => `<div class="card ed-lock"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></svg>
-  <b>${what}은 전략 교육 뒤에 열립니다</b><small>분할 매수와 매도 주문 원칙을 3분 동안 익히고 확인 문제 3개를 풀면 활성화됩니다</small><button class="btn blue" onclick="openEdu(0)">교육 시작</button></div>`;
+  ${eduDone() ? `<b>${what}은 내 거래 조건을 정한 뒤 열립니다</b><small>단타 종목·한 묶음 비중·대기 자금·운용 금액을 정하면 그 조건으로 주문이 계산됩니다</small><button class="btn blue" onclick="openCond()">조건 정하기</button>`
+    : `<b>${what}은 전략 교육 뒤에 열립니다</b><small>전략 교육 3분 · 확인 문제 3개 · 내 거래 조건을 마치면 활성화됩니다</small><button class="btn blue" onclick="openEdu(0)">교육 시작</button>`}</div>`;
 // ── 전체 탭(11-27): 설정은 증권 앱 설정 화면처럼 '이름 + 지금 값 ›' 목록, 누르면 그 항목 하나만 고르는 창 ──
 let RISK = null;
 function needRisk(cb) {
@@ -367,8 +408,8 @@ function more() {
   const row = (id, t, v) => `<button class="li" data-li="${id}"><span>${t}</span><span class="v">${v}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span></button>`;
   $("#view").innerHTML = `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>전체</button><div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
     <div class="card lst"><div class="lh">앱</div>${row("bell", "알림", pushWord())}${WEB && !STANDALONE ? row("install", "앱 설치", "") : ""}</div>
-    <div class="card lst"><div class="lh">안내</div>${row("edu", "전략 교육", eduOn() ? "완료" : "미완료")}${row("guide", "사용 안내", "")}</div>`;
-  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide, edu: () => openEdu(0)};
+    <div class="card lst"><div class="lh">안내</div>${row("edu", "전략 교육", eduDone() ? "완료" : "미완료")}${eduDone() ? row("cond", "내 거래 조건", condOn() ? `${S.inst} · ${S.lot}%` : "미설정") : ""}${row("guide", "사용 안내", "")}</div>`;
+  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide, edu: () => openEdu(0), cond: () => { CD = null; openCond(); }};
   document.querySelectorAll("[data-li]").forEach((b) => b.onclick = F[b.dataset.li]);
 }
 // 수수료 반영: 날마다 거래 비율(turn) x (내 수수료 - 모델 수수료)만큼 그날부터 곱으로 깎음
@@ -1204,7 +1245,7 @@ async function pushState() { if (!pushOK()) return "no"; const r = await navigat
 const u8 = (b) => { const raw = atob((b + "=".repeat((4 - b.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...raw].map((c) => c.charCodeAt(0))); };
 const IOS_STEPS = `<ol class="ios"><li>사파리 아래 <b>공유</b> 버튼</li><li><b>홈 화면에 추가</b></li><li>홈 화면 아이콘으로 열고 <b>알림 받기</b></li></ol>`;
 async function pushOn() {   // 성공이면 "", 아니면 안내 문구
-  if (!eduOn()) { $("#sheet").hidden = true; document.body.style.overflow = ""; openEdu(0); return "edu"; }   // 11-27 밤: 교육 마친 사람만 알림
+  if (!eduOn()) { $("#sheet").hidden = true; document.body.style.overflow = ""; eduDone() ? openCond() : openEdu(0); return "edu"; }   // 11-27 밤: 교육 마친 사람만 알림
   if (IOS && !STANDALONE) return "아이폰은 홈 화면에 추가한 앱에서만 알림을 받을 수 있습니다.";
   if (!pushOK()) return "이 브라우저는 알림을 지원하지 않습니다. 크롬에서 열어 주십시오.";
   try {
