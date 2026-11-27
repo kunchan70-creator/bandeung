@@ -75,6 +75,7 @@ const kst = (ts) => new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 16).
 // ── 공통 조각 ──
 function pills() {   // 11-27 머리글: 앱 이름 · 단타 종목 고르기 · 알림 종
   $("#instBtn").innerHTML = `${S.inst}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>`; $("#instBtn").onclick = openInst;
+  $("#moreBtn").onclick = () => { if (S.tab !== "more") { S.prevTab = S.tab; go("more"); } };
   $("#bellBtn").classList.toggle("dot", WEB && PUSHST === "off"); $("#bellBtn").onclick = openBell;
   document.documentElement.style.setProperty("--toph", $(".top").offsetHeight + "px");
 }
@@ -243,9 +244,9 @@ function openInst() {
 const pushWord = () => !WEB ? "웹 앱 전용" : PUSHST === "on" ? "켜짐" : PUSHST === "off" ? "꺼짐" : "";
 function more() {
   const row = (id, t, v) => `<button class="li" data-li="${id}"><span>${t}</span><span class="v">${v}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span></button>`;
-  $("#view").innerHTML = `<div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
+  $("#view").innerHTML = `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>전체</button><div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
     <div class="card lst"><div class="lh">앱</div>${row("bell", "알림", pushWord())}${WEB && !STANDALONE ? row("install", "앱 설치", "") : ""}</div>
-    <div class="card lst"><div class="lh">전략</div>${row("cmp", "성과 비교", "")}${row("guide", "사용 안내", "")}</div>`;
+    <div class="card lst"><div class="lh">안내</div>${row("guide", "사용 안내", "")}</div>`;
   const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide};
   document.querySelectorAll("[data-li]").forEach((b) => b.onclick = F[b.dataset.li]);
 }
@@ -445,88 +446,82 @@ function rolling(kel, cel, keys, h) {
 // ── 비교 ──
 const histOptions = () => [["1",S.inst==="QQQ"?"장기 시험":"가정 가격 포함"],["0",S.inst==="QQQ"?"실물 기준":"단타 상품 상장 후"]];
 const fold = (id,title,summary,contents) => `<details class="card section-fold" data-fold="${id}" ${S.folds[id]?"open":""}><summary><b>${title}</b><span>${summary}</span></summary><div class="fold-body">${contents}</div></details>`;
+// 8단계 성적(11-27 사용자 '성적을 자랑해야지, 표는 아무도 못 본다'): 펀드 상세처럼 한 문장 숫자 → 성장 차트 → 적립식 → 언제 시작해도 → 덜 잃음 → 단타 116번. 표는 맨 아래 접기
+const CPER = [["all", "전체"], ["10", "10년"], ["5", "5년"], ["3", "3년"], ["1", "1년"]];
+const eokTxt = (m) => { const v = m; return v >= 100 ? Math.round(v).toLocaleString() + "억" : v >= 1 ? (+v.toFixed(1)) + "억" : Math.round(v * 1e4).toLocaleString() + "만"; };
+const wonC = (n) => eokTxt(n / 1e8) + "원";
+function cmpRow(t, b, q, fmt, sub) {   // 추세+단타 / QQQ 두 막대
+  const mx = Math.max(Math.abs(b || 0), Math.abs(q || 0)) || 1, w = (v) => Math.max(4, Math.abs(v || 0) / mx * 100);
+  return `<div class="pf-c"><div class="pf-ct">${t}${sub ? `<small>${sub}</small>` : ""}</div>
+    <div class="pf-cb"><span>${P.B.name}</span><i><b style="width:${w(b)}%;background:var(--B)"></b></i><em style="color:var(--B)">${fmt(b)}</em></div>
+    <div class="pf-cb"><span>QQQ 보유</span><i><b style="width:${w(q)}%;background:#b0b8c1"></b></i><em>${fmt(q)}</em></div></div>`;
+}
+function openBasis() {
+  sheet(`<div class="pk-t">계산 기준</div><div class="sub-h">금액</div>${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "cv")}
+    <div class="pk-f">원화·세후 = 양도소득세 22%·배당 원천징수·환율 반영</div><div class="sub-h">${S.inst} 상장 전</div>${seg(histOptions(), S.assume ? "1" : "0", "ca")}
+    <div class="pk-f">${S.inst} 상장 전은 나스닥100 하루 움직임 × ${({QQQ: 1, QLD: 2, TQQQ: 3})[S.inst]}배로 만든 가정 가격</div>`, (close) => {
+    bindSeg("cv", (v) => { S.view = v; save(); close(); });
+    bindSeg("ca", (v) => { S.assume = v === "1"; save(); close(); });
+  });
+}
 function compare() {
-  let html = `<button class="back" onclick="go('more')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>성과 비교</button><div class="card compare-intro"><div class="title">${P[S.prof].name} · ${S.inst} 비교</div>${seg(histOptions(), S.assume ? "1" : "0", "as")}
-    ${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "vw")}
-    <div class="t2">수수료 한쪽 ${feeTxt()} 반영 · <a href="#" id="feeLink">수수료 바꾸기</a></div></div>` + simCard();
-  if (!needHist(() => S.tab === "compare" && render())) { $("#view").innerHTML = html + wait("비교 자료를 불러오는 중입니다"); bindCompare(); return; }
-  const btn = S.assume ? "assume" : "real", bt = H.bt[btn], view = S.view, xs = H.dates.slice(bt.i0), keys = [...ORDER, "qqq"];
-  const V = Object.fromEntries(keys.map((kk) => [kk, vals(btn, kk, view)])), st = Object.fromEntries(keys.map((kk) => [kk, jstats(V[kk])]));
-  const sel = S.prof, sq = st.qqq, ss = st[sel], yrs = (xs.length / 252).toFixed(0);
-  // 1) 한눈에 보기
-  const bar = (title, sub, f, fmt, worse) => { const vs = keys.map((kk) => f(st[kk])), mx = Math.max(...vs.map(Math.abs));
-    return `<div class="metric"><div class="h">${title}</div><div class="hs">${sub}</div>${keys.map((kk, i) => `<div class="cmp"><span class="nm" style="color:${col(kk)}">${P[kk].name}</span><div class="tr"><span style="width:${Math.max(3, Math.abs(vs[i]) / mx * 100)}%;background:${worse ? "var(--down)" : col(kk)};opacity:${kk === sel || kk === "qqq" ? 1 : .55}"></span></div><span class="v">${fmt(vs[i])}</span></div>`).join("")}</div>`; };
-  html += fold("overview","수익률 · 최대 낙폭",`${P[sel].name} 연 ${pct(ss.cagr)} · 최대 낙폭 ${pct(ss.mdd)}`,`<div class="desc">${ymd(xs[0])}부터 약 ${yrs}년, ${view === "krw" ? "원화·세후" : "달러·세전"}</div>
-    <div class="hl"><b style="color:${col(sel)}">${P[sel].name}</b>은 QQQ 보유보다 연평균 수익률이 <b>${(Math.abs(ss.cagr - sq.cagr) * 100).toFixed(1)}%p ${ss.cagr >= sq.cagr ? "높고" : "낮고"}</b>, 최대 낙폭은 <b>${(Math.abs(ss.mdd - sq.mdd) * 100).toFixed(0)}%p ${ss.mdd >= sq.mdd ? "작았습니다" : "컸습니다"}</b>.</div>
-    ${bar("연평균 수익률", "해마다 같은 비율로 불었다고 볼 때", (s) => s.cagr, (v) => pct(v))}
-    ${bar("최대 낙폭", "직전 고점에서 가장 크게 떨어진 폭", (s) => s.mdd, (v) => pct(v, 0), true)}
-    ${bar("원금 대비", "처음 돈이 지금 몇 배가 되었나", (s) => s.mult, xmult)}`);
-  // 2) 누적 추이
-  html += fold("chart","평가금액 추이",`${P[sel].name}만 또는 QQQ와 나란히`,`${seg([["self",`${P[sel].name}만`],["duel","QQQ와 비교"]],S.compSet,"cmpfilter","sm")}
-    ${seg([["amt", "평가금액"], ["log", "원금 대비 배수"], ["ret", "기간 수익률"]], S.cmode, "cm", "sm")}
-    ${seg([["all", "전체"], ["10y", "10년"], ["5y", "5년"], ["3y", "3년"], ["1y", "1년"]], S.crange || "all", "cr", "sm")}
-    <div id="cmpchart"></div><div class="legend" style="margin-top:6px"><span><i style="background:var(--sg)"></i>${P[sel].name} 현금성 50% 이상</span><span><i style="background:var(--tq)"></i>${P[sel].name} ${S.inst} 단타 보유</span></div>
-    <div class="chart-cap">${S.cmode === "amt" ? "시험 원금으로 시작한 일별 평가금액입니다." : S.cmode === "ret" ? "화면 왼쪽 끝 날짜를 0%로 맞춰 다시 계산합니다." : "시작 금액을 1로 둔 배수입니다."} 두 손가락으로 확대, 두 번 누르면 원래대로.</div>`);
-  // 3) 성과의 원천과 검증
-  const rb = H.robust || [], cur = rb[0], nos = rb[1];
-  if (rb.length) html += fold("robust","단타 기여도","단타 제외 · 기준 변경 시험",`
-    <div class="desc">추세 추종만 했다면 연 ${pct(nos.cagr)}로 QQQ 보유와 비슷합니다. 차이의 대부분은 공포 단타(TQQQ)에서 나옵니다. 규칙 값을 바꿔 다시 계산해도 결과가 크게 무너지지 않는지 점검했습니다(달러·세전).</div>
-    <table class="tbl"><thead><tr><th>규칙</th><th class="r">2000~ 연평균</th><th class="r">최대 낙폭</th><th class="r">2010~ 연평균</th></tr></thead><tbody>
-    ${rb.map((r, i) => `<tr class="${i < 2 ? "em" : ""}"><td>${esc(r.label)}</td><td class="r">${pct(r.cagr)}</td><td class="r">${pct(r.mdd, 0)}</td><td class="r">${pct(r.cagr10)}</td></tr>`).join("")}</tbody></table>
-    <div class="alert"><b>과거 자료에서 고른 규칙입니다.</b><br>실제 성과에는 주문 지연·미체결·결제 제약이 반영될 수 있습니다.</div>`);
-  // 4) TQQQ 변동성
-  const sc = bt.score[view][sel], rr = (bt.acc[sel].rounds || []).filter((r) => r.acc != null).slice().sort((p, q) => p.acc - q.acc).slice(0, 5);
-  html += fold("risk",`${S.inst} 단타 중 평가손실`,`거래 중 계좌 최대 평가손실(장중 저가) ${pct(sc.sw_acc_worst)}`,`
-    <div class="kpis">
-      <div class="kpi"><div class="l">계좌 변동성(연환산)</div><div class="v down">${pctu(sc.vol_swing, 0)}</div><div class="s">평소 ${pctu(sc.vol_other, 0)}</div></div>
-      <div class="kpi"><div class="l">하루 최대 하락</div><div class="v down">${pct(sc.worst_day_swing)}</div><div class="s">평소 ${pct(sc.worst_day_other)}</div></div>
-      <div class="kpi"><div class="l">거래 중 최대 평가손실(계좌·장중 저가)</div><div class="v down">${pct(sc.sw_acc_worst)}</div><div class="s">평균 ${pct(sc.sw_acc_avg)}</div></div>
-      <div class="kpi"><div class="l">${S.inst} 단타 보유 기간</div><div class="v">${pctu(sc.days_tqqq, 1)}</div><div class="s">전체 거래일 중</div></div></div>
-    <div class="sub-h">평가손실이 컸던 거래</div><table class="tbl"><thead><tr><th>시작일</th><th class="r">최대 평가손실(계좌)</th><th class="r">최종 수익률</th></tr></thead><tbody>
-    ${rr.map((r) => `<tr><td>${ymd(r.buys[0].d)}${r.proxy ? ` <span class="chip as">가정</span>` : ""}</td><td class="r down">${pct(r.acc)}</td><td class="r ${cls(r.ret)}">${r.ret == null ? "진행 중" : pct(r.ret)}</td></tr>`).join("")}</tbody></table>`);
-  // 5) 따라 하기 쉬운가
-  html += fold("practice","주문 빈도",`과거 연평균 ${sc.days_per_year.toFixed(0)}일 주문`, `<div class="desc">미리 예약할 수 있는 주문과 마감 확인 뒤 낼 주문을 함께 봅니다.</div>
-    <div class="kpis">
-      <div class="kpi"><div class="l">연평균 주문하는 날</div><div class="v">${sc.days_per_year.toFixed(0)}일</div><div class="s">1년 약 250거래일 중</div></div>
-      <div class="kpi"><div class="l">미리 걸어 두는 주문</div><div class="v">${pctu(sc.pre, 0)}</div><div class="s">전체 주문 중</div></div>
-      <div class="kpi"><div class="l">장 마감 직후 주문이 필요한 날</div><div class="v">연 ${sc.close_days_per_year.toFixed(0)}일</div><div class="s">한국 아침 6~8시 시간외</div></div>
-      <div class="kpi"><div class="l">기한일 종가 매도</div><div class="v">연 ${sc.moc_days_per_year.toFixed(1)}일</div><div class="s">마지막 매수 후 10거래일 안에 목표가 미도달 시</div></div></div>
-    <table class="tbl"><thead><tr><th>주문</th><th>언제 거나</th></tr></thead><tbody>
-      <tr><td>목표가 매도</td><td>매수 직후 한 번 걸어 두면 체결될 때까지 유지(GTC)</td></tr>
-      <tr><td>신규 매수(지정가)</td><td>전날 밤 알림을 보고 다음 장 전에 예약</td></tr>
-      <tr><td>장 마감 매수</td><td>마감 직후 알림(한국 아침 6시대)을 보고 시간외로 주문</td></tr>
-      <tr><td>추세 매수·매도</td><td>전날 밤 다음 장 지정가(전일 종가 ±2%)로 예약</td></tr>
-      <tr><td>보유 기한 매도</td><td>목표 주문 취소와 보유 주 수를 확인한 뒤 청산</td></tr></tbody></table>`);
-  // 6) 임의 시점 N년 + 7) 세부 성적표
-  html += fold("rolling","시작 시점별 성과","1·3·5·10년 · 최악 사례",`<div class="desc">분기별로 다른 날 시작한 원화·세후 과거 사례입니다. 상장 전 가정 가격이 포함될 수 있습니다.</div>${seg(HSEG,S.h,"h")}<div id="rolltable"></div><div id="rollc2"></div>`)
-    + fold("score","세부 성적표",`${ymd(bt.start)}부터 · 수익·낙폭·거래 수`,`<div id="sctable"></div>`);
-  $("#view").innerHTML = html; bindCompare(); bindSim();
-  $("#feeLink").onclick = (e) => { e.preventDefault(); openFee(); };
-  bindSeg("cm", (v) => { S.cmode = v; save(); render(); });
-  bindSeg("cr", (v) => { S.crange = v; save(); render(); });
-  bindSeg("cmpfilter", (v) => { S.compSet=v; save(); render(); });
-  const visibleKeys = S.compSet==="self"?[sel]:S.compSet==="duel"?[sel,"qqq"]:keys;
-  const lines = visibleKeys.map((kk) => { const v = V[kk], b0 = v[0]; return {type: "line", name: P[kk].name, raw: v.map((x) => x / b0), y: S.cmode==="amt"?v:v.map((x) => x / b0), color: css(P[kk].v), w: kk === sel ? 2.2 : 1.5}; });
-  const dep = bt.dep[view]; if(S.compSet==="all") lines.push({type: "line", name: P.dep.name, raw: dep.map((x) => x / dep[0]), y: S.cmode==="amt"?dep:dep.map((x) => x / dep[0]), color: css("--dep"), dash: [5, 4], w: 1.3});
-  const dd = (arr) => { let pk = -Infinity; return arr.map((v) => { pk = Math.max(pk, v); return (v / pk - 1) * 100; }); };
-  const ddl = visibleKeys.map((kk) => ({type: "line", name: P[kk].name, y: dd(V[kk]), color: css(P[kk].v), w: kk === sel ? 1.8 : 1.1}));
-  const acc = bt.acc[sel], vb = [...acc.cash50.map(([a, b]) => ({i0: a, i1: b, color: css("--sg")})), ...acc.swing.map(([a, b]) => ({i0: a, i1: b, color: css("--tq")}))];
-  const rg = {all: xs.length, "10y": 2520, "5y": 1260, "3y": 756, "1y": 252}[S.crange || "all"];
-  const amountLabel = (v) => view==="krw"?won(v*1e4):usd2(v);
-  function buildChart(){
-  if($("#cmpchart").firstChild)return;
-  const ch = mkChart($("#cmpchart"), {x: xs, height: 400, range: [Math.max(0, xs.length - rg), xs.length - 1], xfmt: (d) => ymd(d),
-    panes: [{h: 3, log: S.cmode === "log", rebase: S.cmode === "ret", fmt: S.cmode === "amt"?amountLabel:S.cmode === "ret" ? (x) => (x > 0 ? "+" : "") + Math.round(x) + "%" : (x) => "×" + (x >= 10 ? Math.round(x) : x.toFixed(1)), series: lines},
-            {h: 1.1, fmt: (x) => Math.round(x) + "%", series: ddl, hlines: [{y: 0, color: css("--line"), dash: []}], legend: [{name: "고점 대비 낙폭(%)", color: css("--mute")}], tag: false},
-            {h: .25, series: [], vbands: vb, legend: [], tag: false, fmt: () => ""}],
-    tip: (i) => { const a0 = ch ? ch.r[0] : 0; return `<b>${ymd(xs[i])}</b>` + lines.map((s) => `<div class="tr"><i style="background:${s.color}"></i>${s.name}<b>${S.cmode==="amt"?amountLabel(s.y[i]):xmult(s.raw[i])}</b><span class="${cls(s.raw[i] / s.raw[a0] - 1)}">${pct(s.raw[i] / s.raw[a0] - 1, 1)}</span></div>`).join("") + `<div class="t2">수익률은 화면 왼쪽 끝(${ymd(xs[a0])}) 대비입니다.</div>`; }});
-  }
-  const drawFold = (id) => {
-    if(id==="chart")buildChart();
-    if(id==="rolling"&&!$("#rolltable").firstChild){rollTable($("#rolltable"),S.h); if(H.rolling)rolling(document.createElement("div"),$("#rollc2"),[sel,"qqq"],S.h);}
-  };
-  $("#view").querySelectorAll("[data-fold]").forEach(el=>{if(el.open)drawFold(el.dataset.fold); el.addEventListener("toggle",()=>{S.folds[el.dataset.fold]=el.open;save();if(el.open)drawFold(el.dataset.fold);});});
-  scoreTable($("#sctable"), bt.score[view], bt.score[view].dep, view);
+  if (!needHist(() => S.tab === "compare" && render())) { $("#view").innerHTML = wait("성적을 불러오는 중입니다"); return; }
+  const btn = S.assume ? "assume" : "real", bt = H.bt[btn], view = S.view, xs = H.dates.slice(bt.i0), N = xs.length;
+  const vb = vals(btn, "B", view), vq = vals(btn, "qqq", view), per = CPER.some(([v]) => v === S.cper) ? S.cper : "all";
+  const a = per === "all" ? 0 : Math.max(0, N - 252 * +per), sb = jstats(vb, a), sq = jstats(vq, a), yrs = (N - a) / 252;
+  const sc = bt.score[view].B, scq = bt.score[view].qqq, real = H.px[S.inst]?.real_from;
+  // 1) 한 문장 숫자 + 성장 차트 + 기간
+  let html = `<div class="card pf-hero"><div class="pf-top"><span class="t2">${+xs[a].slice(0, 4)}년 ${+xs[a].slice(5, 7)}월부터 ${yrs >= 1 ? (+yrs.toFixed(Math.abs(yrs - Math.round(yrs)) < .06 || yrs >= 10 ? 0 : 1)) + "년" : Math.round(yrs * 12) + "개월"}</span>
+      <button class="pf-basis" id="pfBasis">${view === "krw" ? "원화·세후" : "달러·세전"}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button></div>
+    <div class="pf-big">1억이 <b>${eokTxt(sb.mult)}</b></div>
+    <div class="pf-vs">같은 기간 QQQ 보유는 ${eokTxt(sq.mult)}</div>
+    <div class="pf-kpi"><div><small>연평균</small><b style="color:var(--B)">${pct(sb.cagr)}</b><span>QQQ ${pct(sq.cagr)}</span></div>
+      <div><small>최대 낙폭</small><b>${pct(sb.mdd, 0)}</b><span>QQQ ${pct(sq.mdd, 0)}</span></div></div>
+    <div id="pfchart"></div>${seg(CPER, per, "cp", "sm")}</div>`;
+  // 2) 적립식
+  const dca = (v) => { let u = 0, put = 0, m0 = ""; for (let i = a; i < N; i++) { const m = xs[i].slice(0, 7); if (m !== m0) { m0 = m; u += 100 / v[i]; put += 100; } } return {put, end: u * v[N - 1]}; };
+  const db = dca(vb), dq = dca(vq);
+  html += `<div class="card pf"><div class="title">매달 100만 원씩 모았다면</div><div class="t2">같은 기간, 매달 첫 거래일에 넣었을 때</div>
+    <div class="pf-d">${[["넣은 돈", db.put * 1e4, "#d5dbe1"], ["QQQ 적립", dq.end * 1e4, "#b0b8c1"], [P.B.name, db.end * 1e4, "var(--B)"]].map(([t, v, c]) => `<div><span>${t}</span><i><b style="width:${Math.max(3, v / Math.max(db.end, dq.end, db.put) / 1e4 * 100)}%;background:${c}"></b></i><em>${wonC(v)}</em></div>`).join("")}</div>
+    ${db.end > dq.end ? `<div class="pf-note">QQQ 적립보다 <b>${wonC((db.end - dq.end) * 1e4)}</b> 더</div>` : ""}</div>`;
+  // 3) 언제 시작해도
+  const h = HSEG.some(([v]) => v === S.h) ? S.h : "5", rb = rollStats("B", h), rq = rollStats("qqq", h);
+  if (rb && rq) html += `<div class="card pf"><div class="title">언제 시작했어도</div>${seg(HSEG.map(([v, t]) => [v, t + " 보유"]), h, "h", "sm")}
+    <div class="pf-big2">QQQ를 이긴 경우 <b>${pctu(rb.beat_qqq, 0)}</b></div><div class="t2">2000년부터 시작일 ${rb.n}곳 중 ${Math.round(rb.n * rb.beat_qqq)}곳</div>
+    ${cmpRow("연평균 수익(가운데 값)", rb.median_ann, rq.median_ann, (v) => pct(v))}
+    ${cmpRow("가장 나빴던 시작일", rb.worst - 1, rq.worst - 1, (v) => pct(v, 0), "원금 대비")}</div>`;
+  // 4) 덜 잃음
+  html += `<div class="card pf"><div class="title">하락장에서 덜 잃었습니다</div>
+    ${cmpRow("가장 크게 빠졌을 때", sb.mdd, sq.mdd, (v) => pct(v, 0), "직전 고점 대비")}
+    ${per === "all" && sc.uw_days && scq.uw_days ? cmpRow("고점 회복까지 가장 오래 걸린 기간", sc.uw_days / 365.25, scq.uw_days / 365.25, (v) => v.toFixed(1) + "년") : ""}</div>`;
+  // 5) 공포 단타
+  html += `<div class="card pf"><div class="title">공포 단타 ${sc.sw_n}번</div><div class="pf-big2"><b>${Math.round(sc.sw_n * sc.sw_win)}번</b> 수익</div>
+    <div class="pf-g"><div><small>평균 수익</small><b class="up">${pct(sc.sw_avg)}</b></div><div><small>최악 거래</small><b>${pct(sc.sw_worst)}</b></div><div><small>1년에</small><b>${sc.sw_per_year.toFixed(1)}번</b></div></div>
+    <div class="pf-note">들고 있는 동안 계좌가 가장 크게 빠졌던 때 ${pct(sc.sw_acc_worst, 0)}</div>
+    <button class="mk-go" id="pfTrades"><span>모든 거래 보기</span><b>›</b></button></div>`;
+  // 6) 자세히(접기)
+  const rbs = H.robust || [];
+  if (rbs.length) { const mx = Math.max(...rbs.map((r) => r.cagr));
+    html += fold("robust", "규칙을 바꿔도 유지되나", `목표·기한·RSI 기준을 바꿔 다시 계산`, rbs.map((r, i) => `<div class="pf-rb${i === 0 ? " on" : ""}"><span>${esc(r.label)}</span><i><b style="width:${Math.max(3, r.cagr / mx * 100)}%"></b></i><em>${pct(r.cagr)}</em></div>`).join("") + `<div class="pk-f">2000년부터 연평균 · 달러·세전</div>`); }
+  html += fold("sim", "날짜·금액 직접 넣어 보기", "시작일을 골라 다시 계산", simCard().replace(/^<div class="card">/, "<div>"))
+    + fold("score", "전체 성적표", "변동성·샤프·월별 등 모든 지표", `<div id="sctable"></div>`);
+  html += `<div class="foot">과거 계산이며 앞으로를 보장하지 않습니다 · 수수료 한쪽 ${feeTxt()} 반영${S.assume && real && xs[a] < real ? ` · ${ymd(real).slice(0, 4)}년 이전 ${S.inst}는 가정 가격` : ""}</div>`;
+  $("#view").innerHTML = html;
+  $("#pfBasis").onclick = openBasis; $("#pfTrades").onclick = () => { S.lview = "past"; go("log"); };
+  bindSeg("cp", (v) => { S.cper = v; save(); render(); });
+  bindSeg("h", (v) => { S.h = v; save(); render(); });
+  // 성장 차트: 1억 시작, 로그 눈금(긴 기간)
+  const x = xs.slice(a), yb = vb.slice(a).map((v) => v / vb[a]), yq = vq.slice(a).map((v) => v / vq[a]);
+  const ef = (y) => y >= 1 ? (y >= 100 ? Math.round(y) : y >= 10 ? y.toFixed(0) : y.toFixed(1)) + "억" : Math.round(y * 1e4).toLocaleString() + "만";
+  mkChart($("#pfchart"), {x, height: 220, float: true, range: [0, x.length - 1], xfmt: (d) => ymd(d), minBars: 20,
+    panes: [{log: yrs > 4, fmt: ef, series: [{type: "line", name: P.B.name, y: yb, color: css("--B"), w: 2.2, fill: css("--B") + "18"}, {type: "line", name: "QQQ 보유", y: yq, color: "#b0b8c1", w: 1.6}],
+      hlines: [{y: 1, label: "1억", color: css("--mute"), dash: [3, 3], fit: true}]}],
+    tip: (i) => `<b>${ymd(x[i])}</b><div class="tr"><i style="background:${css("--B")}"></i>${P.B.name}<b>${eokTxt(yb[i])}</b></div><div class="tr"><i style="background:#b0b8c1"></i>QQQ 보유<b>${eokTxt(yq[i])}</b></div>`});
+  const fs = $('[data-fold="sim"]'), fsc = $('[data-fold="score"]');
+  const onF = (el, f) => { if (el.open) f(); el.addEventListener("toggle", () => { S.folds[el.dataset.fold] = el.open; save(); if (el.open) f(); }); };
+  onF(fs, () => { if (!$("#simsum").firstChild) bindSim(); });
+  onF(fsc, () => { if (!$("#sctable").firstChild) scoreTable($("#sctable"), bt.score[view], bt.score[view].dep, view); });
+  const fr = $('[data-fold="robust"]'); if (fr) fr.addEventListener("toggle", () => { S.folds.robust = fr.open; save(); });
 }
 function bindCompare() {
   bindSeg("as", (v) => { S.assume = v === "1"; save(); render(); });
@@ -936,7 +931,7 @@ function go(t) { S.tab = t; save(); render(); window.scrollTo(0, 0); }
 window.go = go;
 function render() {
   pills();
-  document.querySelectorAll("#tabs button").forEach((b) => { b.classList.toggle("on", b.dataset.tab === (S.tab === "compare" ? "more" : S.tab)); b.onclick = () => go(b.dataset.tab); });
+  document.querySelectorAll("#tabs button").forEach((b) => { b.classList.toggle("on", b.dataset.tab === S.tab); b.onclick = () => go(b.dataset.tab); });
   if(S.inst!=="TQQQ"&&!rawData?.variants?.[S.inst]) { $("#view").innerHTML=wait(`${S.inst} 조합 자료를 기다리고 있습니다. 자료가 갱신되면 다시 표시됩니다.`); return; }
   try { (PAGES[S.tab] || home)(); }
   catch (e) {   // 오류 문구 대신 다시 그리기(1회), 그래도 안 되면 홈으로

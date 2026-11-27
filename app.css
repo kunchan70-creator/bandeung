@@ -280,3 +280,28 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 .sg-sub{font-size:13px;color:var(--mute);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}.sg-sub+.sg-r{border-top:0}
 .sg-chip{font-size:13px;font-weight:700;padding:6px 10px;border-radius:10px}.sg-chip.up{background:#fff0f1;color:var(--up)}.sg-chip.down{background:#e8f3ff;color:#1b64da}
 .sg-h+.sg-r{border-top:0;margin-top:4px}
+/* 8단계 성적(11-27 밤): 숫자 한 문장 → 성장 차트 → 적립식 → 언제 시작해도 → 덜 잃음 → 단타 */
+.hd-bell{width:40px}
+.pf-hero{padding:20px 18px 16px}
+.pf-top{display:flex;justify-content:space-between;align-items:center}
+.pf-basis{display:flex;align-items:center;gap:2px;font-size:13px;font-weight:600;color:var(--sub);background:var(--soft);border-radius:9px;padding:5px 6px 5px 10px}.pf-basis svg{width:15px;height:15px;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pf-big{font-size:30px;font-weight:800;letter-spacing:-.8px;margin-top:10px;line-height:1.2}.pf-big b{color:var(--B)}
+.pf-vs{font-size:15px;color:var(--sub);margin-top:4px}
+.pf-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 6px}.pf-kpi>div{background:var(--soft);border-radius:14px;padding:11px 13px}
+.pf-kpi small{display:block;font-size:12px;color:var(--mute)}.pf-kpi b{display:block;font-size:22px;font-weight:800;letter-spacing:-.4px;margin-top:2px}.pf-kpi span{display:block;font-size:12px;color:var(--mute);margin-top:1px}
+.pf-hero .seg{margin-top:8px}
+.pf{padding:20px 18px}
+.pf-big2{font-size:22px;font-weight:700;margin-top:12px;letter-spacing:-.3px}.pf-big2 b{color:var(--B);font-size:28px;font-weight:800}
+.pf-c{margin-top:16px}.pf-ct{font-size:14px;font-weight:600;margin-bottom:6px}.pf-ct small{font-size:12px;font-weight:400;color:var(--mute);margin-left:6px}
+.pf-cb{display:grid;grid-template-columns:64px 1fr 64px;align-items:center;gap:8px;font-size:12px;color:var(--sub);margin:5px 0}
+.pf-cb i{height:10px;background:var(--soft);border-radius:5px;overflow:hidden}.pf-cb i b{display:block;height:10px;border-radius:5px}
+.pf-cb em{font-style:normal;text-align:right;font-size:14px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+.pf-d{margin-top:14px}.pf-d>div{display:grid;grid-template-columns:64px 1fr 96px;align-items:center;gap:8px;margin:9px 0;font-size:13px;color:var(--sub)}
+.pf-d i{height:14px;background:var(--soft);border-radius:7px;overflow:hidden}.pf-d i b{display:block;height:14px;border-radius:7px}
+.pf-d em{font-style:normal;text-align:right;font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.pf-note{font-size:14px;color:var(--sub);margin-top:12px}.pf-note b{color:var(--B)}
+.pf-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.pf-g>div{background:var(--soft);border-radius:12px;padding:10px 11px}
+.pf-g small{display:block;font-size:11px;color:var(--mute)}.pf-g b{display:block;font-size:18px;font-weight:800;margin-top:2px}
+.pf-rb{display:grid;grid-template-columns:120px 1fr 56px;align-items:center;gap:8px;font-size:13px;color:var(--sub);margin:7px 0}
+.pf-rb i{height:8px;background:var(--soft);border-radius:4px;overflow:hidden}.pf-rb i b{display:block;height:8px;background:#b0b8c1;border-radius:4px}
+.pf-rb em{font-style:normal;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}.pf-rb.on{color:var(--ink);font-weight:700}.pf-rb.on i b{background:var(--B)}
