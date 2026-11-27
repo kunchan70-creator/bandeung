@@ -402,3 +402,30 @@ em.hl{font-style:normal;font-weight:700;color:var(--ink);background:linear-gradi
 .tw-g small{display:block;font-size:11px;color:var(--mute)}.tw-g b{display:block;font-size:20px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
 .tw-s{font-size:12px;color:var(--mute);margin:8px 2px 0}
 .tw-b{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.tw-b button{background:var(--soft);border-radius:10px;padding:10px 0;font-size:14px;font-weight:700;color:var(--ink)}
+/* 11-27 밤 전략 교육(수업 6장 + 확인 문제 3개) */
+.ed-box{display:flex;gap:6px;justify-content:center}.ed-box i{width:46px;height:46px;border-radius:12px;background:#e5e8eb}.ed-box i.on{background:#3182f6}
+.ed-box i.half{background:linear-gradient(90deg,#3182f6 50%,#e5e8eb 50%)}
+.ed-cap{text-align:center;font-size:13px;color:#6b7684;margin-top:10px}
+.ed-two{display:grid;gap:12px}.ed-two>div{background:#f2f4f6;border-radius:16px;padding:14px;text-align:center}.ed-two b{display:block;font-size:15px;margin-bottom:8px}.ed-two small{display:block;font-size:13px;color:#4e5968;margin-top:8px}
+.ed-two .ed-box i{width:30px;height:30px;border-radius:8px}
+.ed-flow{display:flex;align-items:center;justify-content:center;gap:12px}.ed-flow>div{background:#f2f4f6;border-radius:16px;padding:14px 16px;text-align:center;min-width:112px}
+.ed-flow em{font-style:normal;font-size:18px}.ed-flow em.up{color:#f04452}.ed-flow em.down{color:#3182f6}.ed-flow b{display:block;font-size:22px;margin-top:2px}.ed-flow small{display:block;font-size:12px;color:#6b7684;margin-top:2px}.ed-flow>i{font-style:normal;font-size:22px;color:#8b95a1}
+.ed-days{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.ed-days i{font-style:normal;text-align:center;background:#f2f4f6;border-radius:10px;padding:10px 0;font-weight:700;color:#4e5968}.ed-days i.end{background:#3182f6;color:#fff}
+.ed-warn{background:#fff5e6;color:#b45f00;border-radius:14px;padding:14px;text-align:center;font-weight:700;font-size:14px}
+.ed-q{font-size:clamp(24px,6.6vw,30px)!important}
+.ed-opts{display:grid;gap:8px}.ed-opts button{text-align:left;background:#f2f4f6;border:1.5px solid #e5e8eb;border-radius:14px;padding:15px 14px;font-size:16px;font-weight:600;color:#191f28}
+.ed-opts button.ok{border-color:#3182f6;background:#e8f3ff;color:#1b64da}.ed-opts button.no{border-color:#f04452;background:#fff0f1;color:#d22d3c}
+.ed-why{margin-top:12px;font-size:14px;line-height:1.55;border-radius:12px;padding:12px 14px}.ed-why.ok{background:#e8f3ff;color:#1b64da}.ed-why.no{background:#fff0f1;color:#d22d3c}
+.tour-nav .btn[disabled]{background:#b0b8c1}
+.ed-lock{text-align:center;padding:30px 20px}.ed-lock svg{width:36px;height:36px;fill:none;stroke:#3182f6;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ed-lock b{display:block;font-size:18px;margin-top:10px}.ed-lock small{display:block;font-size:14px;color:var(--sub);margin-top:6px;line-height:1.55}
+.ed-q{font-size:clamp(21px,5.6vw,25px)!important;line-height:1.4!important}
+/* 11-27 밤 교육: 실제 거래 하루씩 재생 */
+.rp-on .tour-copy p{font-size:13px}.rp-on .tour-copy h1{font-size:26px}.rp-on .tour-art{margin:10px 0;justify-content:flex-start}
+.rp{background:#fff;border:1px solid #e5e8eb;border-radius:18px;padding:12px}
+.rp-d{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:800;color:#191f28}.rp-d small{font-size:12px;color:#8b95a1;font-weight:600}
+.rp-c{width:100%;height:auto;display:block;margin:6px 0}.rp-t{font-size:10px;font-weight:700;font-family:var(--font)}
+.rp-p{background:#f2f4f6;border-radius:12px;padding:10px 12px;min-height:66px}.rp-p>div{font-size:15px;font-weight:700;color:#191f28}.rp-p small{display:block;font-size:13px;color:#4e5968;margin-top:4px;line-height:1.5}
+.rp-p .up{color:#f04452}.rp-p .down{color:#3182f6}
+.rp-b{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:10px}.rp-b button{border-radius:12px;padding:12px 0;font-size:15px;font-weight:700;background:#f2f4f6;color:#4e5968}
+.rp-b button.go{background:#191f28;color:#fff}.rp-b button[disabled]{opacity:.4}

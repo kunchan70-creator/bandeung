@@ -216,6 +216,121 @@ function setLot(n, w) {
   D = null; H = null; rawData = null; rawHist = null; histWaiters = [];
   $("#view").innerHTML = wait(`한 묶음 ${n}%${w === "sgov" ? " · SGOV 대기" : ""} 자료를 불러오는 중입니다`); loadData();
 }
+// ── 전략 교육(11-27 밤 사용자 '교육이 중요하다, 활성화한 사람만 모든 기능'): 수업 6장 + 퀴즈 3문제(모두 정답이어야 활성화). 활성화 전엔 할 일(주문표)·알림 받기 잠금 ──
+const EDU_V = 1;
+const eduOn = () => (S.edu || 0) >= EDU_V;
+// 11-27 밤 사용자 '가장 복잡한 실제 거래를 차트로, 하루하루 넘어가며 알림·매수·평단 낮춰 매도가 다시 정하기를 보여 줘' → 2025-04 관세 폭락 거래 재생
+const RP_FIRST = "2025-04-03";
+let RP = null;
+function rpBuild() {
+  const rd = H?.bt?.assume?.acc?.B?.rounds?.find((r) => r.buys[0].d === RP_FIRST); if (!rd) return null;
+  const px = H.px.TQQQ, d = H.dates, i0 = d.indexOf(RP_FIRST), i1 = d.indexOf(rd.sell.d); if (i0 < 0 || i1 < 0) return null;
+  const a = i0 - 6, b = Math.min(d.length - 1, i1 + 2), tp = PRODUCTS.TQQQ.target / 100;
+  const lotsOf = (k) => rd.buys.filter((x) => x.d <= d[k]);
+  const line = (L) => { if (!L.length) return null; const p = L.map((x) => x.px), avg = p.length / p.reduce((z, v) => z + 1 / v, 0), top = Math.max(...p); return {avg, tgt: Math.round((top > p[0] ? top : avg) * (1 + tp) * 100) / 100}; };
+  const units = (L) => L.reduce((z, x) => z + ((x.sig?.w ?? .2) < .15 ? .5 : 1), 0);
+  const days = [];
+  for (let k = a; k <= b; k++) {
+    const today = rd.buys.filter((x) => x.d === d[k]), L = lotsOf(k), ln = line(L), prev = line(lotsOf(k - 1)), sold = d[k] >= rd.sell.d;
+    let t = "", s = "";
+    if (d[k] < RP_FIRST) { const nx = d[k + 1] === RP_FIRST; t = nx ? "마감 후 공포 조건 충족" : "나스닥 하락이 이어집니다"; s = nx ? `알림: <b class="up">▲ TQQQ 매수 $${rd.buys[0].px.toFixed(2)}</b> 지정가(반 묶음)` : "아직 매수 조건이 모두 맞지 않아 기다립니다"; }
+    else if (today.length) {
+      const g = {}; today.forEach((x) => { const u = (x.sig?.w ?? .2) < .15 ? "반 묶음" : "한 묶음", key = x.px.toFixed(2) + "|" + u; g[key] = (g[key] || 0) + 1; });
+      t = `<b class="up">▲ 매수 체결</b> ${Object.entries(g).map(([kk, n]) => { const [p, u] = kk.split("|"); return `$${p} ${u}${n > 1 ? ` ×${n}` : ""}`; }).join(" · ")}`;
+      s = `보유 ${units(L)}묶음 · 평균 단가 <b>$${ln.avg.toFixed(2)}</b><br>매도 주문을 <b class="down">▼ $${ln.tgt.toFixed(2)}</b>${prev ? `(전 $${prev.tgt.toFixed(2)})` : ""}로 ${prev ? "고칩니다" : "겁니다"}`;
+    } else if (!sold) { t = "추가 매수 없음"; s = `매도 주문 <b class="down">▼ $${ln.tgt.toFixed(2)}</b> 그대로 유지 · 기다립니다`; }
+    else if (d[k] === rd.sell.d) { t = `<b class="down">▼ 목표가 $${rd.sell.px.toFixed(2)} 매도 체결</b>`; s = `평균 단가 $${line(rd.buys).avg.toFixed(2)} 대비 <b class="up">${pct(rd.ret)}</b> · 거래 종료`; }
+    else { t = "거래가 끝났습니다"; s = "다음 공포가 올 때까지 다시 기다립니다"; }
+    days.push({k, t, s, ln: d[k] <= rd.sell.d ? ln : null, buys: today, sell: d[k] === rd.sell.d ? rd.sell : null});
+  }
+  return {rd, a, b, days, px};
+}
+function rpChart(st, upto) {
+  const {a, b, days, px} = st, W = 340, Hh = 190, pl = 6, pr = 46, n = b - a + 1, cw = (W - pl - pr) / n;
+  let lo = Infinity, hi = -Infinity; for (let k = a; k <= b; k++) { lo = Math.min(lo, px.l[k]); hi = Math.max(hi, px.h[k]); }
+  days.forEach((x) => { if (x.ln) hi = Math.max(hi, x.ln.tgt); }); const pad = (hi - lo) * .08; lo -= pad; hi += pad;
+  const Y = (v) => 8 + (hi - v) / (hi - lo) * (Hh - 16), X = (k) => pl + (k - a + .5) * cw;
+  let g = `<svg viewBox="0 0 ${W} ${Hh}" class="rp-c">`;
+  for (let k = a; k <= a + upto; k++) {
+    const o = px.o[k], c = px.c[k], up = c >= o, col = up ? "#f04452" : "#3182f6", x = X(k);
+    g += `<line x1="${x}" x2="${x}" y1="${Y(px.h[k])}" y2="${Y(px.l[k])}" stroke="${col}" stroke-width="1.2"/><rect x="${x - cw * .32}" y="${Y(Math.max(o, c))}" width="${cw * .64}" height="${Math.max(1, Math.abs(Y(o) - Y(c)))}" fill="${col}" rx="1"/>`;
+  }
+  const cur = days[upto];
+  if (cur.ln) { const y = Y(cur.ln.tgt); g += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" stroke="#3182f6" stroke-dasharray="4 3" stroke-width="1.4"/><text x="${W - pr + 4}" y="${y + 4}" class="rp-t" fill="#3182f6">▼${cur.ln.tgt.toFixed(2)}</text>`;
+    const ya = Y(cur.ln.avg); g += `<line x1="${pl}" x2="${W - pr}" y1="${ya}" y2="${ya}" stroke="#8b95a1" stroke-dasharray="2 3" stroke-width="1"/><text x="${W - pr + 4}" y="${ya + 4}" class="rp-t" fill="#6b7684">평단</text>`; }
+  for (let u = 0; u <= upto; u++) {
+    const dd = days[u], x = X(dd.k);
+    [...new Set(dd.buys.map((z) => z.px))].forEach((p) => { g += `<path d="M${x} ${Y(p) + 3} l-5 9 h10 z" fill="#f04452"/>`; });
+    if (dd.sell) g += `<path d="M${x} ${Y(dd.sell.px) - 3} l-5 -9 h10 z" fill="#3182f6"/>`;
+  }
+  const [hx] = [X(cur.k)]; g += `<line x1="${hx}" x2="${hx}" y1="4" y2="${Hh - 4}" stroke="#191f28" stroke-opacity=".12" stroke-width="${cw}"/>`;
+  return g + `</svg>`;
+}
+function rpRender(el, onDone) {
+  if (!RP) RP = {st: rpBuild(), u: 0};
+  const st = RP.st; if (!st) { el.innerHTML = `<div class="ed-cap">차트 자료를 불러오는 중입니다</div>`; return; }
+  const u = RP.u, dd = st.days[u], last = u >= st.days.length - 1;
+  el.innerHTML = `<div class="rp"><div class="rp-d">${ymd(H.dates[dd.k])} <small>${u + 1} / ${st.days.length}일</small></div>${rpChart(st, u)}
+    <div class="rp-p"><div>${dd.t}</div><small>${dd.s}</small></div>
+    <div class="rp-b"><button id="rpP" ${u ? "" : "disabled"}>이전 날</button><button id="rpN" class="go">${last ? "처음부터" : "다음 날 ›"}</button></div></div>`;
+  $("#rpP").onclick = () => { RP.u = Math.max(0, u - 1); rpRender(el, onDone); };
+  $("#rpN").onclick = () => { RP.u = last ? 0 : u + 1; rpRender(el, onDone); if (u + 1 === st.days.length - 1) onDone?.(); };
+  if (last) onDone?.();
+}
+function eduLessons() {
+  const L = S.lot, T = PRODUCTS[S.inst].target, sc = H?.bt?.assume?.score?.krw?.B;
+  const box = (n, half) => `<div class="ed-box">${Array.from({length: 5}, (_, i) => `<i class="${i < n ? "on" : ""}${half && i === n ? " half" : ""}"></i>`).join("")}</div>`;
+  return [
+    {h: "한 번에 다<br>매수하지 않습니다", p: `한 번 매수할 때 쓰는 돈을 <b>한 묶음</b>이라고 합니다. 지금 설정은 한 묶음 = 계좌의 <b>${L}%</b>, 최대 <b>5묶음어치</b>까지입니다. 공포가 이어지면 여러 날에 나눠 매수합니다.`,
+      art: `${box(2)}<div class="ed-cap">예: 두 번 매수 = 계좌의 ${L * 2}%</div>`},
+    {h: "반 묶음은<br>천천히 빠질 때입니다", p: `QQQ가 3거래일 동안 -4%보다 덜 하락했으면 한 묶음의 <b>절반(${L / 2}%)</b>만 매수합니다. 남은 한도는 더 깊은 공포에 씁니다.`,
+      art: `<div class="ed-two"><div><b>빠른 하락</b>${box(1)}<small>한 묶음 ${L}%</small></div><div><b>느린 하락</b>${box(0, true)}<small>반 묶음 ${L / 2}%</small></div></div>`},
+    {h: "매수하자마자<br>매도 주문을 겁니다", p: `기다리면 오르는 것이 아닙니다. 매수가 체결되면 바로 평균 단가 <b>+${T}%</b>에 지정가 매도 주문을 걸어 둡니다. 체결될 때까지 유지합니다.`,
+      art: `<div class="ed-flow"><div><em class="up">▲</em><b>$100.00</b><small>매수 체결</small></div><i>→</i><div><em class="down">▼</em><b>$${(100 * (1 + T / 100)).toFixed(2)}</b><small>바로 매도 주문</small></div></div>`},
+    {h: "10거래일 안에<br>정리합니다", p: `마지막 매수일부터 <b>10거래일</b> 안에 목표가에 닿지 않으면, 그날 장 마감에 손익과 관계없이 전량 매도합니다. 레버리지는 오래 들고 있을수록 손실이 커질 수 있습니다.`,
+      art: `<div class="ed-days">${Array.from({length: 10}, (_, i) => `<i class="${i === 9 ? "end" : ""}">${i + 1}</i>`).join("")}</div><div class="ed-cap">10일째 장 마감 = 정리</div>`},
+    {h: "실제 거래로<br>따라가 보십시오", p: "2025년 4월 관세 폭락 때의 TQQQ 거래입니다. <b>다음 날</b>을 눌러 하루씩 넘기면서 알림·매수·매도 주문이 어떻게 바뀌는지 보십시오.", replay: true},
+    {h: "평소에는<br>200일선을 따릅니다", p: `QQQ가 200일선보다 3% 넘게 위에서 마감하면 <b>QQQM 매수</b>, 3% 넘게 아래에서 마감하면 <b>매도 후 현금 대기</b>입니다. 이 주문도 알림으로 옵니다.`,
+      art: `<div class="tour-checklist"><div style="--i:0"><b>200일선 +3% 위</b><span>QQQM 보유</span></div><div style="--i:1"><b>200일선 -3% 아래</b><span>현금 대기</span></div></div>`},
+    {h: "손실도<br>날 수 있습니다", p: `과거 성적은 미래를 보장하지 않습니다.${sc ? ` 과거 공포 단타를 보유하는 동안 계좌는 최대 <b>${pct(sc.sw_acc_worst, 0)}</b>까지 평가손실이 났습니다.` : ""} 감당할 수 있는 비중으로 시작하십시오.`,
+      art: `<div class="ed-warn">비중은 전체 > 한 묶음 비중에서 바꿀 수 있습니다</div>`},
+  ];
+}
+function eduQuiz() {
+  const L = S.lot, T = PRODUCTS[S.inst].target, sell = (100 * (1 + T / 100)).toFixed(2);
+  return [
+    {q: `${S.inst}를 $100.00에 매수했습니다.<br>바로 할 일은?`, o: ["오를 때까지 기다린다", `$${sell} 지정가 매도 주문을 건다`, "더 하락하면 추가로 매수한다"], a: 1, why: `매수 체결 직후 평균 단가 +${T}%에 매도 주문을 걸어 둡니다.`},
+    {q: `한 묶음이 계좌의 ${L}%입니다.<br>'반 묶음 매수'는?`, o: [`계좌의 ${L / 2}%`, `계좌의 ${L}%`, `계좌의 ${L * 2}%`], a: 0, why: "반 묶음은 한 묶음의 절반입니다."},
+    {q: "마지막 매수 후 10거래일이 지나도<br>목표가에 닿지 않았습니다.", o: ["계속 보유한다", "그날 장 마감에 매도한다", "한 묶음 더 매수한다"], a: 1, why: "보유 기한이 지나면 손익과 관계없이 매도합니다."},
+  ];
+}
+let eduPage = -1, eduAns = [];
+function openEdu(i = 0) {
+  const L = eduLessons(), Q = eduQuiz(), N = L.length + Q.length, el = $("#tour"); eduPage = i; if (i === 0) eduAns = [];
+  if (!H) needHist(() => { if (eduPage === i) openEdu(i); });
+  const close = () => { eduPage = -1; el.hidden = true; document.body.classList.remove("tour-open"); if (D) render(); };
+  el.hidden = false; document.body.classList.add("tour-open");
+  const top = `<div class="tour-top"><span>전략 교육 · ${i < L.length ? "수업" : "확인 문제"}</span><button id="edX">나중에</button></div><div class="tour-steps">${Array.from({length: N}, (_, p) => `<i class="${p <= i ? "on" : ""}"></i>`).join("")}</div>`;
+  if (i < L.length) {
+    const x = L[i];
+    el.innerHTML = `<div class="tour-inner forward${x.replay ? " rp-on" : ""}">${top}<div class="tour-copy"><h1>${x.h}</h1><p>${x.p}</p></div><div class="tour-art">${x.replay ? '<div id="rpBox"></div>' : x.art}</div>
+      <div class="tour-nav">${i ? '<button id="edP">이전</button>' : ""}<button class="btn" id="edN" ${x.replay && !RP?.done ? "disabled" : ""}>${i === L.length - 1 ? "확인 문제 풀기" : x.replay && !RP?.done ? "끝까지 넘겨 보십시오" : "다음"}</button></div></div>`;
+    if (i) $("#edP").onclick = () => openEdu(i - 1); $("#edN").onclick = () => { if (x.replay && !RP?.done) return; openEdu(i + 1); };
+    if (x.replay) rpRender($("#rpBox"), () => { RP.done = true; const b = $("#edN"); if (b) { b.disabled = false; b.textContent = "다음"; } });
+  } else if (i < N) {
+    const k = i - L.length, x = Q[k], picked = eduAns[k];
+    el.innerHTML = `<div class="tour-inner forward">${top}<div class="tour-copy"><h1 class="ed-q">${x.q}</h1></div>
+      <div class="tour-art"><div class="ed-opts">${x.o.map((t, j) => `<button data-o="${j}" class="${picked == null ? "" : j === x.a ? "ok" : j === picked ? "no" : ""}">${t}</button>`).join("")}</div>
+      ${picked == null ? "" : `<div class="ed-why ${picked === x.a ? "ok" : "no"}">${picked === x.a ? "정답입니다. " : "다시 생각해 보십시오. "}${x.why}</div>`}</div>
+      <div class="tour-nav"><button id="edP">이전</button><button class="btn" id="edN" ${picked === x.a ? "" : "disabled"}>${k === Q.length - 1 ? "활성화하기" : "다음 문제"}</button></div></div>`;
+    el.querySelectorAll("[data-o]").forEach((b) => b.onclick = () => { if (eduAns[k] === x.a) return; eduAns[k] = +b.dataset.o; openEdu(i); });
+    $("#edP").onclick = () => openEdu(i - 1);
+    $("#edN").onclick = () => { if (eduAns[k] !== x.a) return; if (k < Q.length - 1) return openEdu(i + 1); S.edu = EDU_V; save(); close(); toast("모든 기능이 활성화되었습니다"); };
+  }
+  $("#edX").onclick = close;
+}
+const eduLock = (what) => `<div class="card ed-lock"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></svg>
+  <b>${what}은 전략 교육 뒤에 열립니다</b><small>분할 매수와 매도 주문 원칙을 3분 동안 익히고 확인 문제 3개를 풀면 활성화됩니다</small><button class="btn blue" onclick="openEdu(0)">교육 시작</button></div>`;
 // ── 전체 탭(11-27): 설정은 증권 앱 설정 화면처럼 '이름 + 지금 값 ›' 목록, 누르면 그 항목 하나만 고르는 창 ──
 let RISK = null;
 function needRisk(cb) {
@@ -248,8 +363,8 @@ function more() {
   const row = (id, t, v) => `<button class="li" data-li="${id}"><span>${t}</span><span class="v">${v}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span></button>`;
   $("#view").innerHTML = `<button class="back" onclick="go(S.prevTab || 'home')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>전체</button><div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
     <div class="card lst"><div class="lh">앱</div>${row("bell", "알림", pushWord())}${WEB && !STANDALONE ? row("install", "앱 설치", "") : ""}</div>
-    <div class="card lst"><div class="lh">안내</div>${row("guide", "사용 안내", "")}</div>`;
-  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide};
+    <div class="card lst"><div class="lh">안내</div>${row("edu", "전략 교육", eduOn() ? "완료" : "미완료")}${row("guide", "사용 안내", "")}</div>`;
+  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide, edu: () => openEdu(0)};
   document.querySelectorAll("[data-li]").forEach((b) => b.onclick = F[b.dataset.li]);
 }
 // 수수료 반영: 날마다 거래 비율(turn) x (내 수수료 - 모델 수수료)만큼 그날부터 곱으로 깎음
@@ -669,6 +784,7 @@ async function copyTxt(v, label) {
 }
 const CP = `<svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 5.5h-8a2 2 0 00-2 2v8"/></svg>`;
 function todo() {
+  if (!eduOn()) { $("#view").innerHTML = eduLock("주문표"); return; }
   const k = S.prof, a = D.accounts[k], plan = a.plan || {};
   const f = myAmt() && D.usdkrw && a.equity_usd ? myAmt() / (a.equity_usd * D.usdkrw) : null;
   const cashText = String(S.cashUsd || "").replace(/,/g, "").trim(), cash = Number(cashText);
@@ -1084,6 +1200,7 @@ async function pushState() { if (!pushOK()) return "no"; const r = await navigat
 const u8 = (b) => { const raw = atob((b + "=".repeat((4 - b.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...raw].map((c) => c.charCodeAt(0))); };
 const IOS_STEPS = `<ol class="ios"><li>사파리 아래 <b>공유</b> 버튼</li><li><b>홈 화면에 추가</b></li><li>홈 화면 아이콘으로 열고 <b>알림 받기</b></li></ol>`;
 async function pushOn() {   // 성공이면 "", 아니면 안내 문구
+  if (!eduOn()) { $("#sheet").hidden = true; document.body.style.overflow = ""; openEdu(0); return "edu"; }   // 11-27 밤: 교육 마친 사람만 알림
   if (IOS && !STANDALONE) return "아이폰은 홈 화면에 추가한 앱에서만 알림을 받을 수 있습니다.";
   if (!pushOK()) return "이 브라우저는 알림을 지원하지 않습니다. 크롬에서 열어 주십시오.";
   try {
@@ -1108,9 +1225,9 @@ function openBell() {
     <div class="bl-st"><span>이 기기</span><b class="${on ? "on" : ""}">${pushWord() || "확인 중"}</b></div>
     <div class="bl">${when.map(([a, b, c]) => `<div><b>${a}</b><span>${b}</span><em>${c}</em></div>`).join("")}</div>
     ${IOS && !STANDALONE && !on ? IOS_STEPS : ""}
-    ${!WEB ? "" : on ? `<button class="btn ghost" id="bOff">알림 끄기</button>` : IOS && !STANDALONE ? "" : `<button class="btn blue" id="bOn">알림 받기</button>`}
+    ${!WEB ? "" : on ? `<button class="btn ghost" id="bOff">알림 끄기</button>` : IOS && !STANDALONE ? "" : `<button class="btn blue" id="bOn">${eduOn() ? "알림 받기" : "교육 받고 알림 받기"}</button>`}
     <div class="pk-f" id="bMsg"></div>`, (close) => {
-    if ($("#bOn")) $("#bOn").onclick = async () => { const m = await pushOn(); if (m) $("#bMsg").textContent = m; else close(); };
+    if ($("#bOn")) $("#bOn").onclick = async () => { const m = await pushOn(); if (m === "edu") return; if (m) $("#bMsg").textContent = m; else close(); };
     if ($("#bOff")) $("#bOff").onclick = async () => { await pushOff(); close(); };
   });
 }
@@ -1123,7 +1240,7 @@ function maybeEntry() {
 function openEntry(force) {
   const later = () => { if (!force) { S.entryNext = Date.now() + 7 * 864e5; save(); } };
   const pushStep = (note) => { $("#enStep").innerHTML = `<button class="btn blue" id="enPush">알림 받기</button>${note ? `<div class="pk-f">${note}</div>` : ""}<div class="pk-f" id="enMsg"></div>`;
-    $("#enPush").onclick = async () => { const m = await pushOn(); if (m) $("#enMsg").textContent = m; else { S.entryNext = Date.now() + 365 * 864e5; save(); $("#sheet").hidden = true; document.body.style.overflow = ""; render(); } }; };
+    $("#enPush").onclick = async () => { const m = await pushOn(); if (m === "edu") return; if (m) $("#enMsg").textContent = m; else { S.entryNext = Date.now() + 365 * 864e5; save(); $("#sheet").hidden = true; document.body.style.overflow = ""; render(); } }; };
   sheet(`<div class="entry"><svg class="entry-i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 004 0"/></svg>
     <div class="entry-t">주문할 때를<br>알림으로 받으세요</div><div class="entry-d">장 마감 뒤 새 주문이 생기면 바로 알려 드립니다</div>
     <div id="enStep"><button class="btn blue" id="enGo">${STANDALONE ? "알림 받기" : IOS ? "홈 화면에 추가하기" : "앱 설치하고 알림 받기"}</button></div>
