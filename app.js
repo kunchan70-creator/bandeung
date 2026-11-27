@@ -223,9 +223,9 @@ function riskText(n, w) {
 }
 function openSettings() {
   if (!RISK) fetch(RISK_URL, {cache: "no-store"}).then((r) => r.json()).then((x) => { RISK = x; const el = $("#lotrisk"); if (el) el.textContent = riskText(Number($("[data-lot].on")?.dataset.lot || S.lot)); }).catch(() => {});
-  sheet(`<div class="title">내 설정</div>
+  sheet(`<div class="title">내 설정</div>${appCard()}
     <div class="sub-h">한 묶음 비중</div>${seg(LOTS.map((n) => [String(n), n + "%"]), String(S.lot), "lot")}
-    <div class="desc">공포 구간에서 한 번 살 때 계좌의 몇 %를 살지 정합니다. 한도는 ${CAPN()}묶음어치 금액이라 20%면 다 사도 계좌의 100%입니다. 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반만 사고, 남은 한도로 다음 신호에 더 삽니다. 고른 비중으로 홈·비교·기록·신호의 모든 숫자와 그래프를 다시 계산해 보여 줍니다.</div>
+    <div class="desc">공포 구간에서 한 번 살 때 계좌의 몇 %를 살지 정합니다. 한도는 ${CAPN()}묶음어치 금액이라 20%면 다 사도 계좌의 100%입니다. 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반만 사고, 남은 한도로 다음 신호에 더 삽니다. 고른 비중으로 홈·비교·차트·신호의 모든 숫자와 그래프를 다시 계산해 보여 줍니다.</div>
     <div class="alert" id="lotrisk">${riskText(S.lot)}</div>
     <div class="desc">비중을 키우면 과거 수익은 커지지만, 규칙이 맞지 않는 하락이 오면 손실도 같은 배수로 커집니다. 과거 계산은 앞으로의 결과를 보장하지 않습니다.</div>
     <div class="sub-h">추세 아래일 때 대기 자금</div>${seg(WAITS, S.wait, "wt")}
@@ -239,6 +239,7 @@ function openSettings() {
     <div class="desc">운용 금액으로 모델 주 수를 환산합니다. 현금 입력 시 매수 수량에 현금 상한도 적용합니다. 매도 시 실제 보유 주 수를 확인하십시오.</div>
     ${WEB && PUSHST === "on" ? `<div class="sub-h">알림</div><div class="desc">이 기기로 알림을 받고 있습니다.</div><button class="btn ghost" id="pOff">이 기기 알림 끄기</button>` : ""}
     <button class="btn" id="sok">저장</button>`, (close) => {
+    bindAppCard();
     if ($("#pOff")) $("#pOff").onclick = async () => { await pushOff(); close(); };
     const curW = () => $("[data-wt].on")?.dataset.wt || S.wait, curN = () => Number($("[data-lot].on")?.dataset.lot || S.lot);
     bindSeg("lot", (v) => { document.querySelectorAll("[data-lot]").forEach((b) => b.classList.toggle("on", b.dataset.lot === v)); $("#lotrisk").textContent = riskText(Number(v), curW()); });
@@ -268,48 +269,104 @@ function jstats(v, a = 0, b = v.length - 1) {
 const xmult = (m) => m == null ? "-" : m >= 100 ? `${Math.round(m).toLocaleString("ko-KR")}배` : m >= 10 ? `${m.toFixed(0)}배` : `${m.toFixed(2)}배`;
 
 // ── 홈 ──
+// ── 장 시계(11-27 사용자 '홈에 있어야 할 건 시계'): 한국 시간, 나스닥 지금 구간, 알림 시각 ──
+const NIGHT_FROM = "2026-12-06";   // 나스닥 23/5 밤 세션 첫날(ET 일요일 21:00 시작). 일정이 바뀌면 여기만 고침
+const ETF = new Intl.DateTimeFormat("en-US", {timeZone: "America/New_York", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "short"});
+function etParts(ms) { const o = {}; ETF.formatToParts(new Date(ms)).forEach((p) => o[p.type] = p.value); return {ds: `${o.year}-${o.month}-${o.day}`, h: +o.hour % 24, mi: +o.minute, wd: o.weekday}; }
+function etMs(ds, h, mi) {   // 뉴욕 벽시계 시각 → 실제 시각(ms). 서머타임 자동
+  const [y, m, d] = ds.split("-").map(Number), want = Date.UTC(y, m - 1, d, h, mi), g = want + 5 * 3600e3, p = etParts(g), [py, pm, pd] = p.ds.split("-").map(Number);
+  return g - (Date.UTC(py, pm - 1, pd, p.h, p.mi) - want);
+}
+const dayAdd = (ds, n) => { const d = new Date(ds + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const CAL = () => D?.cal || {holidays: [], early: []};
+const isSess = (ds) => { const w = new Date(ds + "T12:00:00Z").getUTCDay(); return w > 0 && w < 6 && !CAL().holidays.includes(ds); };
+const SEGC = {night: "#c4bdf6", pre: "#b7d4fb", reg: "#3182f6", aft: "#b7d4fb"};
+function sessDay(ds) {   // 거래일 ds 하루: 전날 20:00 ET ~ 그날 20:00 ET(밤 세션은 전날 21:00부터)
+  const early = CAL().early.includes(ds), ch = early ? 13 : 16, pv = dayAdd(ds, -1), segs = [];
+  if (pv >= NIGHT_FROM) segs.push({k: "night", n: "밤 세션", a: etMs(pv, 21, 0), b: etMs(ds, 4, 0)});
+  segs.push({k: "pre", n: "프리마켓", a: etMs(ds, 4, 0), b: etMs(ds, 9, 30)}, {k: "reg", n: "정규장", a: etMs(ds, 9, 30), b: etMs(ds, ch, 0)},
+            {k: "aft", n: "애프터마켓", a: etMs(ds, ch, 0), b: etMs(ds, early ? 17 : 20, 0)});
+  return {ds, early, segs, reg: segs.find((x) => x.k === "reg"), w0: etMs(pv, 20, 0), w1: etMs(ds, 20, 0),
+          alarms: [{n: "개장 전 알림", sub: "걸 주문이 있을 때", t: etMs(ds, 7, 0)}, {n: "마감 후 알림", sub: "새 주문이 생겼을 때", t: etMs(ds, ch, 20), from: true}]};
+}
+function sessFrom(now, cond) { let ds = etParts(now).ds; for (let i = 0; i < 14; i++, ds = dayAdd(ds, 1)) { if (!isSess(ds)) continue; const x = sessDay(ds); if (cond(x)) return x; } return null; }
+const kIso = (ms) => new Date(ms + 9 * 3600e3).toISOString();
+const kHM = (ms) => kIso(ms).slice(11, 16);
+function kDay(ms, now) { const d = kIso(ms).slice(0, 10); return d === kIso(now).slice(0, 10) ? "오늘" : d === kIso(now + 864e5).slice(0, 10) ? "내일" : dlabel(d); }
+function dur(ms) { const m = Math.max(0, Math.round(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60; return d ? `${d}일 ${h}시간` : h ? `${h}시간 ${mi}분` : `${mi}분`; }
+function clockHTML() {
+  const now = Date.now(), M = sessFrom(now, (x) => now < x.segs.at(-1).b), R = sessFrom(now, (x) => now < x.reg.b);
+  if (!M || !R) return `<div class="t2">장 달력을 확인할 수 없습니다.</div>`;
+  const cur = M.segs.find((x) => now >= x.a && now < x.b), et = etParts(now), wkend = !cur && (et.wd === "Sat" || et.wd === "Sun");
+  const st = cur ? cur.n : wkend ? "주말 휴장" : !isSess(et.ds) && now < M.w0 ? "휴장일" : "장 닫힘";
+  const open = now >= R.reg.a, ki = kIso(now), pos = (t) => Math.max(0, Math.min(100, (t - M.w0) / (M.w1 - M.w0) * 100)), inWin = now >= M.w0 && now < M.w1;
+  const night0 = etMs(NIGHT_FROM, 21, 0);
+  const bar = `<div class="mk-bar">${M.segs.map((x) => `<span class="${cur === x ? "now" : ""}" style="left:${pos(x.a)}%;width:${pos(x.b) - pos(x.a)}%;background:${SEGC[x.k]}"></span>`).join("")}
+      ${M.alarms.map((x) => `<i class="mk-al" style="left:${pos(x.t)}%"></i>`).join("")}${inWin ? `<b class="mk-now" style="left:${pos(now)}%"></b>` : ""}</div>
+    <div class="mk-ticks"><span style="left:${pos(M.reg.a)}%">${kHM(M.reg.a)}</span><span style="left:${pos(M.reg.b)}%">${kHM(M.reg.b)}</span></div>`;
+  const rows = M.segs.map((x) => `<div class="mk-row${cur === x ? " on" : ""}"><i style="background:${SEGC[x.k]}"></i><span>${x.n}</span><b>${kHM(x.a)} ~ ${kHM(x.b)}</b></div>`).join("")
+    + M.alarms.map((x) => `<div class="mk-row al"><i></i><span>${x.n}<small>${x.sub}</small></span><b>${kHM(x.t)}${x.from ? "부터" : ""}</b></div>`).join("")
+    + (now < night0 ? `<div class="mk-note">밤 세션은 ${dlabel(kIso(night0).slice(0, 10))} ${kHM(night0)}에 시작합니다.</div>` : "");
+  return `<div class="mk-top"><div><div class="mk-time">${ki.slice(11, 16)}<small>:${ki.slice(17, 19)}</small></div>
+      <div class="t2">한국 ${dlabel(ki.slice(0, 10))} · 뉴욕 ${String(et.h).padStart(2, "0")}:${String(et.mi).padStart(2, "0")}</div></div>
+      <span class="mk-st ${cur ? cur.k : "off"}">${st}</span></div>
+    <div class="mk-cd">${open ? `정규장 마감까지 <b>${dur(R.reg.b - now)}</b>` : `정규장 개장까지 <b>${dur(R.reg.a - now)}</b>`}<span>${open ? kHM(R.reg.b) : `${kDay(R.reg.a, now)} ${kHM(R.reg.a)}`}${R.early ? " · 조기 마감" : ""}</span></div>
+    ${bar}<div class="mk-list">${inWin ? "" : `<div class="mk-cap">${dlabel(M.ds)} 장 · 한국 시간</div>`}${rows}</div>`;
+}
+let clockT = null;
+function startClock() {
+  clearInterval(clockT);
+  const f = () => { const el = $("#clockIn"); if (!el) { clearInterval(clockT); clockT = null; return; } el.innerHTML = clockHTML(); };
+  f(); clockT = setInterval(f, 1000);
+}
 function home() {
   const k = S.prof, a = D.accounts[k], plan = a.plan || {}, my = myAmt();
-  // 1) 보유 현황
-  const s = a.series || [], v0 = s[0] ? (s[0][2] ?? s[0][1] * D.usdkrw) : null, v1 = s.length ? (s.at(-1)[2] ?? s.at(-1)[1] * D.usdkrw) : null;
   const {g, tot} = composition(a), tq = g[S.inst] / tot, shown = Object.entries(g).filter(([, x]) => x / tot > .0005);
-  let html = `<button class="card type-context" id="strategyGuide"><span><strong>운용 방식 · ${INFO[k].tag}</strong><small>단타 종목 ${S.inst}</small></span><span>설명 <b>›</b></span></button>
-    <div class="card"><div class="row" style="padding:0;border:0"><div class="title">보유 현황</div><div class="r t2">${ymd(D.last_close)} 종가</div></div>
-    <div class="t2">가상 계좌 운용 수익률(${ymd(D.start)}~, 원화·세후) <b class="${cls(v1 / v0 - 1)}">${pct(v1 / v0 - 1, 2)}</b></div>
-    <div class="stack">${shown.map(([n, x]) => `<span style="width:${x / tot * 100}%;background:${COMP[n][2]}"></span>`).join("")}</div>
+  const n = (plan.swing || []).length + (plan.alloc || []).length;
+  // 1) 장 시계 + 다음 주문
+  let html = `<div class="card mk"><div id="clockIn"></div>
+    <button class="mk-go" data-go="todo"><span>다음 거래일 주문</span><b>${n ? `${n}건` : "없음"} ›</b></button></div>`;
+  // 2) 보유 현황
+  html += `<div class="card"><div class="row" style="padding:0;border:0"><div class="title">보유 현황</div><div class="r t2">${ymd(D.last_close)} 종가</div></div>
+    <div class="stack">${shown.map(([nm, x]) => `<span style="width:${x / tot * 100}%;background:${COMP[nm][2]}"></span>`).join("")}</div>
     <table class="tbl"><thead><tr><th>종목</th><th class="r">비중</th>${my ? `<th class="r">내 투자금 기준</th>` : ""}</tr></thead><tbody>
-    ${shown.map(([n, x]) => `<tr><td><i class="sw" style="background:${COMP[n][2]}"></i><b>${COMP[n][0]}</b><div class="t2">${COMP[n][1]}</div></td><td class="r">${pctu(x / tot)}</td>${my ? `<td class="r">${won(my * x / tot)}</td>` : ""}</tr>`).join("")}
+    ${shown.map(([nm, x]) => `<tr><td><i class="sw" style="background:${COMP[nm][2]}"></i><b>${COMP[nm][0]}</b><div class="t2">${COMP[nm][1]}</div></td><td class="r">${pctu(x / tot)}</td>${my ? `<td class="r">${won(my * x / tot)}</td>` : ""}</tr>`).join("")}
     </tbody></table>`;
   const sell = (plan.swing || []).find((o) => o.how === "목표가"), due = (plan.swing || []).find((o) => o.how === "보유기한");
   if (sell) {
     const avg = parseFloat((sell.why.match(/\$([\d.]+)/) || [])[1]), q = LQ[S.inst], lots = dedupLots(plan.lots);
-    html += `<div class="alert"><b>공포 단타 진행 중 · ${S.inst} ${pctu(tq)}</b><br>${tq>=.5 ? "단타 비중이 높습니다. 실제 계좌에서 감당할 수 있는 손실과 남은 현금을 확인하십시오." : "추가 매수에 따라 단타 비중이 커집니다."}</div>
-      <div class="kv2"><div>매수</div><div>${lots.map((l, i) => l.how === "예비" ? "예비" : (i + 1) + "차").join("·")} ${lots.length?`(${ymd(lots[0].d).slice(5)}~${ymd(lots.at(-1).d).slice(5)})`:""}</div>
-      ${lots.length && lots[0].n ? (() => { const amt = lots.map((l) => l.n * l.px), full = tot * S.lot / 100, half = amt.map((x) => x < full * .75), sum = amt.reduce((z, x) => z + x, 0);
-        return `<div>묶음 크기</div><div>${amt.map((x) => pctu(x / tot, 0)).join("·")} · 합계 약 ${pctu(sum / tot, 0)}${half.some((h) => h) ? `<div class="t2">하락이 느린 날은 한 묶음의 절반(${S.lot / 2}%)만 삽니다.</div>` : ""}</div>`; })() : ""}
+    html += `<div class="sub-h">공포 단타 진행 중 · ${S.inst} ${pctu(tq)}</div>
+      <div class="kv2"><div>매수</div><div>${lots.length}회 ${lots.length ? `(${ymd(lots[0].d).slice(5)}~${ymd(lots.at(-1).d).slice(5)})` : ""}</div>
       <div>전략 기준 단가</div><div>${usd2(avg)}</div><div>목표가(+${PRODUCTS[S.inst].target}%)</div><div class="up">${usd2(sell.limit)}</div>
       ${q ? `<div>현재가</div><div><b>${usd2(q.c)}</b> · 목표가까지 ${pct(sell.limit / q.c - 1)}</div>` : ""}
       <div>보유 기한</div><div>${due ? ymd(due.session) + " 장 마감" : "-"}</div></div>`;
+  } else {
+    const sg = plan.signals || {}, room = sg.room ?? (sg.max_regular_lots || 5);
+    const cs = [["공포", sg.fear], ["하락 범위", sg.band], ["RSI 30 미만", sg.rsi == null ? null : sg.rsi < 30], ["남은 한도", room > 0]];
+    html += `<button class="sig-go" data-go="signal"><span class="l"><b>공포 단타 대기</b><small>매수 조건 4개 중 ${cs.filter((c) => c[1] === true).length}개 충족</small>
+      <span class="sig-dots">${cs.map(([t, ok]) => `<em class="${ok === true ? "ok" : ""}">${t}</em>`).join("")}</span></span><b class="mute">›</b></button>`;
   }
   const tr = D.trend;
-  if (tr) html += `<div class="t2" style="margin-top:10px">추세: ${tr.next_in ? `<b class="up">상승</b> · QQQM 보유` : `<b class="down">하락</b> · ${waitWord()}`} (QQQ ${usd2(tr.close)}, 200일선 대비 ${pct(tr.gap)}, ${tr.next_in ? "이탈선 " + usd2(tr.exit_line) : "재진입선 " + usd2(tr.entry_line)})</div>`;
-  html += `</div>`;
-  // 2) 이 날 시작했다면
-  const n = (plan.swing || []).length + (plan.alloc || []).length;
-  html += `<div class="card"><div class="title">이 날 시작했다면</div><div class="desc">과거 자료 모의 · 수수료 ${feeTxt()} 반영</div>
+  if (tr) html += `<div class="t2" style="margin-top:12px">추세 ${tr.next_in ? `<b class="up">상승</b> · QQQM 보유 · 이탈선 QQQ ${usd2(tr.exit_line)}` : `<b class="down">하락</b> · ${waitWord()} · 재진입선 QQQ ${usd2(tr.entry_line)}`}</div>`;
+  html += `</div>${D.health.length ? `<div class="foot"><b class="warn">자료 확인 필요 ${D.health.length}건(신호 탭)</b></div>` : ""}`;
+  $("#view").innerHTML = html;
+  document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
+  startClock();
+  if (!tickT) liveTick();
+}
+// 이 날 시작했다면(11-27 홈 → 비교 탭 맨 위로)
+function simCard() {
+  return `<div class="card"><div class="title">이 날 시작했다면</div><div class="desc">과거 자료 모의 · 수수료 ${feeTxt()} 반영</div>
     <div class="simf"><label>시작일<input type="date" id="simd" min="2000-01-03" value="${S.simd}"></label><label>금액(선택)<input id="sima" inputmode="numeric" placeholder="비우면 %로 표시" value="${esc(S.sima)}"></label></div>
     <div class="chips">${QUICK().map(([d, t]) => `<button class="chipb ${S.simd === d ? "on" : ""}" data-qd="${d}">${t}</button>`).join("")}</div>
-    <div id="simsum"></div><div id="simchart"></div><div class="chart-cap" id="simcap"></div></div>
-    <div class="card" style="padding:4px 18px"><div class="row" onclick="go('todo')" style="cursor:pointer"><div class="l"><div class="t1">다음 거래일 주문 ${n ? `<span style="color:${col(k)}">${n}건</span>` : "없음"}</div><div class="t2">${D.next_session ? openKst(D.next_session) + " 정규장 개장(한국시간)" : "휴장일 확인 필요"}</div></div><div class="r mute">›</div></div></div>
-    <div class="foot">과거 자료로 계산한 모의 결과입니다. ${S.inst!=="QQQ"?`${S.inst} 상장 전 기간에는 가정 가격이 포함됩니다. `:""}${D.health.length ? ` <b class="warn">자료 확인 필요 ${D.health.length}건(신호 탭)</b>` : ""}</div>`;
-  $("#view").innerHTML = appCard() + html; bindAppCard();
-  $("#strategyGuide").onclick=openGuide;
+    <div id="simsum"></div><div id="simchart"></div><div class="chart-cap" id="simcap"></div></div>`;
+}
+function bindSim() {
+  if (!$("#simd") || !H) return;
   const reSim = () => { S.simd = $("#simd").value || S.simd; S.sima = $("#sima").value; save(); drawSim(); };
   $("#simd").onchange = reSim; $("#sima").oninput = () => { clearTimeout(window._st); window._st = setTimeout(reSim, 500); };
   document.querySelectorAll("[data-qd]").forEach((b) => b.onclick = () => { S.simd = b.dataset.qd; $("#simd").value = S.simd; save(); document.querySelectorAll("[data-qd]").forEach((x) => x.classList.toggle("on", x === b)); drawSim(); });
-  if (!needHist(() => S.tab === "home" && render())) { $("#simchart").innerHTML = wait("과거 자료를 불러오는 중입니다"); return; }
   $("#simd").max = H.last; drawSim();
-  if (!tickT) liveTick();
 }
 function QUICK() {
   const y = (H ? H.last : D.last_close).slice(0, 4), ago = (n) => { const d = new Date((H ? H.last : D.last_close) + "T12:00:00"); d.setFullYear(d.getFullYear() - n); return d.toISOString().slice(0, 10); };
@@ -382,7 +439,7 @@ const fold = (id,title,summary,contents) => `<details class="card section-fold" 
 function compare() {
   let html = `<div class="card compare-intro"><div class="title">${P[S.prof].name} · ${S.inst} 비교</div>${seg(histOptions(), S.assume ? "1" : "0", "as")}
     ${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "vw")}
-    <div class="t2">수수료 한쪽 ${feeTxt()} 반영 · <a href="#" id="feeLink">수수료 바꾸기</a></div></div>`;
+    <div class="t2">수수료 한쪽 ${feeTxt()} 반영 · <a href="#" id="feeLink">수수료 바꾸기</a></div></div>` + simCard();
   if (!needHist(() => S.tab === "compare" && render())) { $("#view").innerHTML = html + wait("비교 자료를 불러오는 중입니다"); bindCompare(); return; }
   const btn = S.assume ? "assume" : "real", bt = H.bt[btn], view = S.view, xs = H.dates.slice(bt.i0), keys = [...ORDER, "qqq"];
   const V = Object.fromEntries(keys.map((kk) => [kk, vals(btn, kk, view)])), st = Object.fromEntries(keys.map((kk) => [kk, jstats(V[kk])]));
@@ -434,7 +491,7 @@ function compare() {
   // 6) 임의 시점 N년 + 7) 세부 성적표
   html += fold("rolling","시작 시점별 성과","1·3·5·10년 · 최악 사례",`<div class="desc">분기별로 다른 날 시작한 원화·세후 과거 사례입니다. 상장 전 가정 가격이 포함될 수 있습니다.</div>${seg(HSEG,S.h,"h")}<div id="rolltable"></div><div id="rollc2"></div>`)
     + fold("score","세부 성적표",`${ymd(bt.start)}부터 · 수익·낙폭·거래 수`,`<div id="sctable"></div>`);
-  $("#view").innerHTML = html; bindCompare();
+  $("#view").innerHTML = html; bindCompare(); bindSim();
   $("#feeLink").onclick = (e) => { e.preventDefault(); openSettings(); };
   bindSeg("cm", (v) => { S.cmode = v; save(); render(); });
   bindSeg("cr", (v) => { S.crange = v; save(); render(); });
@@ -567,7 +624,8 @@ function todo() {
   const notice=a.notice, nativeStatus=AND?.notificationsEnabled?.();
   let html = `<div class="card notice-card"><div class="notice-status"><div><div class="t2">${P[k].name} · ${S.inst}</div><div class="title">${esc(notice?.title || "알림 상태 확인 중")}</div></div>${notice?`<span class="notice-chip ${notice.level}">${notice.level==="none"?"보낼 알림 없음":notice.action?"주문 알림 대상":"상태 알림 대상"}</span>`:""}</div>
     <div class="desc">${nativeStatus===false?"휴대폰 알림이 꺼져 있습니다.":nativeStatus===true?"휴대폰 알림이 켜져 있습니다. 새 마감 자료 확인 뒤 알림이 표시됩니다.":""}</div>
-    ${nativeStatus===false?'<button class="secondary" id="enableNotices">휴대폰 알림 설정</button>':nativeStatus===true?'<button class="secondary" id="testNotice">테스트 알림</button>':""}</div>
+    ${nativeStatus===false?'<button class="secondary" id="enableNotices">휴대폰 알림 설정</button>':nativeStatus===true?'<button class="secondary" id="testNotice">테스트 알림</button>':""}
+    ${WEB && PUSHST !== "on" ? `<button class="secondary" id="todoPush">이 기기로 알림 받기</button>` : ""}</div>
     <div class="card order-context"><div><div class="title">주문 계획</div><div class="t2">${D.next_session ? openKst(D.next_session) + " 개장" : "다음 개장 확인 중"} ${ymd(D.last_close)} 종가 기준</div>
     <div class="t2">${f ? `${won(myAmt())} 기준 예상 주 수` : "가상 계좌 기준 주 수"}${buyingCash!==null?` · 결제 현금 ${usd2(buyingCash)}`:""}</div></div><button class="secondary" id="orderSize">내 수량 설정</button></div>`;
   if (hold) html += `<div class="card"><div class="alert" style="margin:0"><b>주문 보류</b><br>${esc(plan.hold.join(" · "))}</div></div>`;
@@ -591,6 +649,7 @@ function todo() {
   html += `<div class="foot">이 앱은 주문표를 제공합니다. 증권사에서 실제 현금·보유량과 체결 상태를 확인한 후 직접 주문하십시오. 표시된 수량은 가상 장부를 기준으로 계산한 값입니다.</div>`;
   $("#view").innerHTML = html;
   $("#orderSize").onclick=openSettings;
+  if($("#todoPush"))$("#todoPush").onclick=()=>pushOn().catch((e)=>pushMsg("알림 등록에 실패했습니다. "+esc(e.message)));
   if($("#enableNotices"))$("#enableNotices").onclick=()=>AND.notificationSettings();
   if($("#testNotice"))$("#testNotice").onclick=()=>AND.testOrderNotification?.();
 }
@@ -905,8 +964,8 @@ function appCard() {
   if (!WEB) return "";
   const inst = !STANDALONE, push = PUSHST === "off" || (PUSHST === "no" && IOS && !STANDALONE);
   if (!inst && !push) return "";
-  return `<div class="card appcard"><div class="title">앱으로 받기</div>
-    <div class="desc">${inst ? "앱으로 설치하면 홈 화면 아이콘으로 주소창 없이 열립니다. " : ""}${push ? "알림을 켜면 주문할 일이 생길 때 바로 알려 드립니다." : ""}</div>
+  return `<div class="appcard"><div class="sub-h">앱으로 받기</div>
+    <div class="desc">${inst ? "설치하면 홈 화면 아이콘으로 열립니다. " : ""}${push ? "알림을 켜면 주문할 일이 생길 때 알려 드립니다." : ""}</div>
     <div class="appbtns">${inst ? `<button class="btn" id="appInst">앱 설치</button>` : ""}${push ? `<button class="btn${inst ? " ghost" : ""}" id="appPush">알림 받기</button>` : ""}</div></div>`;
 }
 function bindAppCard() {
