@@ -175,7 +175,7 @@ function faqItems() {
 function openGuide() {
   needHist(() => {});
   sheet(`<div class="pk-t">사용 안내</div>${faqItems().map(([q, a], i) => `<details class="faq"${i === 0 ? " open" : ""}><summary>${q}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></summary><div class="faq-a">${a}</div></details>`).join("")}
-    <button class="btn ghost" id="gok">처음 안내 다시 보기</button>`, (close) => { $("#gok").onclick = () => { close(); openTour(0, true); }; });
+    <button class="btn ghost" id="gok">처음 안내 다시 보기</button><button class="btn ghost" id="gco">화면 안내 다시 보기</button>`, (close) => { $("#gok").onclick = () => { close(); openTour(0, true); }; $("#gco").onclick = () => { coachReset(); close(); }; });
 }
 // 처음 안내 3장: 결과 → 방식 → 종목 고르기, 끝나면 '앱으로 받기' 창(maybeEntry)
 const TOUR = [
@@ -291,35 +291,46 @@ function sessDay(ds) {   // 거래일 ds 하루: 전날 20:00 ET ~ 그날 20:00 
   segs.push({k: "pre", n: "프리마켓", a: etMs(ds, 4, 0), b: etMs(ds, 9, 30)}, {k: "reg", n: "정규장", a: etMs(ds, 9, 30), b: etMs(ds, ch, 0)},
             {k: "aft", n: "애프터마켓", a: etMs(ds, ch, 0), b: etMs(ds, early ? 17 : 20, 0)});
   return {ds, early, segs, reg: segs.find((x) => x.k === "reg"), w0: etMs(pv, 20, 0), w1: etMs(ds, 20, 0),
-          alarms: [{n: "개장 전 알림", sub: "걸 주문이 있을 때", t: etMs(ds, 7, 0)}, {n: "마감 후 알림", sub: "새 주문이 생겼을 때", t: etMs(ds, ch, 20), from: true}]};
+          alarms: [{n: "개장 전 알림", sub: "걸 주문이 있을 때", t: etMs(ds, 7, 0)}, {n: "마감 후 알림", sub: "새 주문이 생겼을 때", t: etMs(ds, 16, 20), from: true}]};
 }
 function sessFrom(now, cond) { let ds = etParts(now).ds; for (let i = 0; i < 14; i++, ds = dayAdd(ds, 1)) { if (!isSess(ds)) continue; const x = sessDay(ds); if (cond(x)) return x; } return null; }
 const kIso = (ms) => new Date(ms + 9 * 3600e3).toISOString();
 const kHM = (ms) => kIso(ms).slice(11, 16);
 function kDay(ms, now) { const d = kIso(ms).slice(0, 10); return d === kIso(now).slice(0, 10) ? "오늘" : d === kIso(now + 864e5).slice(0, 10) ? "내일" : WD[new Date(d + "T12:00:00Z").getUTCDay()] + "요일"; }
 function dur(ms) { const m = Math.max(0, Math.round(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60; return d ? `${d}일 ${h}시간` : h ? `${h}시간 ${mi}분` : `${mi}분`; }
-const SEGL = {night: "밤", pre: "프리", reg: "정규장", aft: "애프터"};
-const BELL = `<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 004 0"/></svg>`;
-function clockHTML() {   // 4단계(11-27): 큰 시각 + 상태 칩 + 남은 시간 한 줄 + 하루 시간표 띠(구간 이름은 띠 안, 경계 시각은 띠 아래, 알림은 띠 위 종)
+// 11-27 밤 사용자 '막대는 시계가 아니라 직관성이 떨어진다' → 24시간 문자판(한국 시간). 파란 호 = 정규장, 옅은 호 = 프리·애프터, 보라 = 밤 세션, 주황 종 = 알림, 바늘 = 지금
+const SEGF = {night: "#cdc6fa", pre: "#b7d4fb", reg: "#3182f6", aft: "#b7d4fb"};
+const kHour = (ms) => { const s = kIso(ms); return +s.slice(11, 13) + +s.slice(14, 16) / 60; };
+function dialArc(cx, cy, r, h1, h2) {
+  if (h2 <= h1) h2 += 24; const a = (h) => (h / 24) * 2 * Math.PI - Math.PI / 2, p = (h) => [cx + r * Math.cos(a(h)), cy + r * Math.sin(a(h))];
+  const [x1, y1] = p(h1), [x2, y2] = p(h2); return `M${x1.toFixed(2)} ${y1.toFixed(2)}A${r} ${r} 0 ${h2 - h1 > 12 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
+function dialSVG(M, now, cur, night0) {
+  const C = 84, R = 52, W = 14, pt = (h, r) => { const a = (h / 24) * 2 * Math.PI - Math.PI / 2; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+  let s = `<svg class="dl" viewBox="0 0 168 168" aria-hidden="true"><circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="#eef1f4" stroke-width="${W}"/>`;
+  if (!M.segs.some((x) => x.k === "night")) s += `<path d="${dialArc(C, C, R, kHour(etMs(dayAdd(M.ds, -1), 21, 0)), kHour(etMs(M.ds, 4, 0)))}" fill="none" stroke="#c9cfd6" stroke-width="2" stroke-dasharray="3 4"/>`;
+  M.segs.forEach((x) => { s += `<path d="${dialArc(C, C, R, kHour(x.a), kHour(x.b))}" fill="none" stroke="${SEGF[x.k]}" stroke-width="${cur === x ? W + 4 : W}"/>`; });
+  [0, 6, 12, 18].forEach((h) => { const [x, y] = pt(h, R + 23); s += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" class="dl-h">${h}시</text>`; });
+  for (let h = 0; h < 24; h++) { const [x1, y1] = pt(h, R + W / 2 + 2), [x2, y2] = pt(h, R + W / 2 + (h % 6 ? 4 : 7)); s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#c9cfd6" stroke-width="${h % 6 ? 1 : 1.6}"/>`; }
+  M.alarms.forEach((al) => { const [x, y] = pt(kHour(al.t), R); s += `<g class="dl-bell" transform="translate(${(x - 8).toFixed(1)} ${(y - 8).toFixed(1)})"><circle cx="8" cy="8" r="8.5" fill="#fff" stroke="#f08a00" stroke-width="1.4"/><path d="M4.6 10.4V7.6a3.4 3.4 0 016.8 0v2.8l.9 1.1H3.7z M6.9 12.6a1.2 1.2 0 002.2 0" fill="none" stroke="#f08a00" stroke-width="1.3" stroke-linejoin="round"/></g>`; });
+  const hn = kHour(now), [hx, hy] = pt(hn, R + W / 2 + 3), [ix, iy] = pt(hn, R - W / 2 - 9); s += `<line x1="${ix.toFixed(1)}" y1="${iy.toFixed(1)}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="#191f28" stroke-width="3.2" stroke-linecap="round"/>`;
+  return s + `</svg>`;
+}
+function clockHTML() {
   const now = Date.now(), M = sessFrom(now, (x) => now < x.segs.at(-1).b), R = sessFrom(now, (x) => now < x.reg.b);
   if (!M || !R) return `<div class="t2">장 달력을 확인할 수 없습니다.</div>`;
   const cur = M.segs.find((x) => now >= x.a && now < x.b), et = etParts(now), wkend = !cur && (et.wd === "Sat" || et.wd === "Sun");
-  const st = cur ? cur.n : wkend ? "주말 휴장" : !isSess(et.ds) && now < M.w0 ? "휴장일" : "장 닫힘";
-  const open = now >= R.reg.a, ki = kIso(now), inWin = now >= M.w0 && now < M.w1;
-  const pos = (t) => Math.max(0, Math.min(100, (t - M.w0) / (M.w1 - M.w0) * 100));
-  const segs = M.segs.slice(), night0 = etMs(NIGHT_FROM, 21, 0);
-  if (!segs.some((x) => x.k === "night")) segs.unshift({k: "night", ph: true, a: etMs(dayAdd(M.ds, -1), 21, 0), b: etMs(M.ds, 4, 0)});   // 밤 세션 시작 전: 자리만 점선으로
-  const cut = [...new Set(segs.flatMap((x) => [x.a, x.b]))].sort((p, q) => p - q);
-  const tick = (t) => { const p = pos(t); return `<span style="left:${p}%" class="${p < 6 ? "l" : p > 94 ? "r" : ""}">${kHM(t)}</span>`; };
-  const bar = `<div class="mk-bells">${inWin ? "" : `<span class="mk-cap">${WD[new Date(M.ds + "T12:00:00Z").getUTCDay()]}요일 장</span>`}${M.alarms.map((x) => `<i style="left:${pos(x.t)}%" title="${x.n} ${kHM(x.t)}">${BELL}</i>`).join("")}</div>
-    <div class="mk-bar">${segs.map((x) => `<span class="${x.k}${x.ph ? " ph" : ""}${cur === x ? " now" : ""}" style="left:${pos(x.a)}%;width:${pos(x.b) - pos(x.a)}%">${x.ph ? `밤 ${+kIso(night0).slice(5, 7)}/${+kIso(night0).slice(8, 10)}부터` : SEGL[x.k]}</span>`).join("")}
-      ${inWin ? `<b class="mk-now" style="left:${pos(now)}%"></b>` : ""}</div>
-    <div class="mk-ticks">${cut.map(tick).join("")}</div>`;
-  return `<div class="mk-top"><div><div class="mk-time">${ki.slice(11, 16)}<small>:${ki.slice(17, 19)}</small></div>
-      <div class="t2">한국 ${dlabel(ki.slice(0, 10))} · 뉴욕 ${String(et.h).padStart(2, "0")}:${String(et.mi).padStart(2, "0")}</div></div>
-      <span class="mk-st ${cur ? cur.k : "off"}">${st}</span></div>
-    <div class="mk-cd">${open ? `정규장 마감까지 <b>${dur(R.reg.b - now)}</b> · ${kHM(R.reg.b)}${R.early ? " 조기 마감" : ""}` : `정규장 개장까지 <b>${dur(R.reg.a - now)}</b> · ${kDay(R.reg.a, now)} ${kHM(R.reg.a)}`}</div>
-    ${bar}`;
+  const st = cur ? cur.n + " 거래 중" : wkend ? "주말 휴장" : !isSess(et.ds) && now < M.w0 ? "휴장일" : "장 닫힘";
+  const open = now >= R.reg.a, ki = kIso(now), night0 = etMs(NIGHT_FROM, 21, 0), seg = (k) => M.segs.find((x) => x.k === k);
+  const span = (x) => x ? `${kHM(x.a)}~${kHM(x.b)}` : "";
+  const leg = [["reg", "정규장", span(seg("reg"))], ["pre", "프리", span(seg("pre"))], ["aft", "애프터", span(seg("aft"))],
+    seg("night") ? ["night", "밤", span(seg("night"))] : null].filter(Boolean);
+  return `<div class="dl-w"><div class="dl-box">${dialSVG(M, now, cur, night0)}<div class="dl-c"><small>한국</small><b>${ki.slice(11, 16)}</b></div></div>
+    <div class="dl-r"><span class="mk-st ${cur ? cur.k : "off"}">${st}</span>
+      <div class="dl-cd">${open ? "정규장 마감까지" : "정규장 개장까지"}<b>${dur((open ? R.reg.b : R.reg.a) - now)}</b><small>${open ? kHM(R.reg.b) : `${kDay(R.reg.a, now)} ${kHM(R.reg.a)}`}${R.early ? " · 오늘 조기 마감" : ""}</small></div></div></div>
+    <div class="dl-leg">${leg.map(([k, n, t]) => `<div><i style="background:${SEGF[k]}"></i><span>${n}</span><b>${t}</b></div>`).join("")}
+      <div class="al"><i></i><span>알림</span><b>${M.alarms.map((a) => kHM(a.t)).join(" · ")}</b></div>
+      ${now < night0 ? `<div class="mute2"><i class="ph"></i><span>밤</span><b>${+kIso(night0).slice(5, 7)}/${+kIso(night0).slice(8, 10)}부터</b></div>` : ""}</div>`;
 }
 let clockT = null;
 function startClock() {
@@ -937,7 +948,7 @@ function render() {
   pills();
   document.querySelectorAll("#tabs button").forEach((b) => { b.classList.toggle("on", b.dataset.tab === S.tab); b.onclick = () => go(b.dataset.tab); });
   if(S.inst!=="TQQQ"&&!rawData?.variants?.[S.inst]) { $("#view").innerHTML=wait(`${S.inst} 조합 자료를 기다리고 있습니다. 자료가 갱신되면 다시 표시됩니다.`); return; }
-  try { (PAGES[S.tab] || home)(); }
+  try { (PAGES[S.tab] || home)(); setTimeout(maybeCoach, 700); }
   catch (e) {   // 오류 문구 대신 다시 그리기(1회), 그래도 안 되면 홈으로
     console.error(e);
     if (!render._retry) { render._retry = true; setTimeout(() => { render(); render._retry = false; }, 800); }
@@ -965,6 +976,79 @@ window.onAndroidData = (ok) => { if (ok) return fromAndroid(); if (!D) tokenCard
 window.onAndroidHist = () => { const s = AND.getHist && AND.getHist(); if (s) { try { histReady(JSON.parse(s)); render(); } catch (e) {} } };
 window.goBackTab = () => { if(tourPage>0){openTour(tourPage-1);return true;} if(tourPage===0){$("#tourSkip").click();return true;} if (S.tab !== "home") { go("home"); return true; } return false; };
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D) liveTick(); });
+// ── 화면 안내(11-27 밤 사용자 '집셈 결과표 안내처럼'): 실제 칸을 밝게 비추고 한 문장 + 쓰는 법. '다시 보지 않기'를 눌러야만 그 화면 안내가 사라짐(방문마다 한 번) ──
+let COACH = null; const cmDone = new Set();
+const HL = (t) => `<em class="hl">${t}</em>`;
+const cmKeyOf = (k) => "bdCoach_" + k;
+const cmNever = (k) => { try { return localStorage.getItem(cmKeyOf(k)) === "x"; } catch (e) { return false; } };
+const cmFind = (q) => typeof q === "function" ? q() : document.querySelector(q);
+const rowWith = (sel, txt) => () => [...document.querySelectorAll(sel)].find((r) => r.textContent.includes(txt));
+const COACHES = {
+  home: () => [
+    {q: ".dl-box", lb: "시계", t: "미국 장 시간을 한국 시간 시계로 보여 줍니다", g: `${HL("파란 호")}가 정규장, 옅은 호가 프리·애프터마켓입니다. 겨울엔 밤 23:30~새벽 6:00, 서머타임(3~11월)엔 22:30~새벽 5:00입니다. 검은 바늘이 지금 시각입니다.`},
+    {q: ".dl-leg .al", lb: "알림", t: "주황 종이 알림이 오는 시각입니다", g: `개장 전 알림은 ${HL("걸어 둘 주문")}이 있을 때, 마감 후 알림은 ${HL("새 주문")}이 생겼을 때만 옵니다. 알림이 없는 날은 할 일이 없습니다.`},
+    {q: ".mk-go", lb: "주문", t: "주문이 생기면 여기에 건수가 뜹니다", g: `누르면 증권사에 넣을 ${HL("가격과 수량")}이 나옵니다.`},
+    {q: ".hold .hl-row", lb: "보유 현황", t: "전략이 지금 들고 있는 비중입니다", g: `내 계좌도 ${HL("같은 비중")}으로 맞추면 됩니다. 현금 100%면 기다리는 때입니다.`},
+    document.querySelector(".hl-sw") ? {q: ".hl-sw", lb: "공포 단타", t: "막대가 끝까지 차면 목표가에 팝니다", g: `평균 단가에서 목표가까지 얼마나 왔는지입니다. ${HL("보유 기한")}이 지나면 손익과 상관없이 팝니다.`}
+      : {q: ".sig-go", lb: "공포 단타", t: "조건 4개가 모두 차면 삽니다", g: `빨간 칸이 충족된 조건입니다. 누르면 남은 조건을 ${HL("QQQ 가격")}으로 보여 줍니다.`},
+    {q: '#tabs [data-tab="log"]', lb: "매매 차트", t: "언제 사고 언제 팔았는지 모두 볼 수 있습니다", g: `2000년부터의 거래를 차트 위 ${HL("▲ 매수 · ▼ 매도")}로 하나하나 확인합니다.`},
+    {q: '#tabs [data-tab="compare"]', lb: "성적", t: "따라 하기 전에 지난 결과부터 확인하십시오", g: `2000년부터 1억이 얼마가 됐는지, ${HL("QQQ를 사서 들고만 있었을 때")}와 나란히 보여 드립니다.`, go: ["성적 보러 가기", "compare"]}],
+  compare: () => [
+    {q: ".pf-big", lb: "성적", t: "1억을 넣었다면 지금 얼마인지입니다", g: `${HL("세금·환율·수수료")}를 뺀 금액입니다. 같은 기간 QQQ를 사서 들고만 있었을 때와 나란히 봅니다.`},
+    {q: ".pf-hero .seg", lb: "기간", t: "기간을 바꿔 보십시오", g: `2000년은 닷컴 꼭대기라 QQQ에 불리한 출발점입니다. ${HL("10년·5년")}으로 바꿔도 이기는지 확인할 수 있습니다.`},
+    {q: ".pf-d", lb: "적립식", t: "매달 모으는 방법과 비교합니다", g: `매달 100만 원을 ${HL("QQQ에 적립")}했을 때와 이 전략에 넣었을 때입니다.`},
+    {q: ".pf-big2", lb: "시작일", t: "아무 날에 시작했어도 이겼는지 봅니다", g: `2000년부터 시작일을 석 달씩 옮겨 가며 다시 계산했습니다. ${HL("보유 기간")}을 눌러 바꿔 보십시오.`},
+    {q: '[data-fold="score"]', lb: "자세히", t: "모든 지표는 전체 성적표에 있습니다", g: "변동성·월별 수익 등 숫자를 더 보고 싶을 때 펼치십시오."},
+    {q: '#tabs [data-tab="log"]', lb: "매매 차트", t: "이 성적을 만든 거래를 직접 보십시오", g: `산 날과 판 날, 거래마다 ${HL("몇 % 남겼는지")} 모두 공개합니다.`, go: ["매매 차트 보기", "log"]}],
+  todo: () => document.querySelector(".tk") ? [
+    {q: ".td-h", lb: "할 일", t: "다음 장에 넣을 주문입니다", g: `장 마감 숫자로 계산해 개장 전에 올라옵니다. ${HL("주문이 없는 날")}이 대부분입니다.`},
+    {q: ".tk-g", lb: "주문표", t: "증권사 앱에 이 순서대로 넣습니다", g: `종목 → ${HL("지정가")} → 가격 → 수량. 주문 시간은 ${HL("정규장")}으로 고르십시오.`},
+    {q: ".tk-cp", lb: "복사", t: "누르면 복사됩니다", g: "가격과 수량을 복사해 증권사 앱에 붙여 넣으십시오."},
+    {q: ".td-amt", lb: "수량", t: "내 금액으로 수량을 바꿉니다", g: `운용 금액을 넣으면 주문 수량이 ${HL("내 계좌 기준")}으로 바뀝니다.`}]
+    : [{q: ".td-empty", lb: "할 일", t: "오늘은 넣을 주문이 없습니다", g: `주문이 생기면 여기 ${HL("가격과 수량")}이 나오고 알림이 옵니다.`}, {q: ".td-amt", lb: "수량", t: "내 금액으로 수량을 바꿉니다", g: `운용 금액을 넣어 두면 주문 수량이 ${HL("내 계좌 기준")}으로 나옵니다.`}],
+  signal: () => [
+    {q: ".sg-need", lb: "신호", t: "지금 무엇이 남았는지 가격으로 알려 줍니다", g: `QQQ가 ${HL("이 가격 아래로 마감")}하면 다음 장에 삽니다.`},
+    {q: ".sg-r", lb: "조건", t: "파란 체크 4개가 모두 차야 삽니다", g: `막대의 검은 선이 ${HL("지금 값")}, 파란 띠가 기준 구간입니다.`},
+    {q: rowWith(".sg-r", "급락 예외"), lb: "급락 예외", t: "갑자기 크게 빠진 날은 따로 삽니다", g: `하루 -2.5%와 5일 -7.5%가 겹치면 ${HL("하락 범위와 상관없이")} 삽니다.`},
+    {q: () => document.querySelectorAll(".sg")[1], lb: "추세", t: "평소 보유는 200일선으로 정합니다", g: `QQQ가 200일선보다 ${HL("3% 위")}면 QQQM 보유, ${HL("3% 아래")}면 현금입니다.`}],
+  log: () => [
+    {q: "#logchart", lb: "차트", t: "▲는 산 날, ▼는 판 날입니다", g: `${HL("주황 ▲")}는 급락 예외로 산 날입니다. 손가락으로 끌면 기간이 움직이고, 누르면 그날 값이 위에 나옵니다.`},
+    {q: ".tr-row", lb: "거래", t: "거래를 누르면 차트가 그 구간으로 갑니다", g: `2000년부터 과거 거래를 ${HL("한 번도 빠짐없이")} 볼 수 있습니다.`},
+    {q: ".tr-c .seg", lb: "가상 계좌", t: "실제로 따라 한 기록도 있습니다", g: `가상 계좌는 ${ymd(D.start)}부터 알림대로 주문했다고 보고 쌓은 체결입니다.`}],
+};
+function maybeCoach() {
+  const k = S.tab; if (!D || !COACHES[k] || COACH || tourPage >= 0 || !$("#sheet").hidden || cmDone.has(k) || cmNever(k)) return;
+  const steps = COACHES[k]().filter((s) => { const e = cmFind(s.q); return e && e.getBoundingClientRect().height > 0; });
+  if (!steps.length) return; cmDone.add(k);
+  const bg = document.createElement("div"); bg.className = "cm-bg"; const hole = document.createElement("div"); hole.className = "cm-hole"; const tip = document.createElement("div"); tip.className = "cm-tip";
+  document.body.append(bg, hole, tip); COACH = {k, steps, i: 0, bg, hole, tip, raf: 0};
+  ["wheel", "touchmove"].forEach((t) => addEventListener(t, cmBlock, {passive: false}));
+  coachShow(); const tr = () => { if (!COACH) return; cmPlace(); COACH.raf = requestAnimationFrame(tr); }; COACH.raf = requestAnimationFrame(tr);
+}
+function cmBlock(e) { if (COACH && !(e.target.closest && e.target.closest(".cm-tip"))) e.preventDefault(); }
+function cmPlace() {
+  const C = COACH; if (!C || !C.ready) return; const e = cmFind(C.steps[C.i].q); if (!e) return; const r = e.getBoundingClientRect(), pd = 6;
+  const key = [r.left, r.top, r.width, r.height].map(Math.round).join(); if (key === C.lk) return; C.lk = key;
+  Object.assign(C.hole.style, {left: (r.left - pd) + "px", top: (r.top - pd) + "px", width: (r.width + pd * 2) + "px", height: (r.height + pd * 2) + "px"});
+  const th = C.tip.offsetHeight || 170, below = r.bottom + pd + 12 + th < innerHeight - 8, above = r.top - pd - 12 - th >= 8;
+  C.tip.style.top = below ? (r.bottom + pd + 12) + "px" : ""; C.tip.style.bottom = below ? "" : above ? Math.max(8, innerHeight - r.top + pd + 12) + "px" : "84px";
+}
+function coachShow() {
+  const C = COACH; if (!C) return; const s = C.steps[C.i], last = C.i + 1 >= C.steps.length; C.ready = false; C.lk = "";
+  const e = cmFind(s.q), r = e.getBoundingClientRect(); if (!e.closest("#tabs, .top")) window.scrollTo({top: Math.max(0, scrollY + r.top - Math.max(90, (innerHeight - r.height) / 2 - 80))});
+  C.tip.innerHTML = `<div class="cm-lb">${s.lb}${C.steps.length > 1 ? `<span>${C.i + 1} / ${C.steps.length}</span>` : ""}</div><b>${s.t}</b><p>${s.g}</p>
+    <div class="cm-ft"><button class="cm-no" id="cmNo">다시 보지 않기</button><button class="cm-go" id="cmGo">${s.go ? s.go[0] : last ? "알겠습니다" : "다음"}</button></div>`;
+  $("#cmNo").onclick = () => coachEnd(true); C.bg.onclick = coachNext;
+  $("#cmGo").onclick = s.go ? () => { coachEnd(false); go(s.go[1]); } : coachNext;
+  C.tip.classList.remove("in"); setTimeout(() => { if (COACH !== C) return; C.ready = true; cmPlace(); void C.tip.offsetWidth; C.tip.classList.add("in"); }, 260);
+}
+function coachNext() { if (!COACH) return; COACH.i++; if (COACH.i < COACH.steps.length) return coachShow(); coachEnd(false); }
+function coachEnd(never) {
+  const C = COACH; if (!C) return; COACH = null; cancelAnimationFrame(C.raf); ["wheel", "touchmove"].forEach((t) => removeEventListener(t, cmBlock, {passive: false}));
+  if (never) try { localStorage.setItem(cmKeyOf(C.k), "x"); } catch (e) {}
+  C.bg.remove(); C.hole.remove(); C.tip.remove(); maybeEntry();
+}
+function coachReset() { Object.keys(COACHES).forEach((k) => { try { localStorage.removeItem(cmKeyOf(k)); } catch (e) {} cmDone.delete(k); }); }
 // 11-27 진입: 웹으로 처음 들어오면 아래에서 '앱 설치하고 알림 받기 / 웹으로 계속 볼게요' 창(웹으로 계속 = 7일 뒤 다시). 머리글 종 = 알림 켜고 끄기
 if (WEB && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
@@ -1011,7 +1095,7 @@ function openBell() {
 }
 // 진입 창: force = 전체 탭 '앱 설치'에서 직접 열 때
 function maybeEntry() {
-  if (!WEB || !D || tourPage >= 0 || !$("#sheet").hidden || PUSHST === "?" || (S.entryNext || 0) > Date.now()) return;
+  if (!WEB || !D || COACH || tourPage >= 0 || !$("#sheet").hidden || PUSHST === "?" || (S.entryNext || 0) > Date.now()) return;
   if (STANDALONE && PUSHST !== "off") return;
   openEntry(false);
 }

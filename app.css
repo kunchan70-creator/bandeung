@@ -318,3 +318,28 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 .tour-vs small{display:block;font-size:12px;color:#8b95a1}.tour-vs em{display:block;font-style:normal;font-size:24px;font-weight:850;margin-top:2px;color:#4e5968}
 .tour-no{display:flex;align-items:center;justify-content:center;gap:7px;font-size:14px;color:#6b7684;margin:0 0 12px;cursor:pointer}
 .tour-no input{width:18px;height:18px;margin:0;accent-color:#3182f6}
+/* 11-27 밤: 24시간 문자판 시계 + 화면 안내(집셈 결과표 안내와 같은 방식) */
+.dl-w{display:flex;align-items:center;gap:14px}
+.dl-box{position:relative;flex:none;width:150px;height:150px}.dl{width:150px;height:150px;display:block}
+.dl-h{font-size:10px;fill:#8b95a1;font-family:var(--font)}
+.dl-c{position:absolute;left:0;right:0;top:50%;transform:translateY(12px);text-align:center;pointer-events:none}
+.dl-c b{display:block;font-size:19px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums}.dl-c small{display:block;font-size:10px;color:var(--mute)}
+.dl-r{flex:1;min-width:0}.dl-r .mk-st{display:inline-block}
+.dl-cd{margin-top:12px;font-size:13px;color:var(--sub)}.dl-cd b{display:block;font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--ink);margin-top:2px}.dl-cd small{display:block;font-size:13px;color:var(--mute);margin-top:2px}
+.dl-leg{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.dl-leg>div{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);min-width:0}.dl-leg i{flex:none;width:9px;height:9px;border-radius:3px}
+.dl-leg span{flex:none}.dl-leg b{margin-left:auto;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dl-leg .al i{width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2px #f08a00}.dl-leg .al b{color:#d97400}
+.dl-leg .mute2{color:var(--mute)}.dl-leg .mute2 b{color:var(--mute);font-weight:500}.dl-leg i.ph{background:transparent;border:1.5px dashed #c9cfd6}
+.cm-bg{position:fixed;inset:0;z-index:96}
+.cm-hole{position:fixed;z-index:97;border-radius:16px;box-shadow:0 0 0 200vmax rgba(15,20,30,.6);pointer-events:none;transition:all .3s cubic-bezier(.2,.8,.2,1)}
+.cm-tip{position:fixed;z-index:98;left:16px;right:16px;max-width:420px;margin:0 auto;background:#fff;border-radius:18px;padding:16px 16px 12px;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;word-break:keep-all}
+.cm-tip.in{animation:cmUp .3s cubic-bezier(.2,.8,.2,1) forwards}@keyframes cmUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.cm-lb{display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:#3182f6;margin-bottom:5px}.cm-lb span{color:var(--mute);font-weight:600}
+.cm-tip>b{display:block;font-size:18px;font-weight:800;line-height:1.38;letter-spacing:-.3px}
+.cm-tip>p{font-size:15px;color:var(--sub);line-height:1.6;margin:7px 0 0}
+.cm-ft{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.cm-no{font-size:13px;color:var(--mute);padding:8px 2px}.cm-go{background:#3182f6;color:#fff;font-size:15px;font-weight:700;border-radius:12px;padding:10px 20px}
+em.hl{font-style:normal;font-weight:700;color:var(--ink);background:linear-gradient(transparent 58%,#ffe58a 58%)}
+.mk{padding:18px 18px 6px}
+.dl-c{top:50%;transform:translateY(-50%)}.dl-c small{font-size:10px}.dl-c b{font-size:21px}
