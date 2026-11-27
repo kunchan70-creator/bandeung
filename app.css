@@ -364,3 +364,4 @@ em.hl{font-style:normal;font-weight:700;color:var(--ink);background:linear-gradi
 .dl-r .dl-now{font-size:30px}.dl-r .dl-now small{font-size:15px}
 .dl-r .dl-cd{margin:10px 0 0;font-size:13px}.dl-r .dl-cd b{display:block;font-size:20px;margin-top:2px}.dl-r .dl-cd small{display:block;font-size:12px;color:var(--mute);margin-top:1px}
 .dl-one span{margin-top:6px}
+.hd-name{display:flex;align-items:center;gap:8px}.hd-name img{width:26px;height:26px;border-radius:7px;display:block}

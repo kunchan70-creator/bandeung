@@ -1,7 +1,7 @@
 {
-  "name": "반등 매매",
-  "short_name": "반등 매매",
-  "description": "나스닥이 크게 빠진 날만 사고, 정해 둔 가격에 파는 규칙. 매일 장 마감 후 매수·매도 지정가.",
+  "name": "역발상",
+  "short_name": "역발상",
+  "description": "모두가 겁낼 때, 기준대로. 나스닥 급락일에만 매수하고 정해 둔 목표가에 매도합니다. 매일 장 마감 후 주문표.",
   "id": "./",
   "start_url": "./?src=app",
   "scope": "./",
@@ -11,8 +11,23 @@
   "theme_color": "#f4f5f7",
   "lang": "ko",
   "icons": [
-    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
