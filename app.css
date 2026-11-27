@@ -71,6 +71,9 @@ select{border:1px solid var(--line);background:var(--soft);color:var(--ink);bord
 .fchart{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none;margin-top:8px}
 .fchart canvas{display:block;width:100%}
 .ctip{position:absolute;display:none;z-index:3;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.14);padding:9px 11px;font-size:12px;line-height:1.5;min-width:150px;max-width:240px;color:var(--ink)}
+.ctip.dock{position:static;display:block;pointer-events:auto;max-width:none;min-width:0;box-shadow:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:2px 2px 6px;margin-bottom:6px;background:transparent;line-height:1.45}
+#logchart .ctip.dock{height:196px;overflow:hidden}
+#logchart .ctip.dock .g4{grid-template-columns:repeat(4,auto auto);justify-content:start;gap:0 6px}
 .ctip b{font-weight:700}.ctip .tr{display:flex;align-items:center;gap:6px;white-space:nowrap}.ctip .tr b{margin-left:auto}.ctip .tr span{min-width:44px;text-align:right}
 .ctip i{display:inline-block;width:8px;height:8px;border-radius:2px}.ctip .g4{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:0 8px;margin:3px 0}.ctip .g4 span{color:var(--mute)}
 .chart-cap{font-size:12px;color:var(--mute);line-height:1.5;margin-top:8px}

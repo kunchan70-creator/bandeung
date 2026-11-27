@@ -28,8 +28,8 @@
   class FChart {
     constructor(el, o) {
       this.el = el; el.classList.add("fchart"); el.innerHTML = "";
-      this.cv = document.createElement("canvas"); this.tipEl = document.createElement("div"); this.tipEl.className = "ctip";
-      el.append(this.cv, this.tipEl); this.ptrs = new Map(); this.hover = null;
+      this.cv = document.createElement("canvas"); this.tipEl = document.createElement("div"); this.tipEl.className = "ctip" + (o.float ? "" : " dock");   // 11-27 사용자: 말풍선이 차트를 가림 → 기본은 차트 아래 고정 칸
+      if (o.float) el.append(this.cv, this.tipEl); else el.append(this.tipEl, this.cv); this.ptrs = new Map(); this.hover = null;   // 고정 칸은 차트 위(손가락으로 가리키는 곳 바로 위에서 보이게)
       this.cv.addEventListener("pointerdown", (e) => this.down(e));
       this.cv.addEventListener("pointermove", (e) => this.move(e));
       ["pointerup", "pointercancel"].forEach((t) => this.cv.addEventListener(t, (e) => this.up(e)));
@@ -228,7 +228,8 @@
         g.fillStyle = C.ink; g.fillRect(Math.max(0, Math.min(pw - tw, x - tw / 2)), H - BOT + 2, tw, 17); g.fillStyle = C.card; g.textAlign = "center"; g.textBaseline = "middle";
         g.fillText(t, Math.max(tw / 2, Math.min(pw - tw / 2, x)), H - BOT + 10.5); g.font = `11px ${font}`;
         this.showTip(hi, x);
-      } else this.tipEl.style.display = "none";
+      } else if (!this.o.float && this.o.tip) this.showTip(b, null);   // 손 안 댈 때는 화면 맨 오른쪽 날
+      else this.tipEl.style.display = "none";
     }
     xticks(a, b, pw) {
       const xs = this.o.x, out = [], maxN = Math.max(2, Math.floor(pw / 56));
@@ -250,6 +251,7 @@
     showTip(i, x) {
       const html = this.o.tip ? this.o.tip(i) : null; if (!html) { this.tipEl.style.display = "none"; return; }
       const t = this.tipEl; t.innerHTML = html; t.style.display = "block";
+      if (!this.o.float) return;
       const w = t.offsetWidth, pw = this.W - AX; let left = x + 14; if (left + w > pw) left = x - 14 - w; t.style.left = Math.max(0, left) + "px"; t.style.top = "6px";
     }
   }

@@ -689,7 +689,8 @@ function drawLog() {
   const tip = (i) => {
     let s = `<b>${ymd(x[i])}${i >= n0 ? " (장중)" : ""}</b>`;
     if (sym === "ACC") price.pane.series.forEach((z) => { s += `<div class="tr"><i style="background:${z.color}"></i>${z.name}<b>${xmult(z.y[i])}</b></div>`; });
-    else { const z = price.pane.series[0], pc = z.c[i - 1]; s += `<div class="g4"><span>시가</span><b>${usd2(z.o[i])}</b><span>고가</span><b class="up">${usd2(z.h[i])}</b><span>저가</span><b class="down">${usd2(z.l[i])}</b><span>종가</span><b>${usd2(z.c[i])}</b></div>${pc ? `<div class="${cls(z.c[i] - pc)}">전일 대비 ${pct(z.c[i] / pc - 1, 2)}</div>` : ""}`;
+    else { const z = price.pane.series[0], pc = z.c[i - 1]; if (pc) s += ` <span class="${cls(z.c[i] - pc)}">전일 대비 ${pct(z.c[i] / pc - 1, 2)}</span>`;
+      s += `<div class="g4"><span>시가</span><b>${usd2(z.o[i])}</b><span>고가</span><b class="up">${usd2(z.h[i])}</b><span>저가</span><b class="down">${usd2(z.l[i])}</b><span>종가</span><b>${usd2(z.c[i])}</b></div>`;
       if (real && x[i] < real) s += `<div class="warn">상장 전 가정 가격</div>`;
       price.mk.filter((m) => m.i === i).forEach((m) => { s += `<div class="${m.kind === "buy" ? "up" : "down"}">${m.kind === "buy" ? "▲ 매수" : "▼ 매도"} ${usd2(m.p)} · ${esc(tw(m.why))}</div>`; }); }
     s += `<div class="t2">VIX ${num(vix[i], 1)} · 공포탐욕 ${fg[i] != null ? Math.round(fg[i]) : "-"}</div>`;
