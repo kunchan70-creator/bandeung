@@ -6,7 +6,10 @@ const WEB = location.hostname.endsWith("github.io");
 // 11-27 사용자: 한 묶음 비중은 각자 정함(5~20%, 최대 5묶음이라 25%는 뺌) → 그 비중으로 계산한 자료 묶음을 통째로 바꿔 읽음(20 = 기본, 나머지 = s{N}/).
 const LOTS = [5, 10, 15, 20];
 const CAPN = () => D?.accounts?.[S.prof]?.plan?.signals?.max_regular_lots || 5;   // 최대 묶음 수(11-27 4 -> 5)
-const lotDir = () => (S.lot && S.lot !== 20 ? `s${S.lot}/` : "");
+// 11-27 대기 자금 설정: sgov = 늘 단기국채(SGOV) / cash = 공포 구간(QQQ 1년 고점 -10% 아래)엔 SGOV 안 사고 현금 → 자료 c{N}/
+const lotDir = () => (S.wait === "cash" ? `c${S.lot}/` : S.lot && S.lot !== 20 ? `s${S.lot}/` : "");
+const WAITS = [["sgov", "늘 SGOV"], ["cash", "공포 구간엔 현금"]];
+const waitWord = () => S.wait === "cash" ? "현금 대기(공포 구간)" : "단기국채 대기";
 const dataUrl = () => (WEB ? "data/" : "../out/") + lotDir() + "app_data.json", histUrl = () => (WEB ? "data/" : "../out/") + lotDir() + "app_hist.json";
 const RISK_URL = WEB ? "data/size_risk.json" : "../out/size_risk.json";
 const ORDER = ["B"];   // 11-26 사용자: 균형형(200일선 추세 + 공포 단타) 하나만. 단타 종목만 선택
@@ -19,8 +22,10 @@ const PRODUCTS = {QQQ: {title:"1배 · 나스닥100", target:2.5}, QLD: {title:"
 const productOptions = Object.entries(PRODUCTS).map(([s,p])=>[s,`${s} · ${p.title.match(/\d배/)[0]}`]);
 const S = load({prof: "B", tab: "home", h: "5", myKrw: "", year: "all", assume: true, view: "krw", cmode: "log",
                 lsym: "TQQQ", ltype: "candle", lrange: "3m", srange: "1y", stype: "line", frange: "5y", fee: "0.001", simd: "", sima: "", guideSeen: false,
-                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:"", lot:20});
-if (!LOTS.includes(Number(S.lot))) S.lot = 20; S.lot = Number(S.lot);
+                inst:"TQQQ", tourSeen:false, compSet:"duel", folds:{}, cashUsd:"", lot:20, wait:"sgov"});
+if (!LOTS.includes(Number(S.lot))) S.lot = 20; S.lot = Number(S.lot); if (S.wait !== "cash") S.wait = "sgov";
+// 묶음 크기 말: 계좌 대비 w 가 내 한 묶음의 3/4 미만이면 반 묶음(느린 하락)
+const lotWord = (w) => w == null ? "" : `${w < S.lot / 100 * .75 ? "반 묶음" : "한 묶음"} ${pctu(w, 0)}`;
 if (!S.simd) S.simd = new Date().getFullYear() + "-01-01";
 S.prof = "B"; if (S.compSet === "all") S.compSet = "duel";
 function load(d) { try { return Object.assign({}, d, JSON.parse(localStorage.getItem("ui3") || "{}")); } catch (e) { return d; } }
@@ -70,7 +75,7 @@ const kst = (ts) => new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 16).
 function pills() {
   $("#pills").innerHTML = ""; $("#pills").style.display = "none";   // 유형은 하나뿐 → 단타 종목만 고름
   $("#asof").textContent = D ? `${ymd(D.last_close)} 종가 기준` : "";
-  $("#mylot").textContent = `내 설정 · ${S.lot}%`; $("#mylot").onclick = openSettings;
+  $("#mylot").textContent = `내 설정 · ${S.lot}%${S.wait === "cash" ? " · 현금" : ""}`; $("#mylot").onclick = openSettings;
   $("#ptag").innerHTML = `<span>공포 단타 상품</span>${seg(productOptions,S.inst,"instrument","sm")}`;
   bindSeg("instrument",chooseInstrument); $("#bGuide").onclick = openGuide;
   document.documentElement.style.setProperty("--toph", $(".top").offsetHeight + "px");
@@ -205,14 +210,14 @@ function openTour(step=0,restart=false) {
   el.ontouchend=e=>{if(touch===null)return; const d=e.changedTouches[0].clientX-touch; touch=null;if(Math.abs(d)>70)openTour(i+(d<0?1:-1));};
 }
 // 한 묶음 비중 바꾸기: 그 비중으로 계산한 자료를 새로 받아 화면 전체를 다시 그림
-function setLot(n) {
-  if (n === S.lot) return; S.lot = n; save();
+function setLot(n, w) {
+  w = w || S.wait; if (n === S.lot && w === S.wait) return; S.lot = n; S.wait = w; save();
   D = null; H = null; rawData = null; rawHist = null; histWaiters = [];
-  $("#view").innerHTML = wait(`한 묶음 ${n}% 자료를 불러오는 중입니다`); loadData();
+  $("#view").innerHTML = wait(`한 묶음 ${n}%${w === "cash" ? " · 현금 대기" : ""} 자료를 불러오는 중입니다`); loadData();
 }
 let RISK = null;
-function riskText(n) {
-  const r = RISK?.[S.inst]?.[n]?.[S.view === "usd" ? "usd" : "krw"]; if (!r) return "과거 계산을 불러오는 중입니다.";
+function riskText(n, w) {
+  const r = RISK?.[S.inst]?.[(w || S.wait) === "cash" ? "c" + n : n]?.[S.view === "usd" ? "usd" : "krw"]; if (!r) return "과거 계산을 불러오는 중입니다.";
   return `${S.inst} 기준 2000년부터 계산하면(수수료 빼기 전) 연 ${pct(r.cagr)}, 계좌 최대 낙폭 ${pct(r.mdd)}입니다. 단타 중 계좌 평가손실은 최악 ${pct(r.acc_worst)}(${ymd(r.acc_worst_d).slice(0, 7)}), 단타 상품 비중은 최대 ${pctu(r.w_max, 0)}까지 올라갑니다. 거래 ${r.n}번 중 손실로 끝난 거래 ${r.loss}번.`;
 }
 function openSettings() {
@@ -222,7 +227,8 @@ function openSettings() {
     <div class="desc">공포 구간에서 한 번 살 때 계좌의 몇 %를 살지 정합니다. 최대 ${CAPN()}묶음이라 20%면 다 사면 계좌의 100%이고, 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반만 삽니다. 고른 비중으로 홈·비교·기록·신호의 모든 숫자와 그래프를 다시 계산해 보여 줍니다.</div>
     <div class="alert" id="lotrisk">${riskText(S.lot)}</div>
     <div class="desc">비중을 키우면 과거 수익은 커지지만, 규칙이 맞지 않는 하락이 오면 손실도 같은 배수로 커집니다. 과거 계산은 앞으로의 결과를 보장하지 않습니다.</div>
-    <div class="sub-h">매매 수수료(한쪽)</div>
+    <div class="sub-h">추세 아래일 때 대기 자금</div>${seg(WAITS, S.wait, "wt")}
+    <div class="desc">200일선 아래에서는 돈을 단기국채(SGOV)로 기다립니다. '공포 구간엔 현금'을 고르면 QQQ가 1년 고점보다 10% 넘게 빠진 동안은 SGOV를 사지 않고 현금으로 둡니다. 단타가 들어갈 때마다 SGOV를 팔고, 끝나면 다시 사는 주문이 없어집니다. 증권사 달러 예수금 이자(RP 등)는 계좌마다 달라 0으로 계산했습니다. 이자를 받는 계좌라면 실제 결과가 조금 더 낫습니다.</div>
     <div class="sub-h">매매 수수료(한쪽)</div>${seg(FEES, S.fee, "fee")}
     <div class="desc">미국 주식 매매 수수료는 증권사와 우대 조건에 따라 한쪽 0.07%~0.25% 정도로 다릅니다. 이용하는 증권사의 수수료를 고르면 모든 과거 성과에 반영합니다(단타·추세 매매 모두, 체결 미끄러짐 0.02%는 별도 포함). 환전 수수료는 처음 환전할 때 한 번이라 반영하지 않습니다.</div>
     <div class="sub-h">기준</div>${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "vw2")}
@@ -233,10 +239,12 @@ function openSettings() {
     ${WEB && PUSHST === "on" ? `<div class="sub-h">알림</div><div class="desc">이 기기로 알림을 받고 있습니다.</div><button class="btn ghost" id="pOff">이 기기 알림 끄기</button>` : ""}
     <button class="btn" id="sok">저장</button>`, (close) => {
     if ($("#pOff")) $("#pOff").onclick = async () => { await pushOff(); close(); };
-    bindSeg("lot", (v) => { document.querySelectorAll("[data-lot]").forEach((b) => b.classList.toggle("on", b.dataset.lot === v)); $("#lotrisk").textContent = riskText(Number(v)); });
+    const curW = () => $("[data-wt].on")?.dataset.wt || S.wait, curN = () => Number($("[data-lot].on")?.dataset.lot || S.lot);
+    bindSeg("lot", (v) => { document.querySelectorAll("[data-lot]").forEach((b) => b.classList.toggle("on", b.dataset.lot === v)); $("#lotrisk").textContent = riskText(Number(v), curW()); });
+    bindSeg("wt", (v) => { document.querySelectorAll("[data-wt]").forEach((b) => b.classList.toggle("on", b.dataset.wt === v)); $("#lotrisk").textContent = riskText(curN(), v); });
     bindSeg("fee", (v) => { S.fee = v; save(); document.querySelectorAll("[data-fee]").forEach((b) => b.classList.toggle("on", b.dataset.fee === v)); });
     bindSeg("vw2", (v) => { S.view = v; save(); document.querySelectorAll("[data-vw2]").forEach((b) => b.classList.toggle("on", b.dataset.vw2 === v)); });
-    $("#sok").onclick = () => { S.myKrw = $("#setamt").value; S.cashUsd=$("#setcash").value; if (!S.sima) S.sima = S.myKrw; save(); const n = Number($("[data-lot].on")?.dataset.lot || S.lot); close(); setLot(n); };
+    $("#sok").onclick = () => { S.myKrw = $("#setamt").value; S.cashUsd=$("#setcash").value; if (!S.sima) S.sima = S.myKrw; save(); const n = curN(), w = curW(); close(); setLot(n, w); };
   });
 }
 
@@ -283,7 +291,7 @@ function home() {
       <div>보유 기한</div><div>${due ? ymd(due.session) + " 장 마감" : "-"}</div></div>`;
   }
   const tr = D.trend;
-  if (tr) html += `<div class="t2" style="margin-top:10px">추세: ${tr.next_in ? `<b class="up">상승</b> · QQQM 보유` : `<b class="down">하락</b> · 단기국채 대기`} (QQQ ${usd2(tr.close)}, 200일선 대비 ${pct(tr.gap)}, ${tr.next_in ? "이탈선 " + usd2(tr.exit_line) : "재진입선 " + usd2(tr.entry_line)})</div>`;
+  if (tr) html += `<div class="t2" style="margin-top:10px">추세: ${tr.next_in ? `<b class="up">상승</b> · QQQM 보유` : `<b class="down">하락</b> · ${waitWord()}`} (QQQ ${usd2(tr.close)}, 200일선 대비 ${pct(tr.gap)}, ${tr.next_in ? "이탈선 " + usd2(tr.exit_line) : "재진입선 " + usd2(tr.entry_line)})</div>`;
   html += `</div>`;
   // 2) 이 날 시작했다면
   const n = (plan.swing || []).length + (plan.alloc || []).length;
@@ -627,7 +635,7 @@ function log() {
     ${seg(histOptions(), S.assume ? "1" : "0", "as")}
     <select id="yr"><option value="all">전체 연도</option>${years.map((y) => `<option ${S.year === y ? "selected" : ""}>${y}</option>`).join("")}</select>
     <table class="tbl rounds"><thead><tr><th>매수 → 매도</th><th>매수 시 지표</th><th class="r">수익률</th></tr></thead><tbody>
-    ${shown.map((r, j) => { const g = r.buys[0].sig || {}; return `<tr data-rd="${j}"><td>${ymd(r.buys[0].d).slice(2)}<br><span class="mute">${r.sell ? "→ " + ymd(r.sell.d).slice(2) : "보유 중"} · ${r.buys.length}회 매수</span>${r.proxy ? `<br><span class="chip as">가정 가격</span>` : ""}</td>
+    ${shown.map((r, j) => { const g = r.buys[0].sig || {}; return `<tr data-rd="${j}"><td>${ymd(r.buys[0].d).slice(2)}<br><span class="mute">${r.sell ? "→ " + ymd(r.sell.d).slice(2) : "보유 중"} · ${r.buys.length}회 매수${r.buys[0].sig?.w != null ? `<br>${r.buys.map((b) => lotWord(b.sig?.w).split(" ")[0] === "반" ? "반" : "한").join("·")} · 계좌 ${pctu(r.buys.reduce((z, b) => z + (b.sig?.w || 0), 0), 0)}` : ""}</span>${r.proxy ? `<br><span class="chip as">가정 가격</span>` : ""}</td>
       <td class="t2">RSI ${num(g.rsi, 1)} · VIX ${num(g.vix, 1)}<br>공포탐욕 ${g.fg != null ? Math.round(g.fg) : "자료 없음"} · 고점 ${pct(g.dd)}<br>${r.sell ? esc(tw(r.sell.why)) : ""}</td><td class="r"><b class="${cls(r.ret)}">${r.ret == null ? "진행 중" : pct(r.ret)}</b></td></tr>`; }).join("") || `<tr><td colspan="3" class="desc">해당 연도에는 공포 단타가 없었습니다.</td></tr>`}</tbody></table></div>`;
   bindSeg("as", (v) => { S.assume = v === "1"; save(); render(); });
   $("#yr").onchange = (e) => { S.year = e.target.value; save(); render(); };
@@ -667,8 +675,8 @@ function drawLog() {
     // 11-27 사용자 '5번 샀다는데 4번으로 보임': 같은 날 같은 가격 묶음(마감 2묶음 등)이 한 표시로 겹쳤음 → 하루·방향별로 한 표시 + 묶음 수 숫자, 값 칸엔 가격별로.
     // 시험 기록과 가상 계좌 기록에 같은 매매가 둘 다 있을 수 있어 출처별로 세고 큰 쪽을 씀.
     const di = Object.fromEntries(x.map((d, i) => [d, i])), mk = [], byDay = {}, cnt = {};
-    const addT = (d, side, s, p, why, src) => { if (s !== sym || di[d] == null) return;
-      const kd = d + side, kp = kd + "|" + p, c = (cnt[kp] = cnt[kp] || {n: 0, why}); c[src] = (c[src] || 0) + 1; c.n = Math.max(c.n, c[src]);
+    const addT = (d, side, s, p, why, src, w) => { if (s !== sym || di[d] == null) return;
+      const kd = d + side, kp = kd + "|" + p, c = (cnt[kp] = cnt[kp] || {n: 0, why}); c[src] = (c[src] || 0) + 1; c.n = Math.max(c.n, c[src]); if (w != null) c.w = w;
       let m = byDay[kd]; if (!m) { m = byDay[kd] = {i: di[d], y: side === "b" ? l[di[d]] ?? p : h[di[d]] ?? p, kind: side === "b" ? "buy" : "sell", rows: {}}; mk.push(m); }
       m.rows[p] = c; m.p = p; m.why = why; m.y = side === "b" ? Math.min(m.y, p) : Math.max(m.y, p);
       const tot = Object.values(m.rows).reduce((z, r) => z + r.n, 0); m.label = side === "b" && tot > 1 ? String(tot) : ""; };
@@ -676,8 +684,8 @@ function drawLog() {
     const own = PRODUCTS[sym] ? (sym === "TQQQ" ? rawHist : rawHist?.variants?.[sym]) : null;
     const sbt = own?.bt?.[S.assume ? "assume" : "real"] || bt;
     const sacc = PRODUCTS[sym] ? ((sym === "TQQQ" ? rawData?.accounts : rawData?.variants?.[sym]?.accounts) || D.accounts) : D.accounts;
-    sbt.acc[k].trades.forEach((t) => addT(t[0], t[1], t[2], t[3], t[5], "bt"));
-    (sacc[k]?.trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why, "acc"));
+    sbt.acc[k].trades.forEach((t) => addT(t[0], t[1], t[2], t[3], t[5], "bt", t[7]));
+    (sacc[k]?.trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why, "acc", t.info?.w));
     const plan = sacc[k]?.plan || {}, sell = (plan.swing || []).find((z) => z.how === "목표가" && z.symbol === sym);
     const vb = own ? sbt.acc[k].swing.map(([a, b]) => ({i0: sbt.i0 + a, i1: sbt.i0 + b, color: css("--tq") + "26"})) : [];
     // 11-27 사용자: 사는 구간(QQQ 1년 고점 대비 -10%~-25%)을 이 종목 가격으로 옮겨 흐리게. 레버리지는 '그날 QQQ가 그 선에서 마감했다면' 근사(일간 배수)
@@ -699,7 +707,7 @@ function drawLog() {
     else { const z = price.pane.series[0], pc = z.c[i - 1]; if (pc) s += ` <span class="${cls(z.c[i] - pc)}">전일 대비 ${pct(z.c[i] / pc - 1, 2)}</span>`;
       s += `<div class="g4"><span>시가</span><b>${usd2(z.o[i])}</b><span>고가</span><b class="up">${usd2(z.h[i])}</b><span>저가</span><b class="down">${usd2(z.l[i])}</b><span>종가</span><b>${usd2(z.c[i])}</b></div>`;
       if (real && x[i] < real) s += `<div class="warn">상장 전 가정 가격</div>`;
-      price.mk.filter((m) => m.i === i).forEach((m) => Object.entries(m.rows).forEach(([p, r]) => { s += `<div class="${m.kind === "buy" ? "up" : "down"}">${m.kind === "buy" ? "▲ 매수" : "▼ 매도"} ${usd2(+p)}${r.n > 1 ? ` × ${r.n}묶음` : ""} · ${esc(tw(r.why))}</div>`; })); }
+      price.mk.filter((m) => m.i === i).forEach((m) => Object.entries(m.rows).forEach(([p, r]) => { s += `<div class="${m.kind === "buy" ? "up" : "down"}">${m.kind === "buy" ? "▲ 매수" : "▼ 매도"} ${usd2(+p)}${r.n > 1 ? ` × ${r.n}묶음` : ""}${m.kind === "buy" && r.w != null ? ` (${r.n > 1 ? "각 " : ""}${lotWord(r.w)})` : ""} · ${esc(tw(r.why))}</div>`; })); }
     s += `<div class="t2">VIX ${num(vix[i], 1)} · 공포탐욕 ${fg[i] != null ? Math.round(fg[i]) : "-"}</div>`;
     if (i < n0 && rsi[i] != null) s += `<div class="t2">RSI 마감 ${num(rsi[i], 1)} · 장중 ${num(rlo[i], 1)}~${num(rhi[i], 1)} · QQQ 고점 대비 ${pct(qdd[i])}</div>` + buyWhy(i);
     return s;
@@ -755,7 +763,7 @@ function signal() {
   let html = `<div class="card"><div class="title">공포 단타 신호</div><div class="t2">${P[S.prof].name} · ${S.inst} · ${ymd(g.date)} 종가 기준</div>${checks(g,lots,plan.watch?.reserve_line)}<button class="secondary" id="signalTodo">계산된 주문 확인</button></div>
     <div class="card"><div class="title">QQQ 추세·과매도 차트</div>${seg(LR.slice(2), S.srange, "sr", "sm")}${seg([["candle", "캔들"], ["line", "라인"]], S.stype, "st", "sm tiny")}
     <div id="sigchart"></div><div class="legend" style="margin-top:6px"><span><i style="background:var(--B)"></i>200일 이동평균</span><span><i style="background:var(--down)"></i>이탈선(-3%)</span><span><i style="background:var(--up)"></i>재진입선(+3%)</span><span><i style="background:var(--up);opacity:.3"></i>매수 검토 구간(1년 고점 -10%~-25%)</span></div></div>
-    <div class="card"><div class="title">추세 판단</div><div class="kv2"><div>현재 상태</div><div>${tr.next_in === true ? `<b class="up">상승 추세 · QQQM 보유</b>` : tr.next_in === false ? `<b class="down">하락 추세 · 단기국채 대기</b>` : "-"}</div>
+    <div class="card"><div class="title">추세 판단</div><div class="kv2"><div>현재 상태</div><div>${tr.next_in === true ? `<b class="up">상승 추세 · QQQM 보유</b>` : tr.next_in === false ? `<b class="down">하락 추세 · ${waitWord()}</b>` : "-"}</div>
       <div>QQQ 종가</div><div>${usd2(tr.close)}</div><div>200일 이동평균</div><div>${usd2(tr.ma200)} (이격 ${pct(tr.gap)})</div>
       <div>이탈선(-3%)</div><div>${usd2(tr.exit_line)} 하회 마감 시 매도</div><div>재진입선(+3%)</div><div>${usd2(tr.entry_line)} 상회 마감 시 매수</div></div>
       <div class="t2" style="margin-top:6px">±3% 완충 구간 안에서는 기존 상태를 유지합니다. 판단은 종가로 하고, 매매는 다음 거래일 정규장에 지정가로 합니다.</div></div>
