@@ -262,3 +262,21 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 .tr-ex{background:#fff3e0;color:#d97400}.tr-as{background:var(--soft);color:var(--mute)}
 .tr-none{padding:18px 2px}
 .tr-f{flex-wrap:wrap}.tr-f .seg{flex:1 1 100%;order:2}.tr-f select{order:1}
+/* 7단계 신호(11-27 밤): 조건 = 지금 값 · 기준 막대 · 기준 QQQ 가격 */
+.sg{padding:18px}
+.sg-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sg-v{font-size:24px;font-weight:800;letter-spacing:-.4px;margin-top:2px}
+.sg-need{background:var(--soft);border-radius:12px;padding:12px 14px;margin:12px 0 4px;font-size:15px;font-weight:600;line-height:1.45}.sg-need span{display:block;font-size:13px;font-weight:500;color:var(--mute);margin-top:2px}
+.sg-r{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.sg-need+.sg-r{border-top:0}
+.sg-s{flex:none;width:24px;height:24px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.sg-s.ok{background:#3182f6}.sg-s svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.sg-s.no{background:var(--soft);box-shadow:inset 0 0 0 1.5px #d1d6db}
+.sg-m{flex:1;min-width:0}.sg-t{display:flex;justify-content:space-between;gap:8px;font-size:15px}.sg-t span{font-weight:600;font-variant-numeric:tabular-nums}
+.sg-m small{display:block;font-size:13px;color:var(--mute);margin-top:4px;line-height:1.45}
+.sg-b{position:relative;height:6px;border-radius:3px;background:var(--soft);margin-top:10px}
+.sg-z{position:absolute;top:0;height:6px;background:#3182f633;border-radius:3px}
+.sg-b>b{position:absolute;top:-4px;width:4px;height:14px;margin-left:-2px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px var(--card)}
+.sg-k{position:relative;height:15px;font-size:11px;color:var(--mute)}.sg-k span{position:absolute;top:2px;transform:translateX(-50%);white-space:nowrap}
+.sg-sub{font-size:13px;color:var(--mute);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}.sg-sub+.sg-r{border-top:0}
+.sg-chip{font-size:13px;font-weight:700;padding:6px 10px;border-radius:10px}.sg-chip.up{background:#fff0f1;color:var(--up)}.sg-chip.down{background:#e8f3ff;color:#1b64da}
+.sg-h+.sg-r{border-top:0;margin-top:4px}
