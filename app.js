@@ -73,12 +73,9 @@ const nyDate = (ts) => new Intl.DateTimeFormat("en-CA", {timeZone: "America/New_
 const kst = (ts) => new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 16).replace("T", " ");
 
 // ── 공통 조각 ──
-function pills() {
-  $("#pills").innerHTML = ""; $("#pills").style.display = "none";   // 유형은 하나뿐 → 단타 종목만 고름
-  $("#asof").textContent = D ? `${ymd(D.last_close)} 종가 기준` : "";
-  $("#mylot").textContent = `내 설정 · ${S.lot}%${S.wait === "sgov" ? " · SGOV" : ""}`; $("#mylot").onclick = openSettings;
-  $("#ptag").innerHTML = `<span>공포 단타 상품</span>${seg(productOptions,S.inst,"instrument","sm")}`;
-  bindSeg("instrument",chooseInstrument); $("#bGuide").onclick = openGuide;
+function pills() {   // 11-27 머리글: 앱 이름 · 단타 종목 고르기 · 알림 종
+  $("#instBtn").innerHTML = `${S.inst}<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>`; $("#instBtn").onclick = openInst;
+  $("#bellBtn").classList.toggle("dot", WEB && PUSHST === "off"); $("#bellBtn").onclick = openBell;
   document.documentElement.style.setProperty("--toph", $(".top").offsetHeight + "px");
 }
 function seg(opts, val, attr, cls_ = "") {
@@ -159,10 +156,10 @@ const swingRule = () => `일반 매수는 공포(VIX 30 이상 또는 CNN 공포
 const FEES = [["0.0007", "0.07%"], ["0.001", "0.10%"], ["0.0015", "0.15%"], ["0.0025", "0.25%"]];
 const feeTxt = () => (+S.fee * 100).toFixed(2).replace(/0$/, "") + "%";
 const myAmt = () => { const v = Number(String(S.myKrw || "").replace(/[^0-9]/g, "")); return v > 0 ? v : null; };
-function sheet(html, onBind) {
-  const sh = $("#sheet"); $("#sheetBody").innerHTML = `<button class="sheet-x" id="shx">닫기</button>` + html; sh.hidden = false; document.body.style.overflow = "hidden";
+function sheet(html, onBind, o = {}) {
+  const sh = $("#sheet"); $("#sheetBody").innerHTML = (o.noX ? "" : `<button class="sheet-x" id="shx" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`) + html; sh.hidden = false; document.body.style.overflow = "hidden";
   const close = () => { sh.hidden = true; document.body.style.overflow = ""; render(); };
-  $("#shx").onclick = close; sh.querySelector(".sheet-bg").onclick = close; if (onBind) onBind(close);
+  if ($("#shx")) $("#shx").onclick = close; sh.querySelector(".sheet-bg").onclick = () => { o.onBg?.(); close(); }; if (onBind) onBind(close);
 }
 function typeCards(withStats) {
   return ORDER.map((x) => {
@@ -195,7 +192,7 @@ function openTour(step=0,restart=false) {
   const i=Math.max(0,Math.min(TOUR.length-1,step)), direction=i<tourPage&&!restart?"back":"forward";
   tourPage=i;
   const el=$("#tour"), x=TOUR[i];
-  const finish=()=>{tourPage=-1; el.hidden=true; document.body.classList.remove("tour-open"); S.tourSeen=true; save(); if(D)render();};
+  const finish=()=>{tourPage=-1; el.hidden=true; document.body.classList.remove("tour-open"); S.tourSeen=true; save(); if(D)render(); maybeEntry();};
   el.hidden=false; document.body.classList.add("tour-open");
   el.innerHTML=`<div class="tour-inner ${direction} ${i===0?'intro':''}"><div class="tour-top"><span>시작 안내</span><button id="tourSkip">건너뛰기</button></div>
   <div class="tour-steps" aria-label="${i+1} / ${TOUR.length} 단계">${TOUR.map((_,p)=>`<i class="${p<=i?'on':''}"></i>`).join("")}</div>
@@ -216,40 +213,42 @@ function setLot(n, w) {
   D = null; H = null; rawData = null; rawHist = null; histWaiters = [];
   $("#view").innerHTML = wait(`한 묶음 ${n}%${w === "sgov" ? " · SGOV 대기" : ""} 자료를 불러오는 중입니다`); loadData();
 }
+// ── 전체 탭(11-27): 설정은 증권 앱 설정 화면처럼 '이름 + 지금 값 ›' 목록, 누르면 그 항목 하나만 고르는 창 ──
 let RISK = null;
-function riskText(n, w) {
-  const r = RISK?.[S.inst]?.[(w || S.wait) === "cash" ? "c" + n : n]?.[S.view === "usd" ? "usd" : "krw"]; if (!r) return "과거 계산을 불러오는 중입니다.";
-  return `${S.inst} 기준 2000년부터 계산하면(수수료 빼기 전) 연 ${pct(r.cagr)}, 계좌 최대 낙폭 ${pct(r.mdd)}입니다. 단타 중 계좌 평가손실은 최악 ${pct(r.acc_worst)}(${ymd(r.acc_worst_d).slice(0, 7)}), 단타 상품 비중은 최대 ${pctu(r.w_max, 0)}까지 올라갑니다. 거래 ${r.n}번 중 손실로 끝난 거래 ${r.loss}번.`;
+function needRisk(cb) {
+  if (RISK) return cb();
+  fetch(RISK_URL, {cache: "no-store"}).then((r) => r.json()).then((x) => { RISK = x; cb(); }).catch(() => {});
 }
-function openSettings() {
-  if (!RISK) fetch(RISK_URL, {cache: "no-store"}).then((r) => r.json()).then((x) => { RISK = x; const el = $("#lotrisk"); if (el) el.textContent = riskText(Number($("[data-lot].on")?.dataset.lot || S.lot)); }).catch(() => {});
-  sheet(`<div class="title">내 설정</div>${appCard()}
-    <div class="sub-h">한 묶음 비중</div>${seg(LOTS.map((n) => [String(n), n + "%"]), String(S.lot), "lot")}
-    <div class="desc">공포 구간에서 한 번 살 때 계좌의 몇 %를 살지 정합니다. 한도는 ${CAPN()}묶음어치 금액이라 20%면 다 사도 계좌의 100%입니다. 하락이 느리면(QQQ 3거래일 하락이 4%에 못 미치면) 그 묶음은 절반만 사고, 남은 한도로 다음 신호에 더 삽니다. 고른 비중으로 홈·비교·차트·신호의 모든 숫자와 그래프를 다시 계산해 보여 줍니다.</div>
-    <div class="alert" id="lotrisk">${riskText(S.lot)}</div>
-    <div class="desc">비중을 키우면 과거 수익은 커지지만, 규칙이 맞지 않는 하락이 오면 손실도 같은 배수로 커집니다. 과거 계산은 앞으로의 결과를 보장하지 않습니다.</div>
-    <div class="sub-h">추세 아래일 때 대기 자금</div>${seg(WAITS, S.wait, "wt")}
-    <div class="desc">200일선 아래에서 기다리는 돈을 어디에 둘지 정합니다. 기본은 현금입니다. 단기국채(SGOV)는 이자가 붙지만 단타가 들어갈 때마다 팔고 끝나면 다시 사야 해서, 수수료와 배당 원천징수(15%)를 빼면 과거 결과는 현금(이자 0으로 계산)이 조금 더 나았습니다. 증권사 달러 예수금에 이자(RP 등)가 붙는 계좌라면 현금이 더 낫습니다.</div>
-    <div class="sub-h">매매 수수료(한쪽)</div>${seg(FEES, S.fee, "fee")}
-    <div class="desc">미국 주식 매매 수수료는 증권사와 우대 조건에 따라 한쪽 0.07%~0.25% 정도로 다릅니다. 이용하는 증권사의 수수료를 고르면 모든 과거 성과에 반영합니다(단타·추세 매매 모두, 체결 미끄러짐 0.02%는 별도 포함). 환전 수수료는 처음 환전할 때 한 번이라 반영하지 않습니다.</div>
-    <div class="sub-h">기준</div>${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "vw2")}
-    <div class="desc">원화·세후: 해외주식 양도소득세 22%(지방세 포함, 연 250만원 공제, 다음 해 5월 신고·납부)와 배당 원천징수 15%를 반영한 매도 시점 금액입니다. 달러·세전: 세금·환율을 빼고 본 금액입니다.</div>
-    <div class="sub-h">내 주문 수량 계산</div><label class="form-label" for="setamt">운용 금액 (원)</label><input class="money" id="setamt" inputmode="numeric" placeholder="예: 30000000" value="${esc(S.myKrw)}">
-    <label class="form-label" for="setcash">결제 완료 달러 현금 (선택)</label><input class="money" id="setcash" inputmode="decimal" placeholder="증권사 주문가능금액 확인" value="${esc(S.cashUsd)}">
-    <div class="desc">운용 금액으로 모델 주 수를 환산합니다. 현금 입력 시 매수 수량에 현금 상한도 적용합니다. 매도 시 실제 보유 주 수를 확인하십시오.</div>
-    ${WEB && PUSHST === "on" ? `<div class="sub-h">알림</div><div class="desc">이 기기로 알림을 받고 있습니다.</div><button class="btn ghost" id="pOff">이 기기 알림 끄기</button>` : ""}
-    <button class="btn" id="sok">저장</button>`, (close) => {
-    bindAppCard();
-    if ($("#pOff")) $("#pOff").onclick = async () => { await pushOff(); close(); };
-    const curW = () => $("[data-wt].on")?.dataset.wt || S.wait, curN = () => Number($("[data-lot].on")?.dataset.lot || S.lot);
-    bindSeg("lot", (v) => { document.querySelectorAll("[data-lot]").forEach((b) => b.classList.toggle("on", b.dataset.lot === v)); $("#lotrisk").textContent = riskText(Number(v), curW()); });
-    bindSeg("wt", (v) => { document.querySelectorAll("[data-wt]").forEach((b) => b.classList.toggle("on", b.dataset.wt === v)); $("#lotrisk").textContent = riskText(curN(), v); });
-    bindSeg("fee", (v) => { S.fee = v; save(); document.querySelectorAll("[data-fee]").forEach((b) => b.classList.toggle("on", b.dataset.fee === v)); });
-    bindSeg("vw2", (v) => { S.view = v; save(); document.querySelectorAll("[data-vw2]").forEach((b) => b.classList.toggle("on", b.dataset.vw2 === v)); });
-    $("#sok").onclick = () => { S.myKrw = $("#setamt").value; S.cashUsd=$("#setcash").value; if (!S.sima) S.sima = S.myKrw; save(); const n = curN(), w = curW(); close(); setLot(n, w); };
+const riskOf = (n, w) => RISK?.[S.inst]?.[(w || S.wait) === "cash" ? "c" + n : n]?.[S.view === "usd" ? "usd" : "krw"];
+const riskSub = (r) => r ? `연 ${pct(r.cagr)} · 최대 낙폭 ${pct(r.mdd, 0)}` : "";
+function pick(title, opts, cur, onPick, foot) {   // 한 항목 고르기 창: 누르면 바로 적용
+  sheet(`<div class="pk-t">${title}</div><div class="pk">${opts.map(([v, t, sub]) => `<button data-pk="${v}" class="${String(v) === String(cur) ? "on" : ""}"><span><b>${t}</b>${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`).join("")}</div>${foot ? `<div class="pk-f">${foot}</div>` : ""}`,
+    (close) => document.querySelectorAll("[data-pk]").forEach((b) => b.onclick = () => { const v = b.dataset.pk; close(); if (String(v) !== String(cur)) onPick(v); }));
+}
+const openLot = () => needRisk(() => pick("한 묶음 비중", LOTS.map((n) => [n, `${n}%`, riskSub(riskOf(n))]), S.lot, (v) => setLot(+v), `공포 구간에서 한 번 살 때 쓰는 비율 · 최대 ${CAPN()}묶음 · 2000년부터 계산`));
+const openWait = () => needRisk(() => pick("대기 자금", WAITS.map(([v, t]) => [v, t, riskSub(riskOf(S.lot, v))]), S.wait, (v) => setLot(S.lot, v), "200일선 아래에서 기다리는 돈"));
+const openFee = () => pick("매매 수수료", FEES.map(([v, t]) => [v, t]), S.fee, (v) => { S.fee = v; save(); render(); }, "증권사 한쪽 수수료 · 모든 과거 성과에 반영");
+const openView = () => pick("금액 기준", [["krw", "원화·세후", "양도소득세 22%·환율 반영"], ["usd", "달러·세전", "세금·환율 제외"]], S.view, (v) => { S.view = v; save(); render(); });
+function openAmt() {
+  sheet(`<div class="pk-t">내 운용 금액</div>
+    <label class="form-label" for="setamt">운용 금액(원)</label><input class="money" id="setamt" inputmode="numeric" placeholder="30,000,000" value="${esc(S.myKrw)}">
+    <label class="form-label" for="setcash">주문 가능 달러(선택)</label><input class="money" id="setcash" inputmode="decimal" placeholder="$0" value="${esc(S.cashUsd)}">
+    <div class="pk-f">할 일의 주문 수량을 이 금액으로 바꿔 계산</div><button class="btn blue" id="sok">저장</button>`, (close) => {
+    $("#sok").onclick = () => { S.myKrw = $("#setamt").value; S.cashUsd = $("#setcash").value; if (!S.sima) S.sima = S.myKrw; save(); close(); };
   });
 }
-
+function openInst() {
+  pick("단타 종목", Object.entries(PRODUCTS).map(([s, p]) => [s, s, `나스닥100 ${p.title.replace(" · 나스닥100", "")} · 목표 +${p.target}%`]), S.inst, chooseInstrument);
+}
+const pushWord = () => !WEB ? "웹 앱 전용" : PUSHST === "on" ? "켜짐" : PUSHST === "off" ? "꺼짐" : "";
+function more() {
+  const row = (id, t, v) => `<button class="li" data-li="${id}"><span>${t}</span><span class="v">${v}<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span></button>`;
+  $("#view").innerHTML = `<div class="card lst"><div class="lh">내 설정</div>${row("lot", "한 묶음 비중", S.lot + "%")}${row("wait", "대기 자금", S.wait === "sgov" ? "단기국채" : "현금")}${row("fee", "매매 수수료", feeTxt())}${row("view", "금액 기준", S.view === "usd" ? "달러·세전" : "원화·세후")}${row("amt", "내 운용 금액", myAmt() ? won(myAmt()) : "미입력")}</div>
+    <div class="card lst"><div class="lh">앱</div>${row("bell", "알림", pushWord())}${WEB && !STANDALONE ? row("install", "앱 설치", "") : ""}</div>
+    <div class="card lst"><div class="lh">전략</div>${row("cmp", "성과 비교", "")}${row("guide", "사용 안내", "")}</div>`;
+  const F = {lot: openLot, wait: openWait, fee: openFee, view: openView, amt: openAmt, bell: openBell, install: () => openEntry(true), cmp: () => go("compare"), guide: openGuide};
+  document.querySelectorAll("[data-li]").forEach((b) => b.onclick = F[b.dataset.li]);
+}
 // 수수료 반영: 날마다 거래 비율(turn) x (내 수수료 - 모델 수수료)만큼 그날부터 곱으로 깎음
 const _mulCache = {};
 function feeMul(btName, k) {
@@ -437,7 +436,7 @@ function rolling(kel, cel, keys, h) {
 const histOptions = () => [["1",S.inst==="QQQ"?"장기 시험":"가정 가격 포함"],["0",S.inst==="QQQ"?"실물 기준":"단타 상품 상장 후"]];
 const fold = (id,title,summary,contents) => `<details class="card section-fold" data-fold="${id}" ${S.folds[id]?"open":""}><summary><b>${title}</b><span>${summary}</span></summary><div class="fold-body">${contents}</div></details>`;
 function compare() {
-  let html = `<div class="card compare-intro"><div class="title">${P[S.prof].name} · ${S.inst} 비교</div>${seg(histOptions(), S.assume ? "1" : "0", "as")}
+  let html = `<button class="back" onclick="go('more')"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>성과 비교</button><div class="card compare-intro"><div class="title">${P[S.prof].name} · ${S.inst} 비교</div>${seg(histOptions(), S.assume ? "1" : "0", "as")}
     ${seg([["krw", "원화·세후"], ["usd", "달러·세전"]], S.view, "vw")}
     <div class="t2">수수료 한쪽 ${feeTxt()} 반영 · <a href="#" id="feeLink">수수료 바꾸기</a></div></div>` + simCard();
   if (!needHist(() => S.tab === "compare" && render())) { $("#view").innerHTML = html + wait("비교 자료를 불러오는 중입니다"); bindCompare(); return; }
@@ -492,7 +491,7 @@ function compare() {
   html += fold("rolling","시작 시점별 성과","1·3·5·10년 · 최악 사례",`<div class="desc">분기별로 다른 날 시작한 원화·세후 과거 사례입니다. 상장 전 가정 가격이 포함될 수 있습니다.</div>${seg(HSEG,S.h,"h")}<div id="rolltable"></div><div id="rollc2"></div>`)
     + fold("score","세부 성적표",`${ymd(bt.start)}부터 · 수익·낙폭·거래 수`,`<div id="sctable"></div>`);
   $("#view").innerHTML = html; bindCompare(); bindSim();
-  $("#feeLink").onclick = (e) => { e.preventDefault(); openSettings(); };
+  $("#feeLink").onclick = (e) => { e.preventDefault(); openFee(); };
   bindSeg("cm", (v) => { S.cmode = v; save(); render(); });
   bindSeg("cr", (v) => { S.crange = v; save(); render(); });
   bindSeg("cmpfilter", (v) => { S.compSet=v; save(); render(); });
@@ -648,8 +647,8 @@ function todo() {
   html += `</div>`;
   html += `<div class="foot">이 앱은 주문표를 제공합니다. 증권사에서 실제 현금·보유량과 체결 상태를 확인한 후 직접 주문하십시오. 표시된 수량은 가상 장부를 기준으로 계산한 값입니다.</div>`;
   $("#view").innerHTML = html;
-  $("#orderSize").onclick=openSettings;
-  if($("#todoPush"))$("#todoPush").onclick=()=>pushOn().catch((e)=>pushMsg("알림 등록에 실패했습니다. "+esc(e.message)));
+  $("#orderSize").onclick=openAmt;
+  if($("#todoPush"))$("#todoPush").onclick=openBell;
   if($("#enableNotices"))$("#enableNotices").onclick=()=>AND.notificationSettings();
   if($("#testNotice"))$("#testNotice").onclick=()=>AND.testOrderNotification?.();
 }
@@ -896,12 +895,12 @@ function needChartJs() {   // 옛 index.html(차트 파일 없음)이 캐시에 
 }
 
 // ── 뼈대 ──
-const PAGES = {home, compare, todo, log, signal};
+const PAGES = {home, compare, todo, log, signal, more};
 function go(t) { S.tab = t; save(); render(); window.scrollTo(0, 0); }
 window.go = go;
 function render() {
   pills();
-  document.querySelectorAll("#tabs button").forEach((b) => { b.classList.toggle("on", b.dataset.tab === S.tab); b.onclick = () => go(b.dataset.tab); });
+  document.querySelectorAll("#tabs button").forEach((b) => { b.classList.toggle("on", b.dataset.tab === (S.tab === "compare" ? "more" : S.tab)); b.onclick = () => go(b.dataset.tab); });
   if(S.inst!=="TQQQ"&&!rawData?.variants?.[S.inst]) { $("#view").innerHTML=wait(`${S.inst} 조합 자료를 기다리고 있습니다. 자료가 갱신되면 다시 표시됩니다.`); return; }
   try { (PAGES[S.tab] || home)(); }
   catch (e) {   // 오류 문구 대신 다시 그리기(1회), 그래도 안 되면 홈으로
@@ -926,56 +925,78 @@ function fromAndroid() {
   if (s) { try { rawData = JSON.parse(s); selectModels(); if(AND.consumeOrdersEntry?.())S.tab="todo"; save(); render(); firstGuide(); return; } catch (e) {} }
   if (!AND.hasToken()) tokenCard("");
 }
-function firstGuide() { if (!S.tourSeen&&tourPage<0) openTour(); }
+function firstGuide() { if (!S.tourSeen&&tourPage<0) openTour(); else maybeEntry(); }
 window.onAndroidData = (ok) => { if (ok) return fromAndroid(); if (!D) tokenCard(AND.lastError()); };
 window.onAndroidHist = () => { const s = AND.getHist && AND.getHist(); if (s) { try { histReady(JSON.parse(s)); render(); } catch (e) {} } };
 window.goBackTab = () => { if(tourPage>0){openTour(tourPage-1);return true;} if(tourPage===0){$("#tourSkip").click();return true;} if (S.tab !== "home") { go("home"); return true; } return false; };
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D) liveTick(); });
-// 11-27 앱으로 받기(공개 페이지 전용): 홈 맨 위 카드에서 '앱 설치'·'알림 받기'. 위쪽 머리글은 '사용 안내'·'내 설정'만(좁은 폰에서 글자 줄바꿈 방지).
+// 11-27 진입: 웹으로 처음 들어오면 아래에서 '앱 설치하고 알림 받기 / 웹으로 계속 볼게요' 창(웹으로 계속 = 7일 뒤 다시). 머리글 종 = 알림 켜고 끄기
 if (WEB && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 const IOS = /iPhone|iPad/.test(navigator.userAgent);
-let installEv = null, PUSHST = "off";
-const homeAgain = () => { if (S.tab === "home" && D) render(); };
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEv = e; homeAgain(); });
-window.addEventListener("appinstalled", () => { installEv = null; homeAgain(); });
+let installEv = null, PUSHST = "?";
+const pageAgain = () => { if (D && (S.tab === "more" || S.tab === "todo")) render(); else if (D) pills(); };
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEv = e; });
+window.addEventListener("appinstalled", () => { installEv = null; pageAgain(); });
 const PUSH = "https://bandeung-push.kunchan70.workers.dev";
 const pushOK = () => WEB && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 async function pushState() { if (!pushOK()) return "no"; const r = await navigator.serviceWorker.ready; return (await r.pushManager.getSubscription()) ? "on" : "off"; }
 const u8 = (b) => { const raw = atob((b + "=".repeat((4 - b.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...raw].map((c) => c.charCodeAt(0))); };
-const pushMsg = (t) => sheet(`<div class="title">알림 받기</div><div class="desc">${t}</div>`);
-async function pushOn() {
-  if (IOS && !STANDALONE) return pushMsg("아이폰은 먼저 사파리 공유 버튼 → '홈 화면에 추가'를 한 뒤, 홈 화면 아이콘으로 열어서 '알림 받기'를 누르십시오.");
-  if (!pushOK()) return pushMsg("이 브라우저는 알림을 지원하지 않습니다. 안드로이드는 크롬, 아이폰은 홈 화면에 추가한 앱에서 이용하십시오.");
-  if (await Notification.requestPermission() !== "granted") return pushMsg("알림이 차단되어 있습니다. 브라우저의 사이트 설정에서 알림을 허용한 뒤 다시 누르십시오.");
-  const reg = await navigator.serviceWorker.ready, {pub} = await fetch(PUSH + "/key").then((r) => r.json());
-  const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: u8(pub)});
-  const r = await fetch(PUSH + "/subscribe", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(sub)});
-  if (!r.ok) throw new Error("등록 실패 " + r.status);
-  await updateBell(); pushMsg("이 기기로 알림을 받습니다. 장 마감 뒤 주문할 일이 생기면 알림이 옵니다.");
+const IOS_STEPS = `<ol class="ios"><li>사파리 아래 <b>공유</b> 버튼</li><li><b>홈 화면에 추가</b></li><li>홈 화면 아이콘으로 열고 <b>알림 받기</b></li></ol>`;
+async function pushOn() {   // 성공이면 "", 아니면 안내 문구
+  if (IOS && !STANDALONE) return "아이폰은 홈 화면에 추가한 앱에서만 알림을 받을 수 있습니다.";
+  if (!pushOK()) return "이 브라우저는 알림을 지원하지 않습니다. 크롬에서 열어 주십시오.";
+  try {
+    if (await Notification.requestPermission() !== "granted") return "알림이 차단되어 있습니다. 브라우저 사이트 설정에서 허용해 주십시오.";
+    const reg = await navigator.serviceWorker.ready, {pub} = await fetch(PUSH + "/key").then((r) => r.json());
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: u8(pub)});
+    const r = await fetch(PUSH + "/subscribe", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(sub)});
+    if (!r.ok) return "알림 등록에 실패했습니다. 잠시 뒤 다시 눌러 주십시오.";
+  } catch (e) { return "알림 등록에 실패했습니다. " + esc(e.message); }
+  await updateBell(); return "";
 }
 async function pushOff() {
   const reg = await navigator.serviceWorker.ready, s = await reg.pushManager.getSubscription();
   if (s) { await fetch(PUSH + "/unsubscribe", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({endpoint: s.endpoint})}).catch(() => {}); await s.unsubscribe(); }
   await updateBell();
 }
-async function updateBell() { PUSHST = await pushState().catch(() => "no"); homeAgain(); }
-function appCard() {
-  if (!WEB) return "";
-  const inst = !STANDALONE, push = PUSHST === "off" || (PUSHST === "no" && IOS && !STANDALONE);
-  if (!inst && !push) return "";
-  return `<div class="appcard"><div class="sub-h">앱으로 받기</div>
-    <div class="desc">${inst ? "설치하면 홈 화면 아이콘으로 열립니다. " : ""}${push ? "알림을 켜면 주문할 일이 생길 때 알려 드립니다." : ""}</div>
-    <div class="appbtns">${inst ? `<button class="btn" id="appInst">앱 설치</button>` : ""}${push ? `<button class="btn${inst ? " ghost" : ""}" id="appPush">알림 받기</button>` : ""}</div></div>`;
+async function updateBell() { PUSHST = await pushState().catch(() => "no"); pageAgain(); maybeEntry(); }
+function openBell() {
+  const now = Date.now(), M = sessFrom(now, (x) => now < x.reg.b), on = PUSHST === "on";
+  const when = M ? [["개장 전", "걸 주문이 있을 때", kHM(M.alarms[0].t)], ["마감 후", "새 주문이 생겼을 때", kHM(M.alarms[1].t) + "부터"], ["장중", "주문가에 닿았을 때", ""]] : [];
+  sheet(`<div class="pk-t">알림</div>
+    <div class="bl-st"><span>이 기기</span><b class="${on ? "on" : ""}">${pushWord() || "확인 중"}</b></div>
+    <div class="bl">${when.map(([a, b, c]) => `<div><b>${a}</b><span>${b}</span><em>${c}</em></div>`).join("")}</div>
+    ${IOS && !STANDALONE && !on ? IOS_STEPS : ""}
+    ${!WEB ? "" : on ? `<button class="btn ghost" id="bOff">알림 끄기</button>` : IOS && !STANDALONE ? "" : `<button class="btn blue" id="bOn">알림 받기</button>`}
+    <div class="pk-f" id="bMsg"></div>`, (close) => {
+    if ($("#bOn")) $("#bOn").onclick = async () => { const m = await pushOn(); if (m) $("#bMsg").textContent = m; else close(); };
+    if ($("#bOff")) $("#bOff").onclick = async () => { await pushOff(); close(); };
+  });
 }
-function bindAppCard() {
-  const i = $("#appInst"), p = $("#appPush");
-  if (i) i.onclick = () => {
-    if (installEv) { installEv.prompt(); installEv.userChoice.finally(() => { installEv = null; homeAgain(); }); return; }
-    sheet(IOS ? `<div class="title">앱 설치</div><div class="desc">사파리 아래쪽 공유 버튼 → '홈 화면에 추가'를 누르십시오. 홈 화면 아이콘으로 열면 앱으로 열리고, 그 안에서 알림도 켤 수 있습니다.</div>`
-              : `<div class="title">앱 설치</div><div class="desc">크롬 오른쪽 위 ⋮ 메뉴 → '앱 설치'(또는 '홈 화면에 추가')를 누르십시오. 카카오톡·삼성 인터넷 안에서 열었다면 크롬으로 다시 열어 주십시오.</div>`);
-  };
-  if (p) p.onclick = () => pushOn().catch((e) => pushMsg("알림 등록에 실패했습니다. " + esc(e.message)));
+// 진입 창: force = 전체 탭 '앱 설치'에서 직접 열 때
+function maybeEntry() {
+  if (!WEB || !D || tourPage >= 0 || !$("#sheet").hidden || PUSHST === "?" || (S.entryNext || 0) > Date.now()) return;
+  if (STANDALONE && PUSHST !== "off") return;
+  openEntry(false);
+}
+function openEntry(force) {
+  const later = () => { if (!force) { S.entryNext = Date.now() + 7 * 864e5; save(); } };
+  const pushStep = (note) => { $("#enStep").innerHTML = `<button class="btn blue" id="enPush">알림 받기</button>${note ? `<div class="pk-f">${note}</div>` : ""}<div class="pk-f" id="enMsg"></div>`;
+    $("#enPush").onclick = async () => { const m = await pushOn(); if (m) $("#enMsg").textContent = m; else { S.entryNext = Date.now() + 365 * 864e5; save(); $("#sheet").hidden = true; document.body.style.overflow = ""; render(); } }; };
+  sheet(`<div class="entry"><svg class="entry-i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 004 0"/></svg>
+    <div class="entry-t">주문할 때를<br>알림으로 받으세요</div><div class="entry-d">장 마감 뒤 새 주문이 생기면 바로 알려 드립니다</div>
+    <div id="enStep"><button class="btn blue" id="enGo">${STANDALONE ? "알림 받기" : IOS ? "홈 화면에 추가하기" : "앱 설치하고 알림 받기"}</button></div>
+    <button class="entry-web" id="enWeb">${STANDALONE ? "나중에 할게요" : "웹으로 계속 볼게요"}</button></div>`, (close) => {
+    $("#enWeb").onclick = () => { later(); close(); };
+    $("#enGo").onclick = async () => {
+      S.entryNext = Date.now() + 30 * 864e5; save();
+      if (STANDALONE) return pushStep(""), $("#enPush").click();
+      if (IOS) { $("#enStep").innerHTML = IOS_STEPS; return; }
+      if (installEv) { const ev = installEv; installEv = null; ev.prompt(); await ev.userChoice.catch(() => null); pushStep(""); }
+      else pushStep("홈 화면에 두려면 크롬 ⋮ 메뉴 → 앱 설치");
+    };
+  }, {noX: true, onBg: later});
 }
 updateBell();
 if (AND) fromAndroid();

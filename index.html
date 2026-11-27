@@ -22,19 +22,17 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="brand-lockup"><span><span id="asof"></span></span></span><span class="hbtn"><button id="bGuide">사용 안내</button><button id="mylot" class="mylot">내 설정</button></span></div>
-  <div class="pills" id="pills"></div>
-  <div class="ptag" id="ptag"></div>
+  <div class="hd"><b class="hd-name">반등 매매</b><span class="hd-r"><button id="instBtn" class="hd-inst" aria-label="단타 종목 선택"></button><button id="bellBtn" class="hd-bell" aria-label="알림"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 004 0"/></svg></button></span></div>
 </header>
 <div id="sheet" class="sheet" hidden><div class="sheet-bg"></div><div class="sheet-body" id="sheetBody"></div></div>
 <div id="tour" class="tour" role="dialog" aria-modal="true" aria-label="시작 안내" hidden></div>
 <main id="view"><div class="loading">불러오는 중…</div></main>
 <nav class="tabs" id="tabs">
-  <button data-tab="home"><i>⌂</i>홈</button>
-  <button data-tab="todo"><i>✓</i>할 일</button>
-  <button data-tab="log"><i>↗</i>매매 차트</button>
-  <button data-tab="signal"><i>◔</i>신호</button>
-  <button data-tab="compare"><i>≋</i>비교</button>
+  <button data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>홈</button>
+  <button data-tab="todo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 12.5l2.2 2.2 4-4.2"/></svg>할 일</button>
+  <button data-tab="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M5 15l4.5-4.5 3.5 3 6-7"/></svg>매매 차트</button>
+  <button data-tab="signal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5a8 8 0 0116 0"/><path d="M12 16.5l3.8-4.8"/></svg>신호</button>
+  <button data-tab="more"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></svg>전체</button>
 </nav>
 <script src="chart.js"></script>
 <script src="app.js"></script>

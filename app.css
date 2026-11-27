@@ -170,3 +170,36 @@ table.sc td.best{font-weight:800;color:var(--ink)}table.sc td:not(:first-child):
 .sig-dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.sig-dots em{font-style:normal;font-size:11px;padding:3px 7px;border-radius:7px;background:var(--card);color:var(--mute);border:1px solid var(--line)}
 .sig-dots em.ok{background:#fff0f1;color:var(--up);border-color:#ffd5d9;font-weight:700}
 .appcard{margin:4px 0 8px}.appcard .appbtns{margin-top:6px}
+/* 11-27 뼈대: 머리글·탭·전체·고르기 창·진입 창 */
+.top{padding:8px 12px 6px 18px}
+.hd{display:flex;align-items:center;justify-content:space-between;height:44px;max-width:520px;margin:0 auto}
+.hd-name{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.hd-r{display:flex;align-items:center;gap:2px}
+.hd-inst{display:flex;align-items:center;gap:2px;font-size:15px;font-weight:700;padding:7px 8px 7px 12px;border-radius:12px;background:var(--card)}
+.hd-inst svg,.li svg,.back svg{width:18px;height:18px;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hd-bell{position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--sub)}
+.hd-bell svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.hd-bell.dot::after{content:"";position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--up);box-shadow:0 0 0 2px var(--bg)}
+.tabs button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:1px}
+.tabs button.on svg{stroke-width:2.3}
+.lst{padding:8px 0}.lh{font-size:13px;color:var(--mute);padding:10px 20px 4px}
+.li{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;padding:0 14px 0 20px;font-size:16px;text-align:left}
+.li:active{background:var(--soft)}.li .v{display:flex;align-items:center;gap:2px;color:var(--mute);font-size:15px}
+.back{display:flex;align-items:center;gap:2px;font-size:17px;font-weight:700;padding:4px 4px 12px 0}.back svg{width:24px;height:24px;stroke:var(--ink)}
+.pk-t{font-size:20px;font-weight:700;margin:2px 4px 10px}
+.pk button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:56px;padding:8px 4px;text-align:left;border-radius:12px}
+.pk button:active{background:var(--soft)}.pk b{display:block;font-size:17px;font-weight:600}.pk small{display:block;font-size:13px;color:var(--mute);margin-top:2px}
+.pk svg{width:22px;height:22px;flex:none;fill:none;stroke:transparent;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.pk .on b{color:#3182f6;font-weight:700}.pk .on svg{stroke:#3182f6}
+.pk-f{font-size:13px;color:var(--mute);margin:8px 4px 0;line-height:1.5}
+.btn.blue{background:#3182f6;margin-top:16px;padding:15px;font-size:16px;border-radius:14px}
+.bl-st{display:flex;justify-content:space-between;align-items:center;background:var(--soft);border-radius:14px;padding:14px 16px;font-size:15px}.bl-st b{color:var(--mute)}.bl-st b.on{color:#3182f6}
+.bl{margin:10px 2px 0}.bl>div{display:flex;align-items:baseline;gap:10px;padding:9px 2px;font-size:15px}.bl b{width:52px;flex:none}.bl span{flex:1;color:var(--sub)}.bl em{font-style:normal;color:var(--mute);font-variant-numeric:tabular-nums}
+.ios{margin:14px 0 0;padding:14px 16px 14px 34px;background:var(--soft);border-radius:14px;font-size:15px;line-height:1.9;color:var(--sub)}.ios b{color:var(--ink)}
+.entry{text-align:center;padding:8px 4px 0}
+.entry-i{width:52px;height:52px;padding:12px;border-radius:18px;background:#e8f3ff;fill:none;stroke:#3182f6;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.entry-t{font-size:23px;font-weight:800;letter-spacing:-.5px;line-height:1.35;margin-top:14px}.entry-d{font-size:15px;color:var(--sub);margin-top:8px}
+.entry .btn.blue{margin-top:22px}.entry .ios{text-align:left;margin-top:18px}.entry .pk-f{text-align:center}
+.entry-web{display:block;width:100%;padding:14px 0 4px;font-size:15px;color:var(--mute)}
+.sheet-x{float:right;padding:0;margin:-4px -4px 0 8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center}.sheet-x svg{width:22px;height:22px;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round}
+.entry-i{display:block;margin:0 auto}
