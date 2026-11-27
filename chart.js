@@ -193,6 +193,7 @@
         (p.markers || []).forEach((m) => {
           if (m.i < a || m.i > b || m.y == null) return; const x = X(m.i), y = Y(m.y), buy = m.kind === "buy", sz = bw > 6 ? 6 : 4.5;
           g.fillStyle = m.color || (buy ? C.up : C.down); g.beginPath();
+          if (m.shape === "dia") { const cy = buy ? y + 12 : y - 12, r = sz + 1.5; g.moveTo(x, cy - r); g.lineTo(x + r, cy); g.lineTo(x, cy + r); g.lineTo(x - r, cy); g.closePath(); g.fill(); return; }   // 11-28 200일선(추세) 매매 = 마름모
           if (buy) { g.moveTo(x, y + 4); g.lineTo(x - sz, y + 4 + sz * 1.6); g.lineTo(x + sz, y + 4 + sz * 1.6); }
           else { g.moveTo(x, y - 4); g.lineTo(x - sz, y - 4 - sz * 1.6); g.lineTo(x + sz, y - 4 - sz * 1.6); }
           g.closePath(); g.fill();

@@ -969,6 +969,12 @@ function drawLog() {
     (sacc[k]?.trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why, "acc", t.info?.w));
     const plan = sacc[k]?.plan || {}, sell = (plan.swing || []).find((z) => z.how === "목표가" && z.symbol === sym);
     const vb = own ? sbt.acc[k].swing.map(([a, b]) => ({i0: sbt.i0 + a, i1: sbt.i0 + b, color: css("--tq") + "26"})) : [];
+    // 11-28 사용자 '200일선 매수매도는 매매 차트에 안 나타나나' → 어느 종목 차트든 200일선(QQQM) 매수·매도를 마름모로, 현금 대기 기간은 회색으로
+    if (sym !== "QQQM") { let off = null;
+      sbt.acc[k].trades.filter((t) => t[2] === "QQQM" && /^추세 (위|아래)/.test(t[5])).forEach((t) => { const i = di[t[0]]; if (i == null) return; const buy = t[1] === "b";
+        mk.push({i, y: buy ? l[i] : h[i], kind: buy ? "buy" : "sell", shape: "dia", color: buy ? "#0ca678" : "#8b95a1", trend: true, rows: {}});
+        if (!buy) off = i; else if (off != null) { vb.push({i0: off, i1: i, color: "#8b95a126"}); off = null; } });
+      if (off != null) vb.push({i0: off, i1: x.length - 1, color: "#8b95a126"}); }
     rounds_ = (sbt.acc[k].rounds || []);
     price = {pane: {h: 3, log: S.lrange === "all" || S.lrange === "5y", fmt: (y) => "$" + (y >= 100 ? y.toFixed(0) : y.toFixed(2)),
       series: [{type: S.ltype === "line" ? "line" : "candle", name: sym, o, h, l, c, y: c, color: css("--ink"), w: 1.6},
@@ -982,7 +988,8 @@ function drawLog() {
     else { const z = price.pane.series[0], pc = z.c[i - 1]; if (pc) s += ` <span class="${cls(z.c[i] - pc)}">전일 대비 ${pct(z.c[i] / pc - 1, 2)}</span>`;
       s += `<div class="g4"><span>시가</span><b>${usd2(z.o[i])}</b><span>고가</span><b class="up">${usd2(z.h[i])}</b><span>저가</span><b class="down">${usd2(z.l[i])}</b><span>종가</span><b>${usd2(z.c[i])}</b></div>`;
       if (real && x[i] < real) s += `<div class="warn">상장 전 가정 가격</div>`;
-      price.mk.filter((m) => m.i === i).forEach((m) => Object.entries(m.rows).forEach(([p, r]) => { s += `<div class="${m.kind === "buy" ? "up" : "down"}">${m.kind === "buy" ? "▲ 매수" : "▼ 매도"} ${usd2(+p)}${r.n > 1 ? ` × ${r.n}묶음` : ""}${m.kind === "buy" && r.w != null ? ` (${r.n > 1 ? "각 " : ""}${lotWord(r.w)})` : ""} · ${esc(tw(r.why))}</div>`; })); }
+      price.mk.filter((m) => m.i === i && m.trend).forEach((m) => { s += `<div style="color:${m.color}">◆ ${m.kind === "buy" ? "200일선 위 · QQQM 매수" : "200일선 아래 · 매도 후 " + waitWord()}</div>`; });
+      price.mk.filter((m) => m.i === i && !m.trend).forEach((m) => Object.entries(m.rows).forEach(([p, r]) => { s += `<div class="${m.kind === "buy" ? "up" : "down"}">${m.kind === "buy" ? "▲ 매수" : "▼ 매도"} ${usd2(+p)}${r.n > 1 ? ` × ${r.n}묶음` : ""}${m.kind === "buy" && r.w != null ? ` (${r.n > 1 ? "각 " : ""}${lotWord(r.w)})` : ""} · ${esc(tw(r.why))}</div>`; })); }
     s += `<div class="t2">VIX ${num(vix[i], 1)} · 공포탐욕 ${fg[i] != null ? Math.round(fg[i]) : "-"}</div>`;
     if (i < n0 && rsi[i] != null) s += `<div class="t2">RSI 마감 ${num(rsi[i], 1)} · 장중 ${num(rlo[i], 1)}~${num(rhi[i], 1)} · QQQ 고점 대비 ${pct(qdd[i])}</div>` + buyWhy(i);
     return s;
@@ -1003,7 +1010,7 @@ function drawLog() {
       {h: 1, fmt: (y) => y.toFixed(0), series: [{type: "line", name: "VIX", y: vix, color: css("--warn"), w: 1.3}]},
       {h: 1, fmt: (y) => y.toFixed(0), fix: [0, 100], series: [{type: "line", name: "공포탐욕지수", y: fg, color: css("--B"), w: 1.3}]}]});
   cap.innerHTML = sym === "ACC" ? `<span><i style="background:${css(P[k].v)}"></i>${P[k].name}</span><span><i style="background:${css("--Q")}"></i>QQQ 보유</span><span><i class="sq" style="background:${css("--tq")}40"></i>단타 보유</span><span class="mute">2000년=1 배수</span>`
-    : `<span><b class="up">▲</b>매수</span><span><b style="color:#f08a00">▲</b>급락 예외 매수</span><span><b class="down">▼</b>매도</span>${sym === S.inst ? `<span><i class="sq" style="background:${css("--tq")}26"></i>단타 보유</span>` : ""}${real && real > H.dates[0] ? `<span class="mute">${ymd(real).slice(0, 4)}년 이전 가정 가격</span>` : ""}`;
+    : `<span><b class="up">▲</b>매수</span><span><b style="color:#f08a00">▲</b>급락 예외 매수</span><span><b class="down">▼</b>매도</span>${sym !== "QQQM" ? `<span><b style="color:#0ca678">◆</b>200일선 매수</span><span><b style="color:#8b95a1">◆</b>200일선 매도</span><span><i class="sq" style="background:#8b95a140"></i>현금 대기</span>` : ""}${sym === S.inst ? `<span><i class="sq" style="background:${css("--tq")}26"></i>단타 보유</span>` : ""}${real && real > H.dates[0] ? `<span class="mute">${ymd(real).slice(0, 4)}년 이전 가정 가격</span>` : ""}`;
 }
 async function drawIntraday(sym) {
   const el = $("#logchart"); if (!logChart || !el.querySelector("canvas")) el.innerHTML = wait("실시간 시세를 불러오는 중입니다");
