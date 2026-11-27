@@ -662,15 +662,20 @@ function drawLog() {
     const px = H.px[sym]; const o = px.o.slice(), h = px.h.slice(), l = px.l.slice(), c = px.c.slice(); const tb = LQ[sym];
     if (tb && tb.day > H.last) { x.push(tb.day); o.push(tb.o); h.push(tb.h); l.push(tb.l); c.push(tb.c); vix.push(LQ["^VIX"] ? LQ["^VIX"].c : null); fg.push(LQ.FG ? LQ.FG.v : null); }
     qhead(sym, tb || {day: H.last, c: c[c.length - 1], prev: c[c.length - 2]});
-    const di = Object.fromEntries(x.map((d, i) => [d, i])), mk = [], seen = new Set();
-    const addT = (d, side, s, p, why) => { const key = d + side + s + p; if (s !== sym || seen.has(key) || di[d] == null) return; seen.add(key);
-      mk.push({i: di[d], y: side === "b" ? Math.min(p, l[di[d]] ?? p) : Math.max(p, h[di[d]] ?? p), kind: side === "b" ? "buy" : "sell", p, why}); };
+    // 11-27 사용자 '5번 샀다는데 4번으로 보임': 같은 날 같은 가격 묶음(마감 2묶음 등)이 한 표시로 겹쳤음 → 하루·방향별로 한 표시 + 묶음 수 숫자, 값 칸엔 가격별로.
+    // 시험 기록과 가상 계좌 기록에 같은 매매가 둘 다 있을 수 있어 출처별로 세고 큰 쪽을 씀.
+    const di = Object.fromEntries(x.map((d, i) => [d, i])), mk = [], byDay = {}, cnt = {};
+    const addT = (d, side, s, p, why, src) => { if (s !== sym || di[d] == null) return;
+      const kd = d + side, kp = kd + "|" + p, c = (cnt[kp] = cnt[kp] || {n: 0, why}); c[src] = (c[src] || 0) + 1; c.n = Math.max(c.n, c[src]);
+      let m = byDay[kd]; if (!m) { m = byDay[kd] = {i: di[d], y: side === "b" ? l[di[d]] ?? p : h[di[d]] ?? p, kind: side === "b" ? "buy" : "sell", rows: {}}; mk.push(m); }
+      m.rows[p] = c; m.p = p; m.why = why; m.y = side === "b" ? Math.min(m.y, p) : Math.max(m.y, p);
+      const tot = Object.values(m.rows).reduce((z, r) => z + r.n, 0); m.label = side === "b" && tot > 1 ? String(tot) : ""; };
     // 11-27: 보고 있는 차트 종목(QQQ·QLD·TQQQ)의 모델 기록으로 매수·매도 표시(예전엔 고른 단타 상품 것만 → TQQQ 외엔 표시 없음)
     const own = PRODUCTS[sym] ? (sym === "TQQQ" ? rawHist : rawHist?.variants?.[sym]) : null;
     const sbt = own?.bt?.[S.assume ? "assume" : "real"] || bt;
     const sacc = PRODUCTS[sym] ? ((sym === "TQQQ" ? rawData?.accounts : rawData?.variants?.[sym]?.accounts) || D.accounts) : D.accounts;
-    sbt.acc[k].trades.forEach((t) => addT(t[0], t[1], t[2], t[3], t[5]));
-    (sacc[k]?.trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why));
+    sbt.acc[k].trades.forEach((t) => addT(t[0], t[1], t[2], t[3], t[5], "bt"));
+    (sacc[k]?.trades || []).forEach((t) => addT(t.date, t.side[0], t.symbol, t.price, t.why, "acc"));
     const plan = sacc[k]?.plan || {}, sell = (plan.swing || []).find((z) => z.how === "목표가" && z.symbol === sym);
     const vb = own ? sbt.acc[k].swing.map(([a, b]) => ({i0: sbt.i0 + a, i1: sbt.i0 + b, color: css("--tq") + "26"})) : [];
     // 11-27 사용자: 사는 구간(QQQ 1년 고점 대비 -10%~-25%)을 이 종목 가격으로 옮겨 흐리게. 레버리지는 '그날 QQQ가 그 선에서 마감했다면' 근사(일간 배수)
@@ -692,7 +697,7 @@ function drawLog() {
     else { const z = price.pane.series[0], pc = z.c[i - 1]; if (pc) s += ` <span class="${cls(z.c[i] - pc)}">전일 대비 ${pct(z.c[i] / pc - 1, 2)}</span>`;
       s += `<div class="g4"><span>시가</span><b>${usd2(z.o[i])}</b><span>고가</span><b class="up">${usd2(z.h[i])}</b><span>저가</span><b class="down">${usd2(z.l[i])}</b><span>종가</span><b>${usd2(z.c[i])}</b></div>`;
       if (real && x[i] < real) s += `<div class="warn">상장 전 가정 가격</div>`;
-      price.mk.filter((m) => m.i === i).forEach((m) => { s += `<div class="${m.kind === "buy" ? "up" : "down"}">${m.kind === "buy" ? "▲ 매수" : "▼ 매도"} ${usd2(m.p)} · ${esc(tw(m.why))}</div>`; }); }
+      price.mk.filter((m) => m.i === i).forEach((m) => Object.entries(m.rows).forEach(([p, r]) => { s += `<div class="${m.kind === "buy" ? "up" : "down"}">${m.kind === "buy" ? "▲ 매수" : "▼ 매도"} ${usd2(+p)}${r.n > 1 ? ` × ${r.n}묶음` : ""} · ${esc(tw(r.why))}</div>`; })); }
     s += `<div class="t2">VIX ${num(vix[i], 1)} · 공포탐욕 ${fg[i] != null ? Math.round(fg[i]) : "-"}</div>`;
     if (i < n0 && rsi[i] != null) s += `<div class="t2">RSI 마감 ${num(rsi[i], 1)} · 장중 ${num(rlo[i], 1)}~${num(rhi[i], 1)} · QQQ 고점 대비 ${pct(qdd[i])}</div>` + buyWhy(i);
     return s;
