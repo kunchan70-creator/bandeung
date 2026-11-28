@@ -8,14 +8,14 @@ const PUSH = "https://bandeung-push.kunchan70.workers.dev";
 const usd = (v) => "$" + Number(v).toFixed(2);
 const unitW = (u) => u === .5 ? "반 묶음" : u === 1 ? "한 묶음" : `${u}묶음`;
 function v2text(p, set) {
-  const inst = (set.inst === "QQQ" ? "QQQM" : set.inst) || "TQQQ", lot = Number(set.lot) || 20, L = (p.per || {})[inst] || [];
+  const inst = (set.inst === "QQQM" ? "QQQ" : set.inst) || "TQQQ", lot = Number(set.lot) || 20, L = (p.per || {})[inst] || [];
   const md = (d) => d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : "";
   const rows = L.map(([k, s, px, v]) => k === "b" ? `▲ ${s} 매수 ${usd(px)} · 계좌 ${+(v * lot).toFixed(1)}%(${unitW(v)})`
     : k === "s" ? `▼ ${s} 매도 ${usd(px)} · 보유 전량`
     : k === "e" ? `▼ ${s} ${md(v)} 장 마감 매도 · 보유 기한`
     : k === "fs" ? `▼ ${s} 시가 매도 · 단타 자금 마련`
-    : k === "tb" ? `▲ QQQM 매수 ${usd(px)} · 200일선 위${v != null ? ` · 목표 비중 ${v}%` : ""}`
-    : `▼ QQQM 매도 ${usd(px)} · 200일선 아래${v != null ? ` · 목표 비중 ${v}%` : ""}`);
+    : k === "tb" ? `▲ ${s} 매수 ${usd(px)} · 200일선 위${v != null ? ` · 목표 비중 ${v}%` : ""}`
+    : `▼ ${s} 매도 ${usd(px)} · 200일선 아래${v != null ? ` · 목표 비중 ${v}%` : ""}`);
   const title = rows.length ? `피어바이 · ${md(p.sess)} 주문 ${rows.length}건` : "피어바이 · 내 종목 주문 없음";
   return {title, body: (rows.length ? rows.join("\n") : `${inst}는 새 주문이 없습니다`) + `\n내 설정: ${inst} · 한 묶음 ${lot}%`};
 }
